@@ -37,13 +37,12 @@ try {
 
     const breached = breachData !== null;
 
-    await EmailCheck.create({
-      userId: session.user.email,
-      email,
-      breached,
-      passwordExposed: passwordResult.exposed,
-    });
-
+   await EmailCheck.create({
+  userId: session?.user?.email || email, 
+  email,
+  breached,
+  passwordExposed: passwordResult.exposed,
+});
     return NextResponse.json({
       ok: true,
       email,

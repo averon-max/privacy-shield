@@ -1,7 +1,7 @@
 "use client";
-import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 type Check = {
   _id: string;
@@ -14,16 +14,23 @@ type Check = {
 export default function History() {
   const [checks, setChecks] = useState<Check[]>([]);
   const [loading, setLoading] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
   useEffect(() => {
-    fetch("/api/history")
-      .then((res) => res.json())
-      .then((data) => {
-        setChecks(data.checks || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+    if (status === "unauthenticated") {
+      setLoading(false);
+      return;
+    }
+    if (status === "authenticated") {
+      fetch("/api/history")
+        .then((res) => res.json())
+        .then((data) => {
+          setChecks(data.checks || []);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [status]);
 
   const clearHistory = async () => {
     if (!confirm("Are you sure you want to clear all history?")) return;
@@ -37,10 +44,22 @@ export default function History() {
     return { label: "Low", color: "text-green-400", bg: "bg-green-900/20 border-green-800" };
   };
 
+  if (status === "unauthenticated") {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4">
+        <div className="text-center">
+          <p className="text-slate-400 mb-4">Sign in to view your history</p>
+          <Link href="/" className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-500 transition">
+            Go back
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12">
       <div className="w-full max-w-2xl mx-auto">
-
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-white">Check History</h1>
@@ -81,10 +100,10 @@ export default function History() {
                     </p>
                     <div className="flex gap-2 mt-2 flex-wrap">
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${check.breached ? "bg-red-900/20 border-red-800 text-red-400" : "bg-green-900/20 border-green-800 text-green-400"}`}>
-                        {check.breached ? "⚠️ Email exposed" : "✅ Email clean"}
+                        {check.breached ? "⚠️ EMAIL PWNED" : "✅ Email clean"}
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${check.passwordExposed ? "bg-red-900/20 border-red-800 text-red-400" : "bg-green-900/20 border-green-800 text-green-400"}`}>
-                        {check.passwordExposed ? "⚠️ Password exposed" : "✅ Password clean"}
+                        {check.passwordExposed ? "⚠️ PASSWORD PWNED" : "✅ Password clean"}
                       </span>
                     </div>
                   </div>
