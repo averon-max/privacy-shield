@@ -19,29 +19,23 @@ export default function Home() {
     if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score++;
     const levels = [
-      { label: "Weak",   color: "bg-red-500",   textColor: "text-red-400"    },
-      { label: "Fair",   color: "bg-amber-500",  textColor: "text-amber-400"  },
-      { label: "Good",   color: "bg-yellow-400", textColor: "text-yellow-300" },
-      { label: "Strong", color: "bg-green-500",  textColor: "text-green-400"  },
+      { label: "Weak",   bg: "#2a2a2a", text: "#555", glow: "none" },
+      { label: "Fair",   bg: "#555",    text: "#888", glow: "none" },
+      { label: "Good",   bg: "#999",    text: "#bbb", glow: "0 0 6px rgba(255,255,255,0.2)" },
+      { label: "Strong", bg: "#fff",    text: "#fff", glow: "0 0 12px rgba(255,255,255,0.6)" },
     ];
     return { score, ...levels[Math.max(0, score - 1)] };
   };
 
   const getRiskLevel = (res: any) => {
-    if (res.breached && res.passwordExposed) return { label: "Critical Risk", icon: "🔴", color: "text-red-400", bg: "bg-red-900/20 border-red-800" };
-    if (res.breached || res.passwordExposed) return { label: "Medium Risk", icon: "🟡", color: "text-amber-400", bg: "bg-amber-900/20 border-amber-800" };
-    return { label: "Low Risk", icon: "🟢", color: "text-green-400", bg: "bg-green-900/20 border-green-800" };
+    if (res.breached && res.passwordExposed) return { label: "Critical", color: "#fff", border: "rgba(255,255,255,0.5)", glow: "0 0 20px rgba(255,255,255,0.15), inset 0 0 20px rgba(255,255,255,0.02)" };
+    if (res.breached || res.passwordExposed) return { label: "Medium", color: "#aaa", border: "rgba(255,255,255,0.15)", glow: "none" };
+    return { label: "Low", color: "#444", border: "rgba(255,255,255,0.05)", glow: "none" };
   };
 
   const handleCheck = async () => {
-    if (!email || !email.includes("@")) {
-      setError("Please enter a valid email");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setResult(null);
-
+    if (!email || !email.includes("@")) { setError("Please enter a valid email"); return; }
+    setLoading(true); setError(""); setResult(null);
     try {
       const res = await fetch("/api/checkEmail", {
         method: "POST",
@@ -49,15 +43,9 @@ export default function Home() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
-      } else {
-        setResult(data);
-      }
-    } catch (err) {
-      setError("Could not connect to server. Please try again.");
-    }
-
+      if (!res.ok) setError(data.error || "Something went wrong");
+      else setResult(data);
+    } catch { setError("Could not connect to server."); }
     setLoading(false);
   };
 
@@ -65,167 +53,131 @@ export default function Home() {
   const risk = result ? getRiskLevel(result) : null;
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12">
-      <div className="w-full max-w-md">
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 20px" }}>
+      <div style={{ width: "100%", maxWidth: "380px" }}>
 
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 mb-4">
-            <span className="text-3xl">🔐</span>
-          </div>
-          <h1 className="text-3xl font-semibold text-white">Privacy Shield</h1>
-          <p className="text-slate-400 text-sm mt-2">Check if your credentials have been exposed in data breaches</p>
+        <div style={{ textAlign: "center", marginBottom: "48px" }}>
+          <div style={{ fontSize: "36px", marginBottom: "20px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.8)) drop-shadow(0 0 60px rgba(255,255,255,0.3))" }}>🔐</div>
+          <h1 style={{ color: "#fff", fontSize: "22px", fontWeight: 200, letterSpacing: "0.35em", textTransform: "uppercase", marginBottom: "8px", textShadow: "0 0 30px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.3)" }}>
+            Privacy Shield
+          </h1>
+          <p style={{ color: "#444", fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase" }}>
+            Credential Exposure Detection
+          </p>
 
-          <div className="mt-4">
+          <div style={{ marginTop: "28px" }}>
             {session ? (
-              <div className="flex items-center justify-center gap-3">
-                <img src={session.user?.image ?? ""} className="w-7 h-7 rounded-full" />
-                <span className="text-slate-400 text-sm">{session.user?.email}</span>
-                <button onClick={() => signOut()} className="text-slate-500 text-xs hover:text-red-400 transition">Sign out</button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+                <img
+                  src={session.user?.image ?? ""}
+                  style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #444", boxShadow: "0 0 15px rgba(255,255,255,0.2), 0 0 30px rgba(255,255,255,0.08)" }}
+                />
+                <span style={{ color: "#555", fontSize: "12px" }}>{session.user?.email}</span>
+                <button onClick={() => signOut()}
+                  style={{ color: "#333", fontSize: "11px", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.1em" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#888")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#333")}
+                >sign out</button>
               </div>
             ) : (
-              <button
-                onClick={() => signIn("google")}
-                className="px-4 py-2 rounded-lg bg-white text-slate-900 text-sm font-medium hover:bg-slate-100 transition"
-              >
-                Sign in with Google
-              </button>
+              <button onClick={() => signIn("google")}
+                style={{ padding: "10px 28px", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#777", background: "none", border: "1px solid #222", cursor: "pointer", boxShadow: "0 0 20px rgba(255,255,255,0.03)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#666"; e.currentTarget.style.boxShadow = "0 0 30px rgba(255,255,255,0.15), 0 0 60px rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "#777"; e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.03)"; }}
+              >Sign in with Google</button>
             )}
           </div>
         </div>
 
         {!session ? (
-          <div className="bg-slate-900/80 border border-slate-700/50 rounded-2xl p-8 text-center">
-            <p className="text-slate-400 text-sm">Sign in to check your credentials and view your private history</p>
+          <div style={{ border: "1px solid #111", padding: "40px", textAlign: "center", boxShadow: "0 0 40px rgba(255,255,255,0.02)" }}>
+            <p style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase" }}>Authentication required</p>
           </div>
         ) : (
-          <div className="bg-slate-900/80 border border-slate-700/50 rounded-2xl p-6 shadow-2xl backdrop-blur">
-            <div className="space-y-3">
-              <div>
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setResult(null); setError(""); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleCheck()}
-                  className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
-                />
-              </div>
+          <div style={{ border: "1px solid #222", padding: "28px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 0 80px rgba(255,255,255,0.05), 0 0 160px rgba(255,255,255,0.02)" }}>
 
-              <div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password (optional)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleCheck()}
-                    className="w-full px-4 py-3 rounded-lg bg-slate-800 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition pr-12"
-                  />
-                  <button
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
+            <input type="email" placeholder="Email address" value={email}
+              onChange={e => { setEmail(e.target.value); setResult(null); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleCheck()}
+              style={{ width: "100%", background: "#080808", border: "1px solid #1e1e1e", color: "#ddd", fontSize: "13px", padding: "13px 16px", outline: "none" }}
+              onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.05)"; }}
+              onBlur={e => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.boxShadow = "none"; }}
+            />
 
-                {strength && (
-                  <div className="mt-2 space-y-1">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4].map((level) => (
-                        <div
-                          key={level}
-                          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                            strength.score >= level ? strength.color : "bg-slate-700"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      Strength: <span className={strength.textColor}>{strength.label}</span>
-                    </p>
-                  </div>
-                )}
-              </div>
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} placeholder="Password (optional)" value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCheck()}
+                style={{ width: "100%", background: "#080808", border: "1px solid #1e1e1e", color: "#ddd", fontSize: "13px", padding: "13px 56px 13px 16px", outline: "none" }}
+                onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.05)"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.boxShadow = "none"; }}
+              />
+              <button onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", color: "#333", fontSize: "10px", background: "none", border: "none", cursor: "pointer", letterSpacing: "0.1em", textTransform: "uppercase" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#777")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#333")}
+              >{showPassword ? "hide" : "show"}</button>
             </div>
 
-            <button
-              onClick={handleCheck}
-              disabled={loading}
-              className="mt-4 w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-500 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-all"
+            {strength && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", gap: "3px" }}>
+                  {[1,2,3,4].map(l => (
+                    <div key={l} style={{ height: "1px", flex: 1, background: strength.score >= l ? strength.bg : "#1a1a1a", transition: "all 0.3s", boxShadow: strength.score >= l ? strength.glow : "none" }} />
+                  ))}
+                </div>
+                <span style={{ color: "#333", fontSize: "11px" }}>Strength: <span style={{ color: strength.text, textShadow: strength.score === 4 ? "0 0 10px rgba(255,255,255,0.5)" : "none" }}>{strength.label}</span></span>
+              </div>
+            )}
+
+            <button onClick={handleCheck} disabled={loading}
+              style={{ width: "100%", padding: "13px", fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: loading ? "#333" : "#888", background: "none", border: `1px solid ${loading ? "#1a1a1a" : "#2a2a2a"}`, cursor: loading ? "not-allowed" : "pointer" }}
+              onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.5), 0 0 80px rgba(255,255,255,0.2)"; }}}
+              onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.boxShadow = "none"; }}
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <svg style={{ animation: "spin 1s linear infinite", width: "12px", height: "12px", flexShrink: 0 }} viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.2"/>
+                    <path fill="currentColor" d="M4 12a8 8 0 018-8v8z" opacity="0.8"/>
                   </svg>
-                  Checking...
+                  Scanning...
                 </span>
-              ) : "Check Security"}
+              ) : "Run Security Scan"}
             </button>
 
             {error && (
-              <div className="mt-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm flex items-center gap-2">
-                <span>⚠️</span> {error}
+              <div style={{ border: "1px solid #1e1e1e", padding: "12px 16px", color: "#555", fontSize: "12px" }}>
+                ⚠ {error}
               </div>
             )}
 
             {result && risk && (
-              <div className="mt-4 space-y-3">
-                <div className={`px-4 py-3 rounded-lg border flex items-center justify-between ${risk.bg}`}>
-                  <span className="text-slate-400 text-sm">Overall Risk</span>
-                  <span className={`font-semibold text-sm flex items-center gap-1 ${risk.color}`}>
-                    {risk.icon} {risk.label}
-                  </span>
-                </div>
-
-                <div className={`px-4 py-4 rounded-lg border ${
-                  result.breached ? "bg-red-900/20 border-red-800" : "bg-green-900/20 border-green-800"
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-sm">Email breaches</span>
-                    <span className={`text-sm font-medium ${result.breached ? "text-red-300" : "text-green-300"}`}>
-                      {result.breached ? "⚠️ Exposed" : "✅ Clean"}
-                    </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
+                {[
+                  { label: "Risk", value: risk.label, color: risk.color, border: risk.border, glow: risk.glow },
+                  { label: "Email", value: result.breached ? "⚠ Compromised" : "✓ Clear", color: result.breached ? "#fff" : "#333", border: result.breached ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)", glow: result.breached ? "0 0 20px rgba(255,255,255,0.12)" : "none" },
+                  { label: "Password", value: result.passwordExposed ? `⚠ Exposed ${result.passwordBreachCount?.toLocaleString()}×` : "✓ Clear", color: result.passwordExposed ? "#fff" : "#333", border: result.passwordExposed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)", glow: result.passwordExposed ? "0 0 20px rgba(255,255,255,0.12)" : "none" },
+                ].map(row => (
+                  <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${row.border}`, boxShadow: row.glow }}>
+                    <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>{row.label}</span>
+                    <span style={{ color: row.color, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textShadow: row.color === "#fff" ? "0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4)" : "none" }}>{row.value}</span>
                   </div>
-                  {result.breached && (
-                    <p className="text-red-400 text-xs mt-1">This email appeared in known data breaches</p>
-                  )}
-                </div>
-
-                <div className={`px-4 py-4 rounded-lg border ${
-                  result.passwordExposed ? "bg-red-900/20 border-red-800" : "bg-green-900/20 border-green-800"
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 text-sm">Password breaches</span>
-                    <span className={`text-sm font-medium ${result.passwordExposed ? "text-red-300" : "text-green-300"}`}>
-                      {result.passwordExposed
-                        ? `⚠️ ${result.passwordBreachCount?.toLocaleString()} times`
-                        : "✅ Clean"}
-                    </span>
-                  </div>
-                  {result.passwordExposed && (
-                    <p className="text-red-400 text-xs mt-1">Change this password immediately on all accounts</p>
-                  )}
-                </div>
-
-                <p className="text-slate-600 text-xs text-center">Checked: {result.email}</p>
+                ))}
+                <p style={{ color: "#1e1e1e", fontSize: "11px", textAlign: "center", marginTop: "4px" }}>{result.email}</p>
               </div>
             )}
           </div>
         )}
 
-        <div className="text-center mt-4">
-          <Link href="/history" className="text-slate-500 text-xs hover:text-slate-300 transition">
-            View check history →
-          </Link>
+        <div style={{ textAlign: "center", marginTop: "36px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          <Link href="/history" style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.textShadow = "0 0 10px rgba(255,255,255,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "#2a2a2a"; e.currentTarget.style.textShadow = "none"; }}
+          >View scan history →</Link>
+          <p style={{ color: "#1a1a1a", fontSize: "10px", letterSpacing: "0.1em" }}>K-Anonymity · Zero plain-text transmission</p>
         </div>
-
-        <p className="text-center text-slate-600 text-xs mt-3">
-          Passwords checked via k-anonymity — never sent in plain text
-        </p>
       </div>
-    </main>
+    </div>
   );
 }
