@@ -44,7 +44,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) setError(data.error || "Something went wrong");
-      else setResult(data);
+      else { setResult(data); console.log(JSON.stringify(data, null, 2)); }
     } catch { setError("Could not connect to server."); }
     setLoading(false);
   };
@@ -154,16 +154,37 @@ export default function Home() {
 
             {result && risk && (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-                {[
-                  { label: "Risk", value: risk.label, color: risk.color, border: risk.border, glow: risk.glow },
-                  { label: "Email", value: result.breached ? "⚠ Compromised" : "✓ Clear", color: result.breached ? "#fff" : "#333", border: result.breached ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)", glow: result.breached ? "0 0 20px rgba(255,255,255,0.12)" : "none" },
-                  { label: "Password", value: result.passwordExposed ? `⚠ Exposed ${result.passwordBreachCount?.toLocaleString()}×` : "✓ Clear", color: result.passwordExposed ? "#fff" : "#333", border: result.passwordExposed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)", glow: result.passwordExposed ? "0 0 20px rgba(255,255,255,0.12)" : "none" },
-                ].map(row => (
-                  <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${row.border}`, boxShadow: row.glow }}>
-                    <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>{row.label}</span>
-                    <span style={{ color: row.color, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textShadow: row.color === "#fff" ? "0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4)" : "none" }}>{row.value}</span>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${risk.border}`, boxShadow: risk.glow }}>
+                  <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Risk</span>
+                  <span style={{ color: risk.color, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textShadow: risk.color === "#fff" ? "0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4)" : "none" }}>{risk.label}</span>
+                </div>
+
+                <div style={{ border: `1px solid ${result.breached ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.breached ? "0 0 20px rgba(255,255,255,0.12)" : "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
+                    <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Email</span>
+                    <span style={{ color: result.breached ? "#fff" : "#333", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textShadow: result.breached ? "0 0 15px rgba(255,255,255,0.8)" : "none" }}>
+                      {result.breached ? "⚠ Compromised" : "✓ Clear"}
+                    </span>
                   </div>
-                ))}
+{result.breached && result.breachData?.breaches?.[0] && (
+  <div style={{ padding: "0 16px 12px", display: "flex", flexWrap: "wrap", gap: "6px" }}>
+    {result.breachData.breaches[0].slice(0, 20).map((site: string) => (
+      <span key={site} style={{ fontSize: "10px", padding: "3px 10px", border: "1px solid rgba(255,255,255,0.08)", color: "#555", letterSpacing: "0.06em", background: "rgba(255,255,255,0.02)" }}>
+        {site}
+      </span>
+    ))}
+  </div>
+)}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${result.passwordExposed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.passwordExposed ? "0 0 20px rgba(255,255,255,0.12)" : "none" }}>
+                  <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Password</span>
+                  <span style={{ color: result.passwordExposed ? "#fff" : "#333", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textShadow: result.passwordExposed ? "0 0 15px rgba(255,255,255,0.8)" : "none" }}>
+                    {result.passwordExposed ? `⚠ Exposed ${result.passwordBreachCount?.toLocaleString()}×` : "✓ Clear"}
+                  </span>
+                </div>
+
                 <p style={{ color: "#1e1e1e", fontSize: "11px", textAlign: "center", marginTop: "4px" }}>{result.email}</p>
               </div>
             )}
@@ -178,6 +199,8 @@ export default function Home() {
           <p style={{ color: "#1a1a1a", fontSize: "10px", letterSpacing: "0.1em" }}>K-Anonymity · Zero plain-text transmission</p>
         </div>
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

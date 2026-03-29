@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
-const EmailSchema = new mongoose.Schema({
+const EmailCheckSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
   email: String,
   breached: Boolean,
   passwordExposed: Boolean,
@@ -8,4 +9,4 @@ const EmailSchema = new mongoose.Schema({
 });
 
 export default mongoose.models.EmailCheck ||
-  mongoose.model("EmailCheck", EmailSchema);
+  mongoose.model("EmailCheck", EmailCheckSchema);

@@ -36,9 +36,8 @@ try {
     ]);
 
     const breached = breachData !== null;
-
    await EmailCheck.create({
-  userId: session?.user?.email || email, 
+  userId: session.user.email, 
   email,
   breached,
   passwordExposed: passwordResult.exposed,
