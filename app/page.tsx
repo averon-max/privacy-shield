@@ -227,7 +227,7 @@ export default function Home() {
           </div>
         )}
 
-        <div style={{ textAlign: "censter", marginTop: "36px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ textAlign: "center", marginTop: "36px", display: "flex", flexDirection: "column", gap: "10px" }}>
           <Link href="/history" style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
             onMouseEnter={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.textShadow = "0 0 10px rgba(255,255,255,0.3)"; }}
             onMouseLeave={e => { e.currentTarget.style.color = "#2a2a2a"; e.currentTarget.style.textShadow = "none"; }}
