@@ -3,15 +3,24 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 
-export default function Home() {
+interface ResultData {
+  breached: boolean;
+  passwordExposed: boolean;
+  breachData?: { breaches?: string[][] };
+  passwordBreachCount?: number;
+  email: string;
+}
+
+export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ResultData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [alreadyScanned, setAlreadyScanned] = useState(false);
   const [scanMessage, setScanMessage] = useState("Initializing scan...");
+  const [activeTab, setActiveTab] = useState<"scan" | "tips">("scan");
   const { data: session } = useSession();
 
   const scanMessages = ["Initializing scan...", "Checking databases...", "Analyzing breaches...", "Verifying password...", "Finalizing results..."];
@@ -29,11 +38,7 @@ export default function Home() {
   useEffect(() => {
     if (!email || !email.includes("@")) { setAlreadyScanned(false); return; }
     const last = localStorage.getItem(`scanned_${email.toLowerCase()}`);
-    if (last) {
-      setAlreadyScanned(Date.now() - parseInt(last) < 1000 * 60 * 60);
-    } else {
-      setAlreadyScanned(false);
-    }
+    setAlreadyScanned(last ? Date.now() - parseInt(last) < 1000 * 60 * 60 : false);
   }, [email]);
 
   const getStrength = (pwd: string) => {
@@ -51,18 +56,16 @@ export default function Home() {
     return { score, ...levels[Math.max(0, score - 1)] };
   };
 
-  const getScore = (res: any) => {
+  const getScore = (res: ResultData) => {
     if (res.breached && res.passwordExposed) return { score: 12, label: "Critical", color: "#fff", border: "rgba(255,255,255,0.5)", glow: "0 0 20px rgba(255,255,255,0.15)" };
-    if (res.breached && !res.passwordExposed) return { score: 45, label: "At Risk", color: "#aaa", border: "rgba(255,255,255,0.2)", glow: "none" };
-    if (!res.breached && res.passwordExposed) return { score: 38, label: "Vulnerable", color: "#aaa", border: "rgba(255,255,255,0.2)", glow: "none" };
+    if (res.breached) return { score: 45, label: "At Risk", color: "#aaa", border: "rgba(255,255,255,0.2)", glow: "none" };
+    if (res.passwordExposed) return { score: 38, label: "Vulnerable", color: "#aaa", border: "rgba(255,255,255,0.2)", glow: "none" };
     return { score: 98, label: "Secure", color: "#555", border: "rgba(255,255,255,0.05)", glow: "none" };
   };
 
   const handleCheck = async () => {
     if (!email || !email.includes("@")) { setError("Please enter a valid email"); return; }
-    setLoading(true);
-    setError("");
-    setResult(null);
+    setLoading(true); setError(""); setResult(null);
     localStorage.setItem(`scanned_${email.toLowerCase()}`, Date.now().toString());
     try {
       const res = await fetch("/api/checkEmail", {
@@ -80,52 +83,76 @@ export default function Home() {
   const strength = password ? getStrength(password) : null;
   const scoreData = result ? getScore(result) : null;
 
+  const tips = [
+    { icon: "01", title: "Use unique passwords", desc: "Never reuse passwords across sites. A breach on one site shouldn't compromise all your accounts." },
+    { icon: "02", title: "Enable 2FA everywhere", desc: "Two-factor authentication blocks 99% of automated attacks even if your password is leaked." },
+    { icon: "03", title: "Use a password manager", desc: "Tools like Bitwarden or 1Password generate and store strong unique passwords for every site." },
+    { icon: "04", title: "Check breaches regularly", desc: "New breaches happen daily. Scan your email monthly to stay ahead of threats." },
+    { icon: "05", title: "Monitor your email", desc: "Sign up for breach alerts so you're notified instantly when your data appears in a new leak." },
+    { icon: "06", title: "Avoid common passwords", desc: "Passwords like '123456' or 'password' appear in billions of breach records. Never use them." },
+  ];
+
   return (
-    <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 20px" }}>
-      <div style={{ width: "100%", maxWidth: "380px" }}>
+    <div style={{ minHeight: "100vh", background: "#000", padding: "60px 20px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: "420px", margin: "0 auto" }}>
 
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <div style={{ fontSize: "36px", marginBottom: "20px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.8)) drop-shadow(0 0 60px rgba(255,255,255,0.3))" }}>🔐</div>
-          <h1 style={{ color: "#fff", fontSize: "22px", fontWeight: 200, letterSpacing: "0.35em", textTransform: "uppercase", marginBottom: "8px", textShadow: "0 0 30px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.3)" }}>
-            Privacy Shield
-          </h1>
-          <p style={{ color: "#444", fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase" }}>
-            Credential Exposure Detection
-          </p>
-
-          <div style={{ marginTop: "28px" }}>
-            {session ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
-                <img src={session.user?.image ?? ""} style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #444", boxShadow: "0 0 15px rgba(255,255,255,0.2)" }} />
-                <span style={{ color: "#555", fontSize: "12px" }}>{session.user?.email}</span>
-                <button onClick={() => signOut()}
-                  style={{ color: "#333", fontSize: "11px", background: "none", border: "none", cursor: "pointer" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#888")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "#333")}
-                >sign out</button>
-              </div>
-            ) : (
-              <button onClick={() => signIn("google")}
-                style={{ padding: "10px 28px", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#777", background: "none", border: "1px solid #222", cursor: "pointer" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#666"; e.currentTarget.style.boxShadow = "0 0 30px rgba(255,255,255,0.15)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "#777"; e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.boxShadow = "none"; }}
-              >Sign in with Google</button>
-            )}
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
+            <Link href="/" style={{ color: "#222", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#222")}
+            >← Home</Link>
+            <span style={{ color: "#fff", fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", textShadow: "0 0 20px rgba(255,255,255,0.4)" }}>ScanMyCreds</span>
+            <Link href="/app/tools" style={{ color: "#222", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#222")}
+            >Tools →</Link>
           </div>
+
+          {session ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+              <img src={session.user?.image ?? ""} alt="" style={{ width: "26px", height: "26px", borderRadius: "50%", border: "1px solid #333", boxShadow: "0 0 12px rgba(255,255,255,0.15)" }} />
+              <span style={{ color: "#444", fontSize: "12px" }}>{session.user?.email}</span>
+              <button onClick={() => signOut()} style={{ color: "#222", fontSize: "11px", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#222")}
+              >sign out</button>
+            </div>
+          ) : (
+            <button onClick={() => signIn("google")}
+              style={{ padding: "10px 28px", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#777", background: "none", border: "1px solid #222", cursor: "pointer" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.08)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "#777"; e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.boxShadow = "none"; }}
+            >Sign in with Google</button>
+          )}
         </div>
 
-        {!session ? (
-          <div style={{ border: "1px solid #111", padding: "40px", textAlign: "center" }}>
-            <p style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase" }}>Authentication required</p>
+        {/* Tabs */}
+        {session && (
+          <div style={{ display: "flex", gap: "1px", marginBottom: "24px", background: "#111" }}>
+            {(["scan", "tips"] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                style={{ flex: 1, padding: "10px", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: activeTab === tab ? "#fff" : "#333", background: activeTab === tab ? "#0a0a0a" : "#000", border: "none", cursor: "pointer", transition: "all 0.2s", borderBottom: activeTab === tab ? "1px solid rgba(255,255,255,0.3)" : "1px solid transparent" }}
+              >{tab === "scan" ? "Security Scan" : "Security Tips"}</button>
+            ))}
           </div>
-        ) : (
-          <div style={{ border: "1px solid #222", padding: "28px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 0 80px rgba(255,255,255,0.05)" }}>
+        )}
+
+        {!session ? (
+          <div style={{ border: "1px solid #111", padding: "48px", textAlign: "center", boxShadow: "0 0 40px rgba(255,255,255,0.02)" }}>
+            <div style={{ fontSize: "32px", marginBottom: "16px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.5))" }}>🔐</div>
+            <p style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "4px" }}>Authentication required</p>
+            <p style={{ color: "#1a1a1a", fontSize: "11px" }}>Sign in to scan your credentials</p>
+          </div>
+        ) : activeTab === "scan" ? (
+          <div style={{ border: "1px solid #222", padding: "28px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 0 80px rgba(255,255,255,0.04)" }}>
 
             <input type="email" placeholder="Email address" value={email}
               onChange={e => { setEmail(e.target.value); setResult(null); setError(""); }}
               onKeyDown={e => e.key === "Enter" && handleCheck()}
               style={{ width: "100%", background: "#080808", border: "1px solid #1e1e1e", color: "#ddd", fontSize: "13px", padding: "13px 16px", outline: "none" }}
-              onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.05)"; }}
+              onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.04)"; }}
               onBlur={e => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.boxShadow = "none"; }}
             />
 
@@ -134,7 +161,7 @@ export default function Home() {
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleCheck()}
                 style={{ width: "100%", background: "#080808", border: "1px solid #1e1e1e", color: "#ddd", fontSize: "13px", padding: "13px 56px 13px 16px", outline: "none" }}
-                onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.05)"; }}
+                onFocus={e => { e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.04)"; }}
                 onBlur={e => { e.currentTarget.style.borderColor = "#1e1e1e"; e.currentTarget.style.boxShadow = "none"; }}
               />
               <button onClick={() => setShowPassword(!showPassword)}
@@ -156,14 +183,14 @@ export default function Home() {
             )}
 
             {alreadyScanned && (
-              <div style={{ border: "1px solid #1e1e1e", padding: "10px 16px", color: "#444", fontSize: "11px", letterSpacing: "0.08em" }}>
-                ↻ You scanned this email recently
+              <div style={{ border: "1px solid #1a1a1a", padding: "10px 16px", color: "#333", fontSize: "11px", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ color: "#444" }}>↻</span> You scanned this email recently
               </div>
             )}
 
             <button onClick={handleCheck} disabled={loading}
               style={{ width: "100%", padding: "13px", fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: loading ? "#333" : "#888", background: "none", border: `1px solid ${loading ? "#1a1a1a" : "#2a2a2a"}`, cursor: loading ? "not-allowed" : "pointer" }}
-              onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.5), 0 0 80px rgba(255,255,255,0.2)"; }}}
+              onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#000"; e.currentTarget.style.borderColor = "#fff"; e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.4), 0 0 80px rgba(255,255,255,0.15)"; }}}
               onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.boxShadow = "none"; }}
             >
               {loading ? (
@@ -182,64 +209,94 @@ export default function Home() {
 
             {result && scoreData && (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-
                 <div style={{ padding: "20px 16px", border: `1px solid ${scoreData.border}`, boxShadow: scoreData.glow, textAlign: "center" }}>
                   <p style={{ color: "#2a2a2a", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>Security Score</p>
-                  <p style={{ color: scoreData.color, fontSize: "56px", fontWeight: 100, letterSpacing: "0.05em", lineHeight: 1, marginBottom: "6px", textShadow: scoreData.color === "#fff" ? "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.3)" : "none" }}>
+                  <p style={{ color: scoreData.color, fontSize: "56px", fontWeight: 100, lineHeight: 1, marginBottom: "6px", textShadow: scoreData.color === "#fff" ? "0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.3)" : "none" }}>
                     {scoreData.score}
                   </p>
                   <p style={{ color: scoreData.color === "#fff" ? "#666" : "#333", fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase" }}>{scoreData.label}</p>
                 </div>
 
-                <div style={{ border: `1px solid ${result.breached ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.breached ? "0 0 15px rgba(255,255,255,0.08)" : "none" }}>
+                <div style={{ border: `1px solid ${result.breached ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.breached ? "0 0 15px rgba(255,255,255,0.06)" : "none" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
                     <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Email</span>
                     <span style={{ color: result.breached ? "#fff" : "#333", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", textShadow: result.breached ? "0 0 10px rgba(255,255,255,0.6)" : "none" }}>
-                      {result.breached ? `⚠ ${result.breachData?.breaches?.[0]?.length || "?"} breaches found` : "✓ Clear"}
+                      {result.breached ? `⚠ ${result.breachData?.breaches?.[0]?.length || "?"} breaches` : "✓ Clear"}
                     </span>
                   </div>
                   {result.breached && result.breachData?.breaches?.[0] && (
                     <div style={{ padding: "0 16px 14px", display: "flex", flexWrap: "wrap", gap: "5px" }}>
                       {result.breachData.breaches[0].slice(0, 20).map((site: string) => (
-                        <span key={site} style={{ fontSize: "10px", padding: "2px 8px", border: "1px solid #1e1e1e", color: "#444", background: "#080808", letterSpacing: "0.04em" }}>
-                          {site}
-                        </span>
+                        <span key={site} style={{ fontSize: "10px", padding: "2px 8px", border: "1px solid #1e1e1e", color: "#444", background: "#080808" }}>{site}</span>
                       ))}
                       {result.breachData.breaches[0].length > 20 && (
-                        <span style={{ fontSize: "10px", padding: "2px 8px", border: "1px solid #1e1e1e", color: "#333", letterSpacing: "0.04em" }}>
-                          +{result.breachData.breaches[0].length - 20} more
-                        </span>
+                        <span style={{ fontSize: "10px", padding: "2px 8px", border: "1px solid #1e1e1e", color: "#333" }}>+{result.breachData.breaches[0].length - 20} more</span>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${result.passwordExposed ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.passwordExposed ? "0 0 15px rgba(255,255,255,0.08)" : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", border: `1px solid ${result.passwordExposed ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.04)"}`, boxShadow: result.passwordExposed ? "0 0 15px rgba(255,255,255,0.06)" : "none" }}>
                   <span style={{ color: "#333", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase" }}>Password</span>
                   <span style={{ color: result.passwordExposed ? "#fff" : "#333", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", textShadow: result.passwordExposed ? "0 0 10px rgba(255,255,255,0.6)" : "none" }}>
                     {result.passwordExposed ? `⚠ Exposed ${result.passwordBreachCount?.toLocaleString()}×` : "✓ Clear"}
                   </span>
                 </div>
 
-                <p style={{ color: "#1e1e1e", fontSize: "10px", textAlign: "center", marginTop: "2px", letterSpacing: "0.08em" }}>{result.email}</p>
+                {result.breached && (
+                  <div style={{ border: "1px solid #1a1a1a", padding: "12px 16px", background: "#050505" }}>
+                    <p style={{ color: "#333", fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "8px" }}>Recommended actions</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {["Change your password immediately", "Enable 2FA on this account", "Check if other accounts use this password", "Monitor your email for suspicious activity"].map(action => (
+                        <p key={action} style={{ color: "#444", fontSize: "11px", display: "flex", gap: "8px" }}>
+                          <span style={{ color: "#333" }}>→</span> {action}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <p style={{ color: "#1e1e1e", fontSize: "10px", textAlign: "center", marginTop: "2px" }}>{result.email}</p>
               </div>
             )}
           </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {tips.map(tip => (
+              <div key={tip.icon}
+                style={{ border: "1px solid #111", padding: "20px", display: "flex", gap: "16px", transition: "all 0.2s", cursor: "default" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "#050505"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#111"; e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ color: "#222", fontSize: "11px", letterSpacing: "0.1em", minWidth: "20px", paddingTop: "2px" }}>{tip.icon}</span>
+                <div>
+                  <p style={{ color: "#888", fontSize: "12px", fontWeight: 400, marginBottom: "6px", letterSpacing: "0.05em" }}>{tip.title}</p>
+                  <p style={{ color: "#333", fontSize: "12px", lineHeight: 1.6 }}>{tip.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
-        <div style={{ textAlign: "center", marginTop: "36px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <Link href="/history" style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
-            onMouseEnter={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.textShadow = "0 0 10px rgba(255,255,255,0.3)"; }}
-            onMouseLeave={e => { e.currentTarget.style.color = "#2a2a2a"; e.currentTarget.style.textShadow = "none"; }}
-          >View scan history →</Link>
-          <p style={{ color: "#1a1a1a", fontSize: "10px", letterSpacing: "0.1em" }}>K-Anonymity · Zero plain-text transmission</p>
+        {/* Footer links */}
+        <div style={{ textAlign: "center", marginTop: "32px", display: "flex", justifyContent: "center", gap: "24px" }}>
+          <Link href="/app/history" style={{ color: "#1e1e1e", fontSize: "11px", letterSpacing: "0.1em", textDecoration: "none", textTransform: "uppercase" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#1e1e1e")}
+          >History</Link>
+          <Link href="/app/tools" style={{ color: "#1e1e1e", fontSize: "11px", letterSpacing: "0.1em", textDecoration: "none", textTransform: "uppercase" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#1e1e1e")}
+          >Tools</Link>
+          <Link href="/" style={{ color: "#1e1e1e", fontSize: "11px", letterSpacing: "0.1em", textDecoration: "none", textTransform: "uppercase" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#666")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#1e1e1e")}
+          >Home</Link>
         </div>
+        <p style={{ color: "#111", fontSize: "10px", textAlign: "center", marginTop: "12px", letterSpacing: "0.1em" }}>K-Anonymity · Zero plain-text transmission</p>
       </div>
 
-      <style>{`
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-      `}</style>
+      <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
     </div>
   );
 }
-
