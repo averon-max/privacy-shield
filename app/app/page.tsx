@@ -97,34 +97,33 @@ export default function App() {
       <div style={{ width: "100%", maxWidth: "420px", margin: "0 auto" }}>
 
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
-            <Link href="/" style={{ color: "#222", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#666")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#222")}
-            >← Home</Link>
-            <span style={{ color: "#fff", fontSize: "13px", letterSpacing: "0.2em", textTransform: "uppercase", textShadow: "0 0 20px rgba(255,255,255,0.4)" }}>ScanMyCreds</span>
-            <Link href="/app/tools" style={{ color: "#222", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", textTransform: "uppercase" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#666")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#222")}
-            >Tools →</Link>
+        <div style={{ position: "sticky", top: 0, background: "rgba(0,0,0,0.95)", backdropFilter: "blur(20px)", zIndex: 100, borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "16px 32px", marginBottom: "40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+            <Link href="/" style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.1em", textDecoration: "none" }}>SCANMYCREDS</Link>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {[
+                { label: "Dashboard", href: "/app/dashboard" },
+                { label: "Scanner", href: "/app", active: true },
+                { label: "History", href: "/app/history" },
+                { label: "Tools", href: "/app/tools" },
+              ].map(tab => (
+                <Link key={tab.label} href={tab.href}
+                  style={{ padding: "7px 14px", fontSize: "13px", color: tab.active ? "#fff" : "rgba(255,255,255,0.35)", background: tab.active ? "rgba(255,255,255,0.08)" : "transparent", textDecoration: "none", borderRadius: "6px", transition: "all 0.2s", border: tab.active ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent" }}
+                  onMouseEnter={e => { if (!tab.active) e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+                  onMouseLeave={e => { if (!tab.active) e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
+                >{tab.label}</Link>
+              ))}
+            </div>
           </div>
-
-          {session ? (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-              <img src={session.user?.image ?? ""} alt="" style={{ width: "26px", height: "26px", borderRadius: "50%", border: "1px solid #333", boxShadow: "0 0 12px rgba(255,255,255,0.15)" }} />
-              <span style={{ color: "#444", fontSize: "12px" }}>{session.user?.email}</span>
-              <button onClick={() => signOut()} style={{ color: "#222", fontSize: "11px", background: "none", border: "none", cursor: "pointer" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "#666")}
-                onMouseLeave={e => (e.currentTarget.style.color = "#222")}
+          {session && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img src={session.user?.image ?? ""} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "0 0 12px rgba(255,255,255,0.1)" }} />
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>{session.user?.email}</span>
+              <button onClick={() => signOut()} style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", background: "none", border: "none", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
+                onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
               >sign out</button>
             </div>
-          ) : (
-            <button onClick={() => signIn("google")}
-              style={{ padding: "10px 28px", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#777", background: "none", border: "1px solid #222", cursor: "pointer" }}
-              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "#555"; e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = "#777"; e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.boxShadow = "none"; }}
-            >Sign in with Google</button>
           )}
         </div>
 
