@@ -1,5 +1,5 @@
 "use client";
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -19,19 +19,13 @@ export default function History() {
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/history")
-        .then((res) => res.json())
-        .then((data) => {
-          // Ensure data is an array before setting state
-          // Handles cases where API returns { data: [...] } or null
-          const checksArray = Array.isArray(data) ? data : (data?.checks || data?.data || []);
-          setChecks(checksArray);
+        .then(res => res.json())
+        .then(data => {
+          const arr = Array.isArray(data) ? data : (data?.checks || data?.data || []);
+          setChecks(arr);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error("Failed to fetch history:", err);
-          setChecks([]);
-          setLoading(false);
-        });
+        .catch(() => { setChecks([]); setLoading(false); });
     } else if (status === "unauthenticated") {
       setLoading(false);
     }
@@ -59,16 +53,17 @@ export default function History() {
 
   if (status === "unauthenticated") {
     return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "28px", marginBottom: "20px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.5))" }}>🔐</div>
           <p style={{ color: "#444", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>Authentication required</p>
           <p style={{ color: "#222", fontSize: "12px", marginBottom: "28px" }}>Sign in to view your scan history</p>
-          <button onClick={() => signIn("google")}
-            style={{ padding: "12px 28px", fontSize: "13px", color: "#000", background: "#fff", border: "none", cursor: "pointer", borderRadius: "8px", boxShadow: "0 0 20px rgba(255,255,255,0.2)", marginBottom: "16px", display: "block", width: "100%" }}
-            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.4)")}
-            onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.2)")}
-          >Sign in with Google</button>
+          <Link href="/login"
+            style={{ padding: "12px 32px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", boxShadow: "0 0 24px rgba(255,255,255,0.25)", display: "inline-block", marginBottom: "16px" }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 44px rgba(255,255,255,0.5)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 24px rgba(255,255,255,0.25)")}
+          >Sign in →</Link>
+          <br />
           <Link href="/" style={{ color: "#333", fontSize: "12px", textDecoration: "none", letterSpacing: "0.1em" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#888")}
             onMouseLeave={e => (e.currentTarget.style.color = "#333")}
@@ -79,9 +74,8 @@ export default function History() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", padding: "60px 20px" }}>
+    <div style={{ minHeight: "100vh", background: "#000", padding: "60px 20px", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "48px" }}>
           <div>
             <h1 style={{ color: "#fff", fontSize: "20px", fontWeight: 200, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: "8px", textShadow: "0 0 30px rgba(255,255,255,0.8), 0 0 80px rgba(255,255,255,0.3)" }}>
@@ -108,7 +102,7 @@ export default function History() {
         ) : checks.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <p style={{ color: "#222", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>No records found</p>
-            <Link href="/" style={{ color: "#444", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none" }}>Run your first scan →</Link>
+            <Link href="/app" style={{ color: "#444", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none" }}>Run your first scan →</Link>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 interface ResultData {
   breached: boolean;
@@ -21,7 +21,7 @@ export default function App() {
   const [alreadyScanned, setAlreadyScanned] = useState(false);
   const [scanMessage, setScanMessage] = useState("Initializing scan...");
   const [activeTab, setActiveTab] = useState<"scan" | "tips">("scan");
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const scanMessages = ["Initializing scan...", "Checking databases...", "Analyzing breaches...", "Verifying password...", "Finalizing results..."];
 
@@ -92,6 +92,30 @@ export default function App() {
     { icon: "06", title: "Avoid common passwords", desc: "Passwords like '123456' or 'password' appear in billions of breach records. Never use them." },
   ];
 
+  if (status === "loading") return null;
+
+  if (status === "unauthenticated") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "32px", marginBottom: "16px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.5))" }}>🔐</div>
+          <p style={{ color: "#444", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>Authentication required</p>
+          <p style={{ color: "#222", fontSize: "12px", marginBottom: "28px" }}>Sign in to scan your credentials</p>
+          <Link href="/login"
+            style={{ padding: "12px 32px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", boxShadow: "0 0 24px rgba(255,255,255,0.25)", display: "inline-block", marginBottom: "16px" }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 44px rgba(255,255,255,0.5)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 24px rgba(255,255,255,0.25)")}
+          >Sign in →</Link>
+          <br />
+          <Link href="/" style={{ color: "#333", fontSize: "12px", textDecoration: "none", letterSpacing: "0.1em" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#888")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#333")}
+          >← Back to home</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#000", padding: "60px 20px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ width: "100%", maxWidth: "420px", margin: "0 auto" }}>
@@ -117,36 +141,37 @@ export default function App() {
           </div>
           {session && (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img src={session.user?.image ?? ""} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "0 0 12px rgba(255,255,255,0.1)" }} />
+              {session.user?.image ? (
+                <img 
+                  src={session.user.image} 
+                  alt="" 
+                  style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.15)", boxShadow: "0 0 12px rgba(255,255,255,0.1)" }} 
+                />
+              ) : (
+                <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px" }}>
+                  {session.user?.email?.[0]?.toUpperCase()}
+                </div>
+              )}
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>{session.user?.email}</span>
               <button onClick={() => signOut()} style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", background: "none", border: "none", cursor: "pointer" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
                 onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
-              >sign out</button>
+              >Sign Out</button>
             </div>
           )}
         </div>
 
         {/* Tabs */}
-        {session && (
-          <div style={{ display: "flex", gap: "1px", marginBottom: "24px", background: "#111" }}>
-            {(["scan", "tips"] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                style={{ flex: 1, padding: "10px", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: activeTab === tab ? "#fff" : "#333", background: activeTab === tab ? "#0a0a0a" : "#000", border: "none", cursor: "pointer", transition: "all 0.2s", borderBottom: activeTab === tab ? "1px solid rgba(255,255,255,0.3)" : "1px solid transparent" }}
-              >{tab === "scan" ? "Security Scan" : "Security Tips"}</button>
-            ))}
-          </div>
-        )}
+        <div style={{ display: "flex", gap: "1px", marginBottom: "24px", background: "#111" }}>
+          {(["scan", "tips"] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              style={{ flex: 1, padding: "10px", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: activeTab === tab ? "#fff" : "#333", background: activeTab === tab ? "#0a0a0a" : "#000", border: "none", cursor: "pointer", transition: "all 0.2s", borderBottom: activeTab === tab ? "1px solid rgba(255,255,255,0.3)" : "1px solid transparent" }}
+            >{tab === "scan" ? "Security Scan" : "Security Tips"}</button>
+          ))}
+        </div>
 
-        {!session ? (
-          <div style={{ border: "1px solid #111", padding: "48px", textAlign: "center", boxShadow: "0 0 40px rgba(255,255,255,0.02)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "16px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.5))" }}>🔐</div>
-            <p style={{ color: "#2a2a2a", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "4px" }}>Authentication required</p>
-            <p style={{ color: "#1a1a1a", fontSize: "11px" }}>Sign in to scan your credentials</p>
-          </div>
-        ) : activeTab === "scan" ? (
+        {activeTab === "scan" ? (
           <div style={{ border: "1px solid #222", padding: "28px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 0 80px rgba(255,255,255,0.04)" }}>
-
             <input type="email" placeholder="Email address" value={email}
               onChange={e => { setEmail(e.target.value); setResult(null); setError(""); }}
               onKeyDown={e => e.key === "Enter" && handleCheck()}
@@ -277,7 +302,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Footer links */}
         <div style={{ textAlign: "center", marginTop: "32px", display: "flex", justifyContent: "center", gap: "24px" }}>
           <Link href="/app/history" style={{ color: "#1e1e1e", fontSize: "11px", letterSpacing: "0.1em", textDecoration: "none", textTransform: "uppercase" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#666")}
@@ -294,7 +318,6 @@ export default function App() {
         </div>
         <p style={{ color: "#111", fontSize: "10px", textAlign: "center", marginTop: "12px", letterSpacing: "0.1em" }}>K-Anonymity · Zero plain-text transmission</p>
       </div>
-
       <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
     </div>
   );
