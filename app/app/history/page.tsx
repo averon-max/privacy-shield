@@ -1,7 +1,7 @@
 "use client";
+import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 type Check = {
   _id: string;
@@ -17,12 +17,23 @@ export default function History() {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (status === "unauthenticated") { setLoading(false); return; }
     if (status === "authenticated") {
       fetch("/api/history")
-        .then(res => res.json())
-        .then(data => { setChecks(data.checks || []); setLoading(false); })
-        .catch(() => setLoading(false));
+        .then((res) => res.json())
+        .then((data) => {
+          // Ensure data is an array before setting state
+          // Handles cases where API returns { data: [...] } or null
+          const checksArray = Array.isArray(data) ? data : (data?.checks || data?.data || []);
+          setChecks(checksArray);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch history:", err);
+          setChecks([]);
+          setLoading(false);
+        });
+    } else if (status === "unauthenticated") {
+      setLoading(false);
     }
   }, [status]);
 
@@ -38,12 +49,30 @@ export default function History() {
     return { label: "Low", color: "#333", border: "rgba(255,255,255,0.04)", glow: "none" };
   };
 
+  if (status === "loading") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#222", fontSize: "12px", letterSpacing: "0.2em" }}>Loading...</p>
+      </div>
+    );
+  }
+
   if (status === "unauthenticated") {
     return (
       <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
-          <p style={{ color: "#333", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "20px" }}>Authentication required</p>
-          <Link href="/history" style={{ color: "#555", fontSize: "11px", letterSpacing: "0.15em", textDecoration: "none", border: "1px solid #222", padding: "10px 24px" }}>← Back</Link>
+          <div style={{ fontSize: "28px", marginBottom: "20px", filter: "drop-shadow(0 0 20px rgba(255,255,255,0.5))" }}>🔐</div>
+          <p style={{ color: "#444", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>Authentication required</p>
+          <p style={{ color: "#222", fontSize: "12px", marginBottom: "28px" }}>Sign in to view your scan history</p>
+          <button onClick={() => signIn("google")}
+            style={{ padding: "12px 28px", fontSize: "13px", color: "#000", background: "#fff", border: "none", cursor: "pointer", borderRadius: "8px", boxShadow: "0 0 20px rgba(255,255,255,0.2)", marginBottom: "16px", display: "block", width: "100%" }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.4)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.2)")}
+          >Sign in with Google</button>
+          <Link href="/" style={{ color: "#333", fontSize: "12px", textDecoration: "none", letterSpacing: "0.1em" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#888")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#333")}
+          >← Back to home</Link>
         </div>
       </div>
     );
@@ -83,7 +112,7 @@ export default function History() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {checks.map(check => {
+            {checks.map((check: Check) => {
               const risk = getRisk(check);
               return (
                 <div key={check._id}
