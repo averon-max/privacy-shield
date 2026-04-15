@@ -3,10 +3,10 @@ import mongoose from "mongoose";
 const UserSchema = new mongoose.Schema({
   name: { type: String },
   email: { type: String, required: true, unique: true },
-  password: { type: String }, // null for Google users
+  password: { type: String },
+  image: { type: String },
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
-  createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

@@ -36,7 +36,7 @@ export default function Landing() {
     setRunning(false);
   };
 
-  const ticker = [
+  const ticker1 = [
     { name: "Adobe", count: "153M", type: "passwords", color: "#e05c4b" },
     { name: "LinkedIn", count: "700M", type: "emails", color: "#6c9ef7" },
     { name: "Dropbox", count: "68M", type: "passwords", color: "#e05c4b" },
@@ -50,7 +50,38 @@ export default function Landing() {
     { name: "Uber", count: "57M", type: "emails", color: "#6c9ef7" },
     { name: "Snapchat", count: "4.6M", type: "phones", color: "#c48b20" },
   ];
-  const items = [...ticker, ...ticker];
+
+  const ticker2 = [
+    { label: "SHA-1 k-Anonymity", color: "#6c9ef7" },
+    { label: "Zero plain-text transmission", color: "#6ce4c0" },
+    { label: "AES-256 at rest", color: "#b47fe8" },
+    { label: "TLS 1.3 in transit", color: "#6c9ef7" },
+    { label: "No credential logging", color: "#6ce4c0" },
+    { label: "HIBP Pwned Passwords API", color: "#c48b20" },
+    { label: "XposedOrNot breach index", color: "#b47fe8" },
+    { label: "600+ breach sources", color: "#6c9ef7" },
+    { label: "15B+ indexed credentials", color: "#e05c4b" },
+    { label: "Real-time hash lookup", color: "#6ce4c0" },
+    { label: "Rate-limited endpoints", color: "#b47fe8" },
+    { label: "JWT session tokens", color: "#6c9ef7" },
+    { label: "bcrypt password hashing", color: "#c48b20" },
+    { label: "MongoDB Atlas encrypted", color: "#6ce4c0" },
+  ];
+
+  const ticker3 = [
+    { name: "Twitch", count: "2.7M", type: "passwords", color: "#b47fe8" },
+    { name: "Nintendo", count: "300K", type: "emails", color: "#6ce4c0" },
+    { name: "Spotify", count: "350K", type: "passwords", color: "#6ce4c0" },
+    { name: "Tokopedia", count: "91M", type: "emails", color: "#6c9ef7" },
+    { name: "Wattpad", count: "270M", type: "passwords", color: "#b47fe8" },
+    { name: "Wishbone", count: "40M", type: "phones", color: "#c48b20" },
+    { name: "Gravatar", count: "167M", type: "emails", color: "#6c9ef7" },
+    { name: "Ledger", count: "1M", type: "addresses", color: "#e05c4b" },
+    { name: "MeetUp", count: "23M", type: "emails", color: "#6c9ef7" },
+    { name: "Pixlr", count: "1.9M", type: "passwords", color: "#b47fe8" },
+    { name: "Reverb", count: "5.7M", type: "emails", color: "#6ce4c0" },
+    { name: "Pluto TV", count: "3.2M", type: "passwords", color: "#c48b20" },
+  ];
 
   const stats = [
     { v: "15B+", l: "Leaked credentials", color: "#6c9ef7" },
@@ -65,6 +96,10 @@ export default function Landing() {
     { label: "Pricing", href: "/pricing" },
     { label: "Blog", href: "/blog" },
   ];
+
+  const t1 = [...ticker1, ...ticker1];
+  const t2 = [...ticker2, ...ticker2];
+  const t3 = [...ticker3, ...ticker3];
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
@@ -92,11 +127,7 @@ export default function Landing() {
             onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
             onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.background = "transparent"; }}
           >Sign In</Link>
-          <Link href="/app/dashboard" style={{
-            padding: "8px 18px", fontSize: "13px", fontWeight: 600, color: "#000", background: "#fff",
-            textDecoration: "none", borderRadius: "7px", boxShadow: "0 0 20px rgba(255,255,255,0.22)",
-            transition: "all 0.2s", display: "inline-block",
-          }}
+          <Link href="/app/dashboard" style={{ padding: "8px 18px", fontSize: "13px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "7px", boxShadow: "0 0 20px rgba(255,255,255,0.22)", transition: "all 0.2s", display: "inline-block" }}
             onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 44px rgba(255,255,255,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.22)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >Dashboard</Link>
@@ -106,6 +137,9 @@ export default function Landing() {
       {/* HERO */}
       <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "130px 24px 60px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translate(-50%,-50%)", width: "800px", height: "800px", background: "radial-gradient(circle, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 40%, transparent 70%)", pointerEvents: "none", borderRadius: "50%" }} />
+
+        {/* grid overlay */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
 
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "5px 14px 5px 10px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "100px", marginBottom: "36px", background: "rgba(255,255,255,0.04)" }}>
           <span style={{ width: "6px", height: "6px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 8px rgba(224,92,75,0.9)", flexShrink: 0, animation: "pulse 2s ease-in-out infinite" }} />
@@ -176,16 +210,45 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* TICKER */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "#080808", position: "relative" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to right, #080808, transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to left, #080808, transparent)", zIndex: 2, pointerEvents: "none" }} />
+      {/* TICKER 1 — breach companies */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.04)", overflow: "hidden", background: "#060606", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to right, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to left, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
         <div style={{ display: "flex", width: "max-content", animation: "ticker 38s linear infinite" }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 24px", height: "50px", borderRight: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+          {t1.map((item, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 24px", height: "48px", borderRight: "1px solid rgba(255,255,255,0.04)", flexShrink: 0 }}>
               <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}`, flexShrink: 0 }} />
-              <span style={{ fontSize: "12px", fontWeight: 500, color: "rgba(255,255,255,0.65)", whiteSpace: "nowrap" }}>{item.name}</span>
-              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap" }}>{item.count} records</span>
+              <span style={{ fontSize: "12px", fontWeight: 500, color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>{item.name}</span>
+              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", whiteSpace: "nowrap" }}>{item.count} records</span>
+              <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: `${item.color}18`, color: item.color, border: `1px solid ${item.color}30`, whiteSpace: "nowrap", fontWeight: 500 }}>{item.type}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* TICKER 2 — security tech (reverse direction) */}
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", overflow: "hidden", background: "#040404", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to right, #040404, transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to left, #040404, transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ display: "flex", width: "max-content", animation: "tickerReverse 30s linear infinite" }}>
+          {t2.map((item, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 20px", height: "36px", borderRight: "1px solid rgba(255,255,255,0.03)", flexShrink: 0 }}>
+              <span style={{ fontSize: "9px", color: item.color, fontFamily: "monospace", letterSpacing: "0.05em", whiteSpace: "nowrap", opacity: 0.7 }}>▸ {item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* TICKER 3 — more breach companies */}
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "#060606", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to right, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "120px", background: "linear-gradient(to left, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
+        <div style={{ display: "flex", width: "max-content", animation: "ticker 50s linear infinite" }}>
+          {t3.map((item, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 24px", height: "48px", borderRight: "1px solid rgba(255,255,255,0.04)", flexShrink: 0 }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}`, flexShrink: 0 }} />
+              <span style={{ fontSize: "12px", fontWeight: 500, color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>{item.name}</span>
+              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", whiteSpace: "nowrap" }}>{item.count} records</span>
               <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: `${item.color}18`, color: item.color, border: `1px solid ${item.color}30`, whiteSpace: "nowrap", fontWeight: 500 }}>{item.type}</span>
             </div>
           ))}
@@ -244,6 +307,7 @@ export default function Landing() {
         input::placeholder { color: rgba(255,255,255,0.2); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
         @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+        @keyframes tickerReverse { from{transform:translateX(-50%)} to{transform:translateX(0)} }
       `}</style>
     </div>
   );
