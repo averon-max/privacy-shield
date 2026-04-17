@@ -32,8 +32,10 @@ export async function POST(req: Request) {
       checkEmailBreaches(email),
     ]);
 
-    const breached = breachData !== null;
+  const breached = breachData !== null;
 
+    // XposedOrNot only returns breach names, not data types per breach
+    // So we leave exposedDataTypes empty unless the API actually returns them
     const dataTypes: Set<string> = new Set();
     if (breachData?.breaches_details && Array.isArray(breachData.breaches_details)) {
       breachData.breaches_details.forEach((detail: any) => {
@@ -45,14 +47,8 @@ export async function POST(req: Request) {
         }
       });
     }
-    if (breachData?.xposed_data) {
-      breachData.xposed_data.split(";").forEach((t: string) => {
-        const clean = t.trim();
-        if (clean) dataTypes.add(clean);
-      });
-    }
 
-    const exposedDataTypes = Array.from(dataTypes);
+    const exposedDataTypes = Array.from(dataTypes); // will be [] if API doesn't return them
     const breachCount = breachData?.breaches?.[0]?.length || 0;
     const breachSources = breachData?.breaches?.[0] || [];
 

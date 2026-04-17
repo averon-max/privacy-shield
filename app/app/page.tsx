@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
@@ -60,6 +60,11 @@ export default function App() {
   const [liveCounter, setLiveCounter] = useState(14823491);
   const { data: session, status } = useSession();
 
+  // Confetti & Counter States
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [displayScore, setDisplayScore] = useState(0);
+  const [displayBreachCount, setDisplayBreachCount] = useState(0);
+
   const scanMessages = [
     "Connecting to breach database...",
     "Scanning 15B records...",
@@ -87,6 +92,39 @@ export default function App() {
     const last = localStorage.getItem(`scanned_${email.toLowerCase()}`);
     setAlreadyScanned(last ? Date.now() - parseInt(last) < 1000 * 60 * 60 : false);
   }, [email]);
+
+  // Confetti effect for clean results
+  useEffect(() => {
+    if (!result || result.breached) return;
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 4000);
+  }, [result]);
+
+  // Animated counters when results load
+  useEffect(() => {
+    if (!result) return;
+    setDisplayScore(0);
+    setDisplayBreachCount(0);
+    
+    const threat = getThreat(result);
+    const scoreTarget = threat.score;
+    const breachTarget = result.breachCount || 0;
+    const duration = 1200;
+    const steps = 60;
+    const interval = duration / steps;
+    
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayScore(Math.round(eased * scoreTarget));
+      setDisplayBreachCount(Math.round(eased * breachTarget));
+      if (step >= steps) clearInterval(timer);
+    }, interval);
+    
+    return () => clearInterval(timer);
+  }, [result]);
 
   const getStrength = (pwd: string) => {
     let score = 0;
@@ -307,14 +345,14 @@ export default function App() {
                 {/* threat score */}
                 <div style={{ padding: "28px", borderRadius: "14px", border: `1px solid ${threat.border}`, background: threat.bg, boxShadow: threat.glow, textAlign: "center" }}>
                   <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "10px" }}>Security Score</p>
-                  <p style={{ fontSize: "72px", fontWeight: 700, color: threat.color, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "10px", textShadow: `0 0 60px ${threat.color}` }}>{threat.score}</p>
+                  <p style={{ fontSize: "72px", fontWeight: 700, color: threat.color, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "10px", textShadow: `0 0 60px ${threat.color}` }}>{displayScore}</p>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 14px", borderRadius: "100px", background: `${threat.color}18`, border: `1px solid ${threat.color}40` }}>
                     <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: threat.color, boxShadow: `0 0 6px ${threat.color}` }} />
                     <span style={{ fontSize: "11px", color: threat.color, fontWeight: 600, letterSpacing: "0.08em" }}>{threat.level}</span>
                   </div>
-   {result.breachCount != null && result.breachCount > 0 && (
-  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginTop: "12px" }}>Found in <span style={{ color: threat.color, fontWeight: 600 }}>{result.breachCount}</span> data breach{result.breachCount > 1 ? "es" : ""}</p>
-)}
+                  {result.breachCount != null && result.breachCount > 0 && (
+                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginTop: "12px" }}>Found in <span style={{ color: threat.color, fontWeight: 600 }}>{displayBreachCount}</span> data breach{result.breachCount > 1 ? "es" : ""}</p>
+                  )}
                 </div>
 
                 {/* email status */}
@@ -361,26 +399,47 @@ export default function App() {
                   )}
                 </div>
 
-                {/* exposed data types */}
+                {/* breach details */}
                 {result.breached && (
                   <div style={{ padding: "18px 20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
-                    <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Data types exposed</p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {(result.exposedDataTypes && result.exposedDataTypes.length > 0
-                        ? result.exposedDataTypes
-                        : ["Passwords", "Email addresses", "Usernames", "IP addresses"]
-                      ).map((type, i) => {
-                        const color = DATA_TYPE_COLORS[type] || ["#e05c4b", "#6c9ef7", "#b47fe8", "#c48b20", "#6ce4c0"][i % 5];
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                      <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
+                        All breach sources
+                      </p>
+                      <span style={{ fontSize: "11px", color: "#e05c4b", fontWeight: 600 }}>{result.breachCount} total</span>
+                    </div>
+
+                    {/* data types if available */}
+                    {result.exposedDataTypes && result.exposedDataTypes.length > 0 && (
+                      <div style={{ marginBottom: "14px" }}>
+                        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>Data types exposed</p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                          {result.exposedDataTypes.map((type, i) => {
+                            const color = DATA_TYPE_COLORS[type] || ["#e05c4b","#6c9ef7","#b47fe8","#c48b20","#6ce4c0"][i % 5];
+                            return (
+                              <div key={type} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "6px", background: `${color}10`, border: `1px solid ${color}25` }}>
+                                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}` }} />
+                                <span style={{ fontSize: "11px", color }}>{type}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* all breach sources grouped */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                      {(result.breachSources || []).map((site: string, i: number) => {
+                        const colors = ["#e05c4b","#6c9ef7","#b47fe8","#c48b20","#6ce4c0"];
+                        const color = BREACH_COLORS[site] || colors[i % colors.length];
                         return (
-                          <div key={type} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "6px", background: `${color}10`, border: `1px solid ${color}25` }}>
-                            <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}` }} />
-                            <span style={{ fontSize: "11px", color }}>{type}</span>
-                          </div>
+                          <span key={site} style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: `${color}10`, color, border: `1px solid ${color}20` }}>{site}</span>
                         );
                       })}
                     </div>
-                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginTop: "12px", lineHeight: 1.5 }}>
-                      This data was exposed across {result.breachCount || "multiple"} breach{(result.breachCount || 0) > 1 ? "es" : ""}. Each data type increases the risk of identity theft, phishing, and account takeover.
+
+                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", marginTop: "12px", lineHeight: 1.5 }}>
+                      Your data was found across <span style={{ color: "#e05c4b", fontWeight: 600 }}>{result.breachCount}</span> known breaches. Each one may have exposed different combinations of your personal data.
                     </p>
                   </div>
                 )}
@@ -483,11 +542,47 @@ export default function App() {
         <p style={{ color: "rgba(255,255,255,0.08)", fontSize: "10px", textAlign: "center", marginTop: "10px", letterSpacing: "0.1em" }}>k-Anonymity · Zero plain-text transmission · End-to-end private</p>
       </div>
 
+      {/* Confetti Effect */}
+      {showConfetti && (
+        <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 999, overflow: "hidden" }}>
+          {Array.from({ length: 80 }).map((_, i) => {
+            const colors = ["#6ce4c0","#6c9ef7","#b47fe8","#c48b20","#fff"];
+            const color = colors[i % colors.length];
+            const left = `${Math.random() * 100}%`;
+            const delay = `${Math.random() * 2}s`;
+            const duration = `${2 + Math.random() * 2}s`;
+            const size = `${4 + Math.random() * 6}px`;
+            return (
+              <div key={i} style={{
+                position: "absolute", top: "-10px", left,
+                width: size, height: size,
+                background: color,
+                borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+                animation: `confettiFall ${duration} ${delay} linear forwards`,
+                opacity: 0.8,
+              }} />
+            );
+          })}
+        </div>
+      )}
+
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         input::placeholder { color: rgba(255,255,255,0.2); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes confettiFall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatDot {
+          0%,100% { transform: translateY(0px); opacity: 0.3; }
+          50% { transform: translateY(-20px); opacity: 0.8; }
+        }
       `}</style>
     </div>
   );
