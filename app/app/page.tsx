@@ -64,6 +64,7 @@ export default function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [displayScore, setDisplayScore] = useState(0);
   const [displayBreachCount, setDisplayBreachCount] = useState(0);
+  const [showAllBreaches, setShowAllBreaches] = useState(false);
 
   const scanMessages = [
     "Connecting to breach database...",
@@ -399,7 +400,7 @@ export default function App() {
                   )}
                 </div>
 
-                {/* breach details */}
+                {/* breach details - COLLAPSIBLE */}
                 {result.breached && (
                   <div style={{ padding: "18px 20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
@@ -427,16 +428,48 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* all breach sources grouped */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-                      {(result.breachSources || []).map((site: string, i: number) => {
-                        const colors = ["#e05c4b","#6c9ef7","#b47fe8","#c48b20","#6ce4c0"];
-                        const color = BREACH_COLORS[site] || colors[i % colors.length];
-                        return (
-                          <span key={site} style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: `${color}10`, color, border: `1px solid ${color}20` }}>{site}</span>
-                        );
-                      })}
+                    {/* Collapsible breach sources button */}
+                    <div style={{ marginBottom: "12px" }}>
+                      <button
+                        onClick={() => setShowAllBreaches(!showAllBreaches)}
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          fontSize: "11px",
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          color: "#e05c4b",
+                          background: "rgba(224,92,75,0.08)",
+                          border: "1px solid rgba(224,92,75,0.2)",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          transition: "all 0.2s"
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(224,92,75,0.15)"; e.currentTarget.style.borderColor = "rgba(224,92,75,0.4)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(224,92,75,0.08)"; e.currentTarget.style.borderColor = "rgba(224,92,75,0.2)"; }}
+                      >
+                        <span style={{ fontSize: "14px" }}>📋</span>
+                        {showAllBreaches ? "Hide All Breaches" : `View All ${result.breachCount} Breaches`}
+                        <span style={{ fontSize: "12px", transition: "transform 0.2s", transform: showAllBreaches ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+                      </button>
                     </div>
+
+                    {/* Expanded breach list */}
+                    {showAllBreaches && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", maxHeight: "400px", overflowY: "auto", padding: "12px", background: "rgba(0,0,0,0.3)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        {(result.breachSources || []).map((site: string, i: number) => {
+                          const colors = ["#e05c4b","#6c9ef7","#b47fe8","#c48b20","#6ce4c0"];
+                          const color = BREACH_COLORS[site] || colors[i % colors.length];
+                          return (
+                            <span key={site} style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "5px", background: `${color}10`, color, border: `1px solid ${color}20` }}>{site}</span>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", marginTop: "12px", lineHeight: 1.5 }}>
                       Your data was found across <span style={{ color: "#e05c4b", fontWeight: 600 }}>{result.breachCount}</span> known breaches. Each one may have exposed different combinations of your personal data.
