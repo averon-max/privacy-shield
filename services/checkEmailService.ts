@@ -35,6 +35,9 @@ export async function checkEmailBreaches(email: string) {
         timeout: 5000,
       }
     );
+
+    if (response.data?.Error || !response.data?.breaches) return null;
+
     return response.data;
   } catch (err: any) {
     if (err.response?.status === 404) return null;
