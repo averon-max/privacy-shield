@@ -56,6 +56,8 @@ export async function POST(req: Request) {
     const breachCount = breachData?.breaches?.[0]?.length || 0;
     const breachSources = breachData?.breaches?.[0] || [];
 
+ console.log("BREACH DATA:", JSON.stringify(breachData, null, 2));
+
     await EmailCheck.create({
       userId: session.user.email,
       email,
