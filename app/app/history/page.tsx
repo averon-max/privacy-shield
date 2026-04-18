@@ -93,10 +93,12 @@ export default function History() {
           <Link href="/" style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", fontWeight: 700, letterSpacing: "0.15em", textDecoration: "none" }}>SCANMYCREDS</Link>
           <div style={{ display: "flex", gap: "2px" }}>
             {[
-              { label: "Dashboard", href: "/app/dashboard" },
-              { label: "Scanner", href: "/app" },
-              { label: "History", href: "/app/history", active: true },
-              { label: "Tools", href: "/app/tools" },
+            { label: "Dashboard", href: "/app/dashboard" },
+{ label: "Scanner", href: "/app" },
+{ label: "Phone", href: "/app/phone-scanner" },
+{ label: "History", href: "/app/history", active: true },
+{ label: "Watchlist", href: "/app/watchlist" },
+{ label: "Tools", href: "/app/tools" },
             ].map(tab => (
               <Link key={tab.label} href={tab.href}
                 style={{ padding: "6px 12px", fontSize: "12px", color: tab.active ? "#fff" : "rgba(255,255,255,0.35)", background: tab.active ? "rgba(255,255,255,0.08)" : "transparent", textDecoration: "none", borderRadius: "6px", border: tab.active ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent", transition: "all 0.2s" }}

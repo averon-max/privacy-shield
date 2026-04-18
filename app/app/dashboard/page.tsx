@@ -50,7 +50,6 @@ export default function Dashboard() {
   const safe = checks.filter(c => !c.breached && !c.passwordExposed).length;
   const score = total === 0 ? 100 : Math.max(0, Math.round(100 - (breached / total) * 60 - (exposed / total) * 40));
   const last = checks[0];
-
   const scoreColor = score >= 80 ? "#6ce4c0" : score >= 50 ? "#c48b20" : "#e05c4b";
   const scoreGlow = score >= 80 ? "rgba(108,228,192,0.4)" : score >= 50 ? "rgba(196,139,32,0.4)" : "rgba(224,92,75,0.4)";
   const scoreLabel = score >= 80 ? "Secure" : score >= 50 ? "At Risk" : "Critical";
@@ -66,7 +65,9 @@ export default function Dashboard() {
             {[
               { label: "Dashboard", href: "/app/dashboard", active: true },
               { label: "Scanner", href: "/app" },
+              { label: "Phone", href: "/app/phone-scanner" },
               { label: "History", href: "/app/history" },
+              { label: "Watchlist", href: "/app/watchlist" },
               { label: "Tools", href: "/app/tools" },
             ].map(tab => (
               <Link key={tab.label} href={tab.href}
@@ -94,8 +95,6 @@ export default function Dashboard() {
       </div>
 
       <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "48px 32px" }}>
-
-        {/* HEADER */}
         <div style={{ marginBottom: "40px" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "8px" }}>Welcome back</p>
           <h1 style={{ fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 700, letterSpacing: "-0.03em", color: "#fff" }}>{session?.user?.name || session?.user?.email}</h1>
@@ -107,8 +106,6 @@ export default function Dashboard() {
           <>
             {/* SCORE + STATS */}
             <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "12px", marginBottom: "12px" }}>
-
-              {/* score card */}
               <div style={{ padding: "36px 40px", border: `1px solid ${scoreColor}30`, borderRadius: "16px", background: `${scoreColor}08`, boxShadow: `0 0 40px ${scoreGlow}20`, textAlign: "center", minWidth: "180px" }}>
                 <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Security Score</p>
                 <p style={{ fontSize: "72px", fontWeight: 700, color: scoreColor, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "8px", textShadow: `0 0 40px ${scoreColor}` }}>{score}</p>
@@ -117,8 +114,6 @@ export default function Dashboard() {
                   <span style={{ fontSize: "11px", color: scoreColor, fontWeight: 600 }}>{scoreLabel}</span>
                 </div>
               </div>
-
-              {/* stats grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
                 {[
                   { label: "Total scans", value: total, color: "#fff" },
@@ -179,7 +174,7 @@ export default function Dashboard() {
                           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{c.email}</span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <span style={{ fontSize: "10px", color: color, fontWeight: 600, letterSpacing: "0.05em" }}>{label}</span>
+                          <span style={{ fontSize: "10px", color, fontWeight: 600 }}>{label}</span>
                           <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)" }}>{new Date(c.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
@@ -190,12 +185,14 @@ export default function Dashboard() {
             )}
 
             {/* QUICK ACTIONS */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
               {[
-                { label: "Run new scan", href: "/app", color: "#fff", desc: "Check an email for breaches" },
-                { label: "View history", href: "/app/history", color: "#6c9ef7", desc: "All your past scans" },
-                { label: "Password generator", href: "/app/tools", color: "#b47fe8", desc: "Create a strong password" },
-                { label: "Security blog", href: "/blog", color: "#6ce4c0", desc: "Learn how to stay safe" },
+                { label: "Email scanner", href: "/app", color: "#fff", desc: "Check email for breaches" },
+                { label: "Phone scanner", href: "/app/phone-scanner", color: "#6c9ef7", desc: "Check phone for leaks" },
+                { label: "View history", href: "/app/history", color: "#b47fe8", desc: "All your past scans" },
+                { label: "Watchlist", href: "/app/watchlist", color: "#e05c4b", desc: "Monitor for new breaches" },
+                { label: "Password generator", href: "/app/tools", color: "#6ce4c0", desc: "Create a strong password" },
+                { label: "Security blog", href: "/blog", color: "#c48b20", desc: "Learn how to stay safe" },
               ].map(a => (
                 <Link key={a.label} href={a.href} style={{ padding: "18px 20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", textDecoration: "none", display: "block", transition: "all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
