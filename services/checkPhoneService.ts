@@ -12,47 +12,92 @@ export interface PhoneBreachResult {
 
 export async function checkPhoneBreach(phone: string): Promise<PhoneBreachResult | null> {
   try {
-    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
-    const countryCode = cleaned.startsWith('+') ? cleaned.slice(0, 3) : '+1';
-    const phoneLast4 = cleaned.slice(-4);
-    
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(cleaned).digest('hex').toUpperCase();
-    const prefix = hash.slice(0, 6);
-    
-    const sources = [
-      checkLeakLookup(prefix),
-      checkPhoneSpamDB(cleaned),
-    ];
-    
-    const results = await Promise.allSettled(sources);
-    
+    const cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+    const normalized = cleaned.startsWith('+') ? cleaned : `+1${cleaned}`;
+    const countryCode = normalized.slice(0, normalized.length - 10) || '+1';
+    const phoneLast4 = normalized.slice(-4);
+
     let breachSources: string[] = [];
     let dataTypes: string[] = [];
-    
-    results.forEach(result => {
-      if (result.status === 'fulfilled' && result.value) {
-        breachSources = [...breachSources, ...result.value.sources];
-        dataTypes = [...dataTypes, ...result.value.dataTypes];
+
+    // XposedOrNot phone check
+    try {
+      const xonResponse = await axios.get(
+        `https://api.xposedornot.com/v1/check-email/${encodeURIComponent(normalized)}`,
+        {
+          headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+          timeout: 6000,
+        }
+      );
+
+      if (xonResponse.data?.breaches?.[0]?.length > 0) {
+        breachSources = [...breachSources, ...xonResponse.data.breaches[0]];
       }
-    });
-    
+
+      if (xonResponse.data?.breaches_details) {
+        xonResponse.data.breaches_details.forEach((d: any) => {
+          if (d?.xposed_data) {
+            d.xposed_data.split(';').forEach((t: string) => {
+              const clean = t.trim();
+              if (clean) dataTypes.push(clean);
+            });
+          }
+        });
+      }
+    } catch (err: any) {
+      if (err?.response?.status !== 404 && err?.response?.status !== 403) {
+        console.error('XON phone check error:', err?.message);
+      }
+    }
+
+    // HIBP phone check
+    try {
+      const hibpResponse = await axios.get(
+        `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(normalized)}`,
+        {
+          headers: {
+            'User-Agent': 'ScanMyCreds-PhoneChecker',
+            'hibp-api-key': process.env.HIBP_API_KEY || '',
+          },
+          timeout: 5000,
+        }
+      );
+
+      if (Array.isArray(hibpResponse.data)) {
+        hibpResponse.data.forEach((breach: any) => {
+          if (!breachSources.includes(breach.Name)) {
+            breachSources.push(breach.Name);
+          }
+          if (breach.DataClasses) {
+            breach.DataClasses.forEach((dc: string) => {
+              if (!dataTypes.includes(dc)) dataTypes.push(dc);
+            });
+          }
+        });
+      }
+    } catch (err: any) {
+      // 404 = not found, that's fine
+    }
+
     breachSources = [...new Set(breachSources)];
     dataTypes = [...new Set(dataTypes)];
-    
+
+    if (dataTypes.length === 0 && breachSources.length > 0) {
+      dataTypes = ['Phone numbers', 'Personal information'];
+    }
+
     const breachCount = breachSources.length;
-    
     let riskLevel: PhoneBreachResult['riskLevel'] = 'safe';
     if (breachCount >= 5) riskLevel = 'critical';
     else if (breachCount >= 3) riskLevel = 'high';
     else if (breachCount >= 2) riskLevel = 'medium';
     else if (breachCount >= 1) riskLevel = 'low';
-    
+
     return {
       found: breachCount > 0,
       breachCount,
       breachSources,
-      dataTypes: dataTypes.length > 0 ? dataTypes : ['Phone numbers', 'SMS messages', 'Contact lists'],
+      dataTypes: dataTypes.length > 0 ? dataTypes : [],
       riskLevel,
       phoneLast4,
       countryCode,
@@ -61,41 +106,4 @@ export async function checkPhoneBreach(phone: string): Promise<PhoneBreachResult
     console.error('Phone breach check failed:', error);
     return null;
   }
-}
-
-async function checkLeakLookup(prefix: string) {
-  try {
-    const response = await axios.get(`https://api.leak-lookup.com/api/search`, {
-      params: { prefix, type: 'phone' },
-      headers: { 'X-API-Key': process.env.LEAK_LOOKUP_KEY || '' },
-      timeout: 5000,
-    });
-    
-    if (response.data?.success && response.data?.breaches?.length > 0) {
-      return {
-        sources: response.data.breaches.map((b: any) => b.name),
-        dataTypes: response.data.breaches.flatMap((b: any) => b.data_types || []),
-      };
-    }
-  } catch {
-  }
-  return { sources: [], dataTypes: [] };
-}
-
-async function checkPhoneSpamDB(phone: string) {
-  try {
-    const response = await axios.get(`https://api.phonevalidator.com/v1/validate`, {
-      params: { phone },
-      timeout: 5000,
-    });
-    
-    if (response.data?.spam_score > 70) {
-      return {
-        sources: ['Spam Database', 'Telemarketing Lists'],
-        dataTypes: ['Phone numbers', 'Call records'],
-      };
-    }
-  } catch {
-  }
-  return { sources: [], dataTypes: [] };
 }

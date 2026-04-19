@@ -32,9 +32,66 @@ const DATA_TYPE_COLORS: Record<string, string> = {
   "Job titles": "#c48b20",
   "Social media profiles": "#6c9ef7",
 };
+function ShareReportButton({ result, threat }: { result: ResultData; threat: any }) {
+  const [slug, setSlug] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
+  const generate = async () => {
+    setGenerating(true);
+    const score = threat?.score || 0;
+    const res = await fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: result.email,
+        score,
+        breached: result.breached,
+        breachCount: result.breachCount || 0,
+        breachSources: result.breachSources || [],
+        exposedDataTypes: result.exposedDataTypes || [],
+        passwordExposed: result.passwordExposed,
+        threatLevel: threat?.level || "Secure",
+      }),
+    });
+    const data = await res.json();
+    if (data.slug) setSlug(data.slug);
+    setGenerating(false);
+  };
+
+  const copy = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/app/report?slug=${slug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (slug) return (
+    <div style={{ padding: "13px 16px", borderRadius: "9px", border: "1px solid rgba(108,158,247,0.2)", background: "rgba(108,158,247,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: "12px" }}>
+        /app/report?slug={slug}
+      </span>
+      <button onClick={copy} style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 600, color: copied ? "#6ce4c0" : "#6c9ef7", background: copied ? "rgba(108,228,192,0.1)" : "rgba(108,158,247,0.1)", border: `1px solid ${copied ? "rgba(108,228,192,0.3)" : "rgba(108,158,247,0.3)"}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+        {copied ? "✓ Copied" : "Copy link"}
+      </button>
+    </div>
+  );
+
+  return (
+    <button onClick={generate} disabled={generating}
+      style={{ width: "100%", padding: "13px 16px", borderRadius: "9px", border: "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "all 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,158,247,0.3)"; e.currentTarget.style.background = "rgba(108,158,247,0.08)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,158,247,0.15)"; e.currentTarget.style.background = "rgba(108,158,247,0.04)"; }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#6c9ef7", boxShadow: "0 0 5px #6c9ef7" }} />
+        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{generating ? "Generating report link..." : "Share this security report"}</span>
+      </div>
+      <span style={{ fontSize: "12px", color: "#6c9ef7" }}>Generate link →</span>
+    </button>
+  );
+}
 const BREACH_COLORS: Record<string, string> = {
-  "Adobe": "#e05c4b",
+   "Adobe": "#e05c4b",
   "LinkedIn": "#6c9ef7",
   "Facebook": "#6c9ef7",
   "Dropbox": "#6c9ef7",
@@ -221,10 +278,10 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#000", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
 
       {/* NAV */}
-      <div style={{ position: "sticky", top: 0, background: "rgba(0,0,0,0.95)", backdropFilter: "blur(20px)", zIndex: 100, borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ position: "sticky", top: 0, background: "rgba(0,0,0,0.95)", backdropFilter: "blur(20px)", zIndex: 100, borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", overflowX: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
           <Link href="/" style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", fontWeight: 700, letterSpacing: "0.15em", textDecoration: "none" }}>SCANMYCREDS</Link>
-          <div style={{ display: "flex", gap: "2px" }}>
+          <div style={{ display: "flex", gap: "2px", overflowX: "auto", msOverflowStyle: "none", scrollbarWidth: "none" }}>
             {[
               
         { label: "Dashboard", href: "/app/dashboard" },
@@ -499,7 +556,9 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
+{result && !loading && (
+  <ShareReportButton result={result} threat={threat} />
+)}
                 <Link href="/app/tools" style={{ padding: "13px 16px", borderRadius: "9px", border: "1px solid rgba(108,228,192,0.15)", background: "rgba(108,228,192,0.04)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,228,192,0.3)"; e.currentTarget.style.background = "rgba(108,228,192,0.08)"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,228,192,0.15)"; e.currentTarget.style.background = "rgba(108,228,192,0.04)"; }}

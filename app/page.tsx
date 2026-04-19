@@ -108,7 +108,7 @@ export default function Landing() {
       <nav style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "16px 40px",
+        padding: "14px 20px",
         borderBottom: `1px solid rgba(255,255,255,${scrollY > 40 ? 0.08 : 0})`,
         background: `rgba(0,0,0,${scrollY > 40 ? 0.92 : 0})`,
         backdropFilter: scrollY > 40 ? "blur(20px)" : "none",

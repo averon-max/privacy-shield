@@ -1,36 +1,32 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { connectDB } from '@/lib/db';
 import PhoneCheck from '@/models/PhoneCheck';
 import { checkPhoneBreach } from '@/services/checkPhoneService';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { phone } = await req.json();
+
+    if (!phone || phone.replace(/[\s\-\(\)\+\.]/g, '').length < 7) {
+      return NextResponse.json({ error: 'Valid phone number required' }, { status: 400 });
+    }
+
     await connectDB();
-    
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    
-    const body = await req.json();
-    const { phone } = body;
-    
-    if (!phone || phone.length < 10) {
-      return NextResponse.json(
-        { error: 'Valid phone number required' },
-        { status: 400 }
-      );
-    }
-    
+
     const breachData = await checkPhoneBreach(phone);
-    
+
     if (!breachData) {
-      return NextResponse.json(
-        { error: 'Scan failed. Try again.' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Scan failed. Try again.' }, { status: 500 });
     }
-    
-    const userId = `guest:${ip}`;
-    
-    const phoneCheck = await PhoneCheck.create({
+
+    await PhoneCheck.create({
       phoneHash: phone.replace(/[\s\-\(\)]/g, '').slice(-4),
       phoneLast4: breachData.phoneLast4,
       countryCode: breachData.countryCode,
@@ -38,9 +34,9 @@ export async function POST(req: NextRequest) {
       breachSources: breachData.breachSources,
       dataTypes: breachData.dataTypes,
       riskLevel: breachData.riskLevel,
-      userId,
+      userId: session.user.email,
     });
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -50,14 +46,10 @@ export async function POST(req: NextRequest) {
         riskLevel: breachData.riskLevel,
         phoneLast4: breachData.phoneLast4,
         countryCode: breachData.countryCode,
-        scannedAt: phoneCheck.scannedAt,
       },
     });
   } catch (error) {
     console.error('Phone check API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

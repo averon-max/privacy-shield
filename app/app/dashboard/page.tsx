@@ -165,8 +165,8 @@ export default function Dashboard() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {checks.slice(0, 5).map((c, i) => {
-                    const color = (c.breached && c.passwordExposed) ? "#e05c4b" : c.breached ? "#c48b20" : c.passwordExposed ? "#6c9ef7" : "#6ce4c0";
-                    const label = (c.breached && c.passwordExposed) ? "Critical" : c.breached ? "Breached" : c.passwordExposed ? "Exposed" : "Safe";
+                    const color = (c.breached && c.passwordExposed) ? "#e05c4b" : c.breached ? "#e05c4b" : c.passwordExposed ? "#c48b20" : "#6ce4c0";
+                    const label = (c.breached && c.passwordExposed) ? "Critical" : c.breached ? "Breached" : c.passwordExposed ? "Pwd Exposed" : "Safe";
                     return (
                       <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "9px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -187,12 +187,14 @@ export default function Dashboard() {
             {/* QUICK ACTIONS */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
               {[
-                { label: "Email scanner", href: "/app", color: "#fff", desc: "Check email for breaches" },
-                { label: "Phone scanner", href: "/app/phone-scanner", color: "#6c9ef7", desc: "Check phone for leaks" },
-                { label: "View history", href: "/app/history", color: "#b47fe8", desc: "All your past scans" },
-                { label: "Watchlist", href: "/app/watchlist", color: "#e05c4b", desc: "Monitor for new breaches" },
-                { label: "Password generator", href: "/app/tools", color: "#6ce4c0", desc: "Create a strong password" },
-                { label: "Security blog", href: "/blog", color: "#c48b20", desc: "Learn how to stay safe" },
+               { label: "Email scanner", href: "/app", color: "#fff", desc: "Check email for breaches" },
+{ label: "Phone scanner", href: "/app/phone-scanner", color: "#6c9ef7", desc: "Check phone for leaks" },
+{ label: "Multi-scan", href: "/app/multi-scan", color: "#b47fe8", desc: "Scan 5 emails at once" },
+{ label: "Watchlist", href: "/app/watchlist", color: "#e05c4b", desc: "Monitor for new breaches" },
+{ label: "Security checklist", href: "/app/checklist", color: "#6ce4c0", desc: "Your security action plan" },
+{ label: "Breach timeline", href: "/app/timeline", color: "#c48b20", desc: "Your scan history by date" },
+{ label: "Password generator", href: "/app/tools", color: "#b47fe8", desc: "Create a strong password" },
+{ label: "Security blog", href: "/blog", color: "#6c9ef7", desc: "Learn how to stay safe" },
               ].map(a => (
                 <Link key={a.label} href={a.href} style={{ padding: "18px 20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", textDecoration: "none", display: "block", transition: "all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
