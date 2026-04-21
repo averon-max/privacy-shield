@@ -154,9 +154,9 @@ export default function Landing() {
 
         <h1 style={{ fontSize: "clamp(40px, 12vw, 96px)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.95, marginBottom: "24px", maxWidth: "900px" }}>
           Your password<br />
-          <span style={{ color: "transparent", WebkitTextStroke: "1.5px rgba(255,255,255,0.7)", textShadow: "0 0 80px rgba(255,255,255,0.1)" }}>
-            is out there.
-          </span>
+         <span style={{ color: "rgba(255,255,255,0.5)" }}>
+  is out there.
+</span>
         </h1>
 
         <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "clamp(15px, 4vw, 18px)", lineHeight: 1.65, maxWidth: "400px", marginBottom: "40px" }}>
