@@ -17,10 +17,24 @@ export default function Landing() {
   // fetch real count from DB, then tick up slowly
   useEffect(() => {
     setMounted(true);
+    // Use localStorage so counter never resets on refresh
+    const cached = localStorage.getItem("smc_scan_count");
+    const cachedTime = localStorage.getItem("smc_scan_count_time");
+    const isRecent = cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 5;
+    if (cached && isRecent) {
+      setCounter(parseInt(cached));
+    }
     fetch("/api/stats")
       .then(r => r.json())
-      .then(d => setCounter(d.count))
-      .catch(() => setCounter(14823491));
+      .then(d => {
+        const newCount = Math.max(d.count, parseInt(cached || "0"));
+        setCounter(newCount);
+        localStorage.setItem("smc_scan_count", String(newCount));
+        localStorage.setItem("smc_scan_count_time", String(Date.now()));
+      })
+      .catch(() => {
+        if (!cached) setCounter(14823491);
+      });
   }, []);
 
   useEffect(() => {
