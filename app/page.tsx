@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function Landing() {
@@ -7,18 +7,27 @@ export default function Landing() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<null | "safe" | "breached">(null);
   const [msg, setMsg] = useState("");
-  const [counter, setCounter] = useState(14823491);
+  const [counter, setCounter] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const msgs = ["Connecting to breach database...", "Scanning 15B records...", "Cross-referencing leaks...", "Generating report..."];
 
+  // fetch real count from DB, then tick up slowly
   useEffect(() => {
     setMounted(true);
-    const t = setInterval(() => setCounter(c => c + Math.floor(Math.random() * 3)), 800);
-    return () => clearInterval(t);
+    fetch("/api/stats")
+      .then(r => r.json())
+      .then(d => setCounter(d.count))
+      .catch(() => setCounter(14823491));
   }, []);
+
+  useEffect(() => {
+    if (counter === null) return;
+    const t = setInterval(() => setCounter(c => (c ?? 0) + Math.floor(Math.random() * 3)), 800);
+    return () => clearInterval(t);
+  }, [counter !== null]);
 
   useEffect(() => {
     const fn = () => setScrollY(window.scrollY);
@@ -139,16 +148,14 @@ export default function Landing() {
 
       {/* HERO */}
       <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 20px 60px", position: "relative", overflow: "hidden" }}>
-        {/* big glow */}
         <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: "120vw", height: "60vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.08) 0%, rgba(108,158,247,0.04) 40%, transparent 70%)", pointerEvents: "none" }} />
-        {/* grid */}
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
 
-        {/* live pill */}
+        {/* live pill — now real data */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "100px", marginBottom: "40px", background: "rgba(255,255,255,0.04)", backdropFilter: "blur(10px)", position: "relative", zIndex: 1 }}>
           <span style={{ width: "7px", height: "7px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 10px rgba(224,92,75,1)", display: "inline-block", animation: "pulse 2s infinite" }} />
           <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
-            {mounted ? counter.toLocaleString("en-US") : "14,823,491"} credentials leaked today
+            {mounted && counter !== null ? counter.toLocaleString("en-US") : "—"} credentials scanned
           </span>
         </div>
 
@@ -215,6 +222,27 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* TRUST SIGNALS — NEW */}
+      <section style={{ padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+            {[
+              { icon: "🔒", title: "600+ Breach Databases", sub: "Real-time checks across all major leaks", color: "#6c9ef7" },
+              { icon: "🕵️", title: "K-Anonymity Protected", sub: "Your password is hashed locally — never sent in full", color: "#b47fe8" },
+              { icon: "⚡", title: "Results in 2 Seconds", sub: "Instant scan across 15 billion records", color: "#6ce4c0" },
+              { icon: "🗄️", title: "Zero Data Retention", sub: "We never log or store your password. Ever.", color: "#e05c4b" },
+            ].map(item => (
+              <div key={item.title} style={{ padding: "20px", borderRadius: "14px", border: `1px solid ${item.color}18`, background: `${item.color}06`, position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${item.color}60, transparent)` }} />
+                <div style={{ fontSize: "22px", marginBottom: "10px" }}>{item.icon}</div>
+                <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", marginBottom: "5px" }}>{item.title}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* TICKER 1 */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "#060606", position: "relative" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to right, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
@@ -231,7 +259,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* STATS SECTION */}
+      {/* STATS */}
       <section style={{ padding: "80px 20px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
         <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
@@ -252,7 +280,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* TICKER 2 - reverse */}
+      {/* TICKER 2 reverse */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "#060606", position: "relative" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to right, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to left, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
@@ -281,7 +309,7 @@ export default function Landing() {
               { num: "01", title: "Email breach detection", desc: "Cross-referenced against 600+ breach databases instantly. See every site that leaked your data.", color: "#6c9ef7", tag: "Real-time" },
               { num: "02", title: "Password exposure check", desc: "k-Anonymity model — your password is hashed locally and never sent in full. Zero risk.", color: "#b47fe8", tag: "k-Anonymity" },
               { num: "03", title: "Security score 0–100", desc: "A clear score tells you exactly how exposed you are and what your biggest risks are right now.", color: "#6ce4c0", tag: "Instant" },
-              { num: "04", title: "Phone number scanner", desc: "Check if your phone appears in SMS leaks, spam databases, and phone number breach records.", color: "#c48b20", tag: "New" },
+              { num: "04", title: "Phone number scanner", desc: "Check if your phone appears in SMS leaks, spam databases, and phone number breach records.", color: "#c48b20", tag: "Coming soon" },
               { num: "05", title: "Daily breach monitoring", desc: "Add up to 3 emails to your watchlist. Get instant alerts when a new breach is detected.", color: "#e05c4b", tag: "Alerts" },
               { num: "06", title: "Zero data retention", desc: "We never store your credentials. Your data is never our product. Privacy is the whole point.", color: "#6c9ef7", tag: "Private" },
             ].map(f => (
@@ -316,7 +344,7 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* EXPLORE */}
+      {/* NAVIGATE */}
       <section style={{ padding: "80px 20px" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>Navigate</p>
