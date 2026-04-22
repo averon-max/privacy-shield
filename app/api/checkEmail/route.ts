@@ -16,12 +16,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Too many requests. Please wait a minute." }, { status: 429 });
     }
 
+    // Parse body once — used throughout the entire handler
+    const body = await req.json();
+    const { email, password, extensionCheck } = body;
+
+    // Allow extension basic checks without full auth
+    // Only returns breached/count — no password check, not saved to DB
+    if (extensionCheck) {
+      try {
+        const result = await checkEmailBreaches(email);
+        return NextResponse.json({
+          breached: result.breached,
+          breachCount: result.breachCount || 0,
+          breachSources: result.breachSources || [],
+        });
+      } catch {
+        return NextResponse.json({ breached: false, breachCount: 0, breachSources: [] });
+      }
+    }
+
     if (!session?.user?.email) {
       return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
     }
 
     await connectDB();
-    const { email, password } = await req.json();
+
+    // ✅ Removed: const { email, password } = await req.json()
+    //    Body is already parsed above — calling req.json() again throws,
+    //    and re-declaring email/password is a duplicate const error.
 
     if (!email || !email.includes("@")) {
       return NextResponse.json({ ok: false, error: "Invalid email" }, { status: 400 });
@@ -32,7 +54,7 @@ export async function POST(req: Request) {
       checkEmailBreaches(email),
     ]);
 
-  const breached = breachData !== null;
+    const breached = breachData !== null;
 
     // XposedOrNot only returns breach names, not data types per breach
     // So we leave exposedDataTypes empty unless the API actually returns them
@@ -52,7 +74,7 @@ export async function POST(req: Request) {
     const breachCount = breachData?.breaches?.[0]?.length || 0;
     const breachSources = breachData?.breaches?.[0] || [];
 
- console.log("BREACH DATA:", JSON.stringify(breachData, null, 2));
+    console.log("BREACH DATA:", JSON.stringify(breachData, null, 2));
 
     await EmailCheck.create({
       userId: session.user.email,

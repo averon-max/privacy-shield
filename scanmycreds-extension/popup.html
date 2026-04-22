@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScanMyCreds</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 360px;
+      min-height: 480px;
+      background: #000;
+      color: #fff;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .live-dot span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #e05c4b;
+      box-shadow: 0 0 8px #e05c4b;
+      animation: pulse 2s infinite;
+    }
+
+    .live-dot p {
+      font-size: 10px;
+      color: rgba(255,255,255,0.25);
+    }
+
+    .body {
+      padding: 18px;
+    }
+
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.18);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 13px;
+      padding: 11px 14px;
+      border-radius: 9px;
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.08);
+    }
+
+    input::placeholder { color: rgba(255,255,255,0.2); }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #000;
+      background: #fff;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(255,255,255,0.25);
+      transition: all 0.2s;
+      font-family: inherit;
+      margin-top: 4px;
+    }
+
+    .btn:hover { box-shadow: 0 0 40px rgba(255,255,255,0.5); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    .progress-bar {
+      height: 2px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .progress-bar.active { display: block; }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, #6c9ef7, #b47fe8);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 6px rgba(108,158,247,0.8);
+    }
+
+    .scan-msg {
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+      font-family: monospace;
+      margin-top: 7px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scan-msg.active { display: flex; }
+
+    .cursor { color: #6c9ef7; animation: blink 1s step-end infinite; }
+
+    /* Result card */
+    .result {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result.active { display: flex; }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .score-num {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 7px;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    .status-val {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .breach-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .breach-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(224,92,75,0.12);
+      color: #e05c4b;
+      border: 1px solid rgba(224,92,75,0.25);
+    }
+
+    .cta-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(108,228,192,0.2);
+      background: rgba(108,228,192,0.05);
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .cta-link:hover {
+      border-color: rgba(108,228,192,0.4);
+      background: rgba(108,228,192,0.09);
+    }
+
+    .cta-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .cta-left span:first-child {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #6ce4c0;
+      box-shadow: 0 0 5px #6ce4c0;
+      flex-shrink: 0;
+    }
+
+    .cta-left p { font-size: 11px; color: rgba(255,255,255,0.5); }
+    .cta-arrow { font-size: 11px; color: #6ce4c0; }
+
+    /* History section */
+    .history {
+      margin-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 14px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .history-email {
+      font-size: 11px;
+      color: rgba(255,255,255,0.45);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+
+    .history-status {
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 12px 18px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-link {
+      font-size: 10px;
+      color: rgba(255,255,255,0.2);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover { color: rgba(255,255,255,0.5); }
+
+    .error-box {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(224,92,75,0.3);
+      background: rgba(224,92,75,0.07);
+      color: #e05c4b;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .error-box.active { display: block; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="logo">ScanMyCreds</span>
+    <div class="live-dot">
+      <span></span>
+      <p id="counter">Loading...</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <p class="section-label">Check your credentials</p>
+
+    <div class="input-wrap">
+      <input type="email" id="emailInput" placeholder="your@email.com" />
+    </div>
+
+    <button class="btn" id="scanBtn">Scan now →</button>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="scan-msg" id="scanMsg">
+      <span class="cursor">█</span>
+      <span id="scanMsgText">Connecting...</span>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="result" id="result">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="history" id="historySection" style="display:none">
+      <p class="section-label" style="margin-bottom:8px">Recent scans</p>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-link" id="openApp">Open full app →</span>
+    <span class="footer-link" id="clearHistory">Clear history</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
