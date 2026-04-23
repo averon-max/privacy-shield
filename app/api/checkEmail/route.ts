@@ -4,24 +4,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
+import User from "@/models/User";
 import { checkPasswordExposure, checkEmailBreaches } from "@/services/checkEmailService";
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-    try {
-      await rateLimit(ip);
-    } catch {
-      return NextResponse.json({ ok: false, error: "Too many requests. Please wait a minute." }, { status: 429 });
+    try { await rateLimit(ip); } catch {
+      return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
     }
 
-    // Parse body once — used throughout the entire handler
     const body = await req.json();
     const { email, password, extensionCheck } = body;
 
-    // Allow extension basic checks without full auth
-    // Only returns breached/count — no password check, not saved to DB
+    // Extension unauthenticated check — no DB save, no password check
     if (extensionCheck) {
       try {
         const result = await checkEmailBreaches(email);
@@ -35,18 +31,36 @@ export async function POST(req: Request) {
       }
     }
 
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    if (!email || !email.includes("@")) {
+      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
     await connectDB();
 
-    // ✅ Removed: const { email, password } = await req.json()
-    //    Body is already parsed above — calling req.json() again throws,
-    //    and re-declaring email/password is a duplicate const error.
+    // Check Pro status
+    const user = await User.findOne({ email: session.user.email }).lean() as any;
+    const isPro = user?.isPro || false;
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ ok: false, error: "Invalid email" }, { status: 400 });
+    // Gate: free users get 5 scans/day
+    if (!isPro) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayCount = await EmailCheck.countDocuments({
+        userId: session.user.email,
+        createdAt: { $gte: todayStart },
+      });
+      if (todayCount >= 5) {
+        return NextResponse.json({
+          error: "You've used all 5 free scans for today. Upgrade to Pro for unlimited scans.",
+          limitReached: true,
+          upgradeUrl: "/pricing",
+        }, { status: 429 });
+      }
     }
 
     const [passwordResult, breachData] = await Promise.all([
@@ -56,8 +70,6 @@ export async function POST(req: Request) {
 
     const breached = breachData !== null;
 
-    // XposedOrNot only returns breach names, not data types per breach
-    // So we leave exposedDataTypes empty unless the API actually returns them
     const dataTypes: Set<string> = new Set();
     if (breachData?.breaches_details && Array.isArray(breachData.breaches_details)) {
       breachData.breaches_details.forEach((detail: any) => {
@@ -70,11 +82,9 @@ export async function POST(req: Request) {
       });
     }
 
-    const exposedDataTypes = Array.from(dataTypes); // will be [] if API doesn't return them
+    const exposedDataTypes = Array.from(dataTypes);
     const breachCount = breachData?.breaches?.[0]?.length || 0;
     const breachSources = breachData?.breaches?.[0] || [];
-
-    console.log("BREACH DATA:", JSON.stringify(breachData, null, 2));
 
     await EmailCheck.create({
       userId: session.user.email,
@@ -84,7 +94,6 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({
-      ok: true,
       email,
       passwordExposed: passwordResult.exposed,
       passwordBreachCount: passwordResult.count,
@@ -93,10 +102,11 @@ export async function POST(req: Request) {
       exposedDataTypes,
       breachCount,
       breachSources,
+      isPro,
     });
 
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
