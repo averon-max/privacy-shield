@@ -17,37 +17,22 @@ const ALLOWED_DOMAINS = [
 ];
 
 const TYPO_DOMAINS: Record<string, string> = {
-  "gmial.com": "gmail.com",
-  "gnail.com": "gmail.com",
-  "gmal.com": "gmail.com",
-  "gmil.com": "gmail.com",
-  "gmaill.com": "gmail.com",
-  "gamil.com": "gmail.com",
-  "hotmial.com": "hotmail.com",
-  "hotmal.com": "hotmail.com",
-  "outlok.com": "outlook.com",
-  "outloook.com": "outlook.com",
-  "yahooo.com": "yahoo.com",
-  "yaho.com": "yahoo.com",
-  "yahho.com": "yahoo.com",
+  "gmial.com": "gmail.com", "gnail.com": "gmail.com", "gmal.com": "gmail.com",
+  "gmil.com": "gmail.com", "gmaill.com": "gmail.com", "gamil.com": "gmail.com",
+  "hotmial.com": "hotmail.com", "hotmal.com": "hotmail.com",
+  "outlok.com": "outlook.com", "outloook.com": "outlook.com",
+  "yahooo.com": "yahoo.com", "yaho.com": "yahoo.com", "yahho.com": "yahoo.com",
 };
 
 function validateEmail(email: string): { valid: boolean; reason?: string } {
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   if (!emailRegex.test(email)) return { valid: false, reason: "Invalid email format" };
-
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain) return { valid: false, reason: "Missing domain" };
-
   if (TYPO_DOMAINS[domain]) return { valid: false, reason: `Did you mean ${email.split("@")[0]}@${TYPO_DOMAINS[domain]}?` };
-
   const tld = domain.split(".").pop();
-  if (!tld || tld.length < 2 || tld.length > 6 || !/^[a-z]+$/.test(tld))
-    return { valid: false, reason: "Invalid domain" };
-
-  if (!ALLOWED_DOMAINS.includes(domain))
-    return { valid: false, reason: "Please use a personal email (Gmail, Outlook, Yahoo, iCloud, etc.)" };
-
+  if (!tld || tld.length < 2 || tld.length > 6 || !/^[a-z]+$/.test(tld)) return { valid: false, reason: "Invalid domain" };
+  if (!ALLOWED_DOMAINS.includes(domain)) return { valid: false, reason: "Please use a personal email (Gmail, Outlook, Yahoo, iCloud, etc.)" };
   return { valid: true };
 }
 
@@ -65,48 +50,24 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-
         const email = credentials.email.toLowerCase().trim();
-        const password = credentials.password;
-
         const check = validateEmail(email);
-        if (!check.valid) {
-          console.error("❌ AUTH BLOCKED:", check.reason, email);
-          return null;
-        }
-
-        if (password.length < 8) {
-          console.error("❌ AUTH BLOCKED: Password too short");
-          return null;
-        }
-
+        if (!check.valid) return null;
+        if (credentials.password.length < 8) return null;
         try {
           await connectDB();
           const user = await User.findOne({ email }).lean() as any;
-          if (!user) {
-            console.error("❌ AUTH BLOCKED: User not found:", email);
-            return null;
-          }
-          if (!user.password || user.password.length < 60) {
-            console.error("❌ AUTH BLOCKED: No password hash:", email);
-            return null;
-          }
-          const valid = await bcrypt.compare(password, user.password);
-          if (!valid) {
-            console.error("❌ AUTH BLOCKED: Wrong password:", email);
-            return null;
-          }
-          console.log("✅ AUTH SUCCESS:", email);
+          if (!user || !user.password || user.password.length < 60) return null;
+          const valid = await bcrypt.compare(credentials.password, user.password);
+          if (!valid) return null;
           return {
             id: user._id.toString(),
             email: user.email,
             name: user.name || user.email,
             image: user.image || null,
+            isPro: user.isPro || false,
           };
-        } catch (err) {
-          console.error("❌ AUTH ERROR:", err);
-          return null;
-        }
+        } catch { return null; }
       },
     }),
   ],
@@ -120,6 +81,15 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.image = user.image;
+        token.isPro = (user as any).isPro || false;
+      }
+      // Refresh isPro from DB on each request so upgrades take effect immediately
+      if (token.email) {
+        try {
+          await connectDB();
+          const dbUser = await User.findOne({ email: token.email }).lean() as any;
+          if (dbUser) token.isPro = dbUser.isPro || false;
+        } catch {}
       }
       return token;
     },
@@ -129,6 +99,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email;
         session.user.name = token.name;
         session.user.image = token.image;
+        session.user.isPro = token.isPro || false;
       }
       return session;
     },

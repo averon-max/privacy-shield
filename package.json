@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^9.3.0",
     "@tailwindcss/postcss": "^4.2.1",
     "axios": "^1.15.0",
     "bcryptjs": "^3.0.3",
@@ -20,7 +21,8 @@
     "rate-limiter-flexible": "^10.0.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
-    "resend": "^6.10.0"
+    "resend": "^6.10.0",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

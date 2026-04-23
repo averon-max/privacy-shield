@@ -7,6 +7,10 @@ const UserSchema = new mongoose.Schema({
   image: { type: String },
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
+  isPro: { type: Boolean, default: false },
+  stripeCustomerId: { type: String },
+  stripeSubscriptionId: { type: String },
+  proCancelledAt: { type: Date },
 }, { timestamps: true });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);
