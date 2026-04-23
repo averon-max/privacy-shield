@@ -10,7 +10,6 @@ export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature")!;
 
   let event: Stripe.Event;
-
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
@@ -21,66 +20,61 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   switch (event.type) {
-    // Payment succeeded — activate Pro
+
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const email = session.metadata?.userEmail;
+      const plan = session.metadata?.plan || "pro";
       const subscriptionId = session.subscription as string;
       if (email) {
         await User.findOneAndUpdate(
           { email },
-          { isPro: true, stripeSubscriptionId: subscriptionId }
+          { isPro: true, plan, stripeSubscriptionId: subscriptionId }
         );
-        console.log(`✅ Pro activated for ${email}`);
+        console.log(`✅ ${plan} activated for ${email}`);
       }
       break;
     }
 
-    // Subscription renewed
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = invoice.customer as string;
       const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-      const email = customer.email;
-      if (email) {
-        await User.findOneAndUpdate({ email }, { isPro: true });
-        console.log(`✅ Pro renewed for ${email}`);
+      if (customer.email) {
+        await User.findOneAndUpdate({ email: customer.email }, { isPro: true });
+        console.log(`✅ Pro renewed for ${customer.email}`);
       }
       break;
     }
 
-    // Payment failed — keep Pro for now, Stripe will retry
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
       console.warn(`⚠ Payment failed for customer ${invoice.customer}`);
       break;
     }
 
-    // Subscription cancelled
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const customerId = sub.customer as string;
-      const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-      const email = customer.email;
-      if (email) {
+      const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
+      if (customer.email) {
         await User.findOneAndUpdate(
-          { email },
-          { isPro: false, stripeSubscriptionId: null, proCancelledAt: new Date() }
+          { email: customer.email },
+          { isPro: false, plan: "free", stripeSubscriptionId: null, proCancelledAt: new Date() }
         );
-        console.log(`❌ Pro cancelled for ${email}`);
+        console.log(`❌ Subscription cancelled for ${customer.email}`);
       }
       break;
     }
 
-    // Subscription paused/updated
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const customerId = sub.customer as string;
-      const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-      const email = customer.email;
-      if (email && sub.status !== "active") {
-        await User.findOneAndUpdate({ email }, { isPro: false });
-        console.log(`⚠ Pro deactivated (status: ${sub.status}) for ${email}`);
+      const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
+      if (customer.email && sub.status !== "active") {
+        await User.findOneAndUpdate(
+          { email: customer.email },
+          { isPro: false, plan: "free" }
+        );
+        console.log(`⚠ Subscription paused/updated for ${customer.email}, status: ${sub.status}`);
       }
       break;
     }

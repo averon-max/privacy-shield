@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema({
   resetToken: { type: String },
   resetTokenExpiry: { type: Date },
   isPro: { type: Boolean, default: false },
+  plan: { type: String, enum: ["free", "pro", "family"], default: "free" },
   stripeCustomerId: { type: String },
   stripeSubscriptionId: { type: String },
   proCancelledAt: { type: Date },

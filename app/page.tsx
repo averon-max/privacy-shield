@@ -14,32 +14,32 @@ export default function Landing() {
 
   const msgs = ["Connecting to breach database...", "Scanning 15B records...", "Cross-referencing leaks...", "Generating report..."];
 
-  // fetch real count from DB, then tick up slowly
   useEffect(() => {
     setMounted(true);
-    // Use localStorage so counter never resets on refresh
-    const cached = localStorage.getItem("smc_scan_count");
-    const cachedTime = localStorage.getItem("smc_scan_count_time");
+    const cached = localStorage.getItem("smc_counter");
+    const cachedTime = localStorage.getItem("smc_counter_time");
     const isRecent = cachedTime && Date.now() - parseInt(cachedTime) < 1000 * 60 * 5;
-    if (cached && isRecent) {
-      setCounter(parseInt(cached));
-    }
+    if (cached && isRecent) setCounter(parseInt(cached));
     fetch("/api/stats")
       .then(r => r.json())
       .then(d => {
-        const newCount = Math.max(d.count, parseInt(cached || "0"));
-        setCounter(newCount);
-        localStorage.setItem("smc_scan_count", String(newCount));
-        localStorage.setItem("smc_scan_count_time", String(Date.now()));
+        const val = Math.max(d.count, parseInt(cached || "0"));
+        setCounter(val);
+        localStorage.setItem("smc_counter", String(val));
+        localStorage.setItem("smc_counter_time", String(Date.now()));
       })
-      .catch(() => {
-        if (!cached) setCounter(14823491);
-      });
+      .catch(() => { if (!cached) setCounter(14823491); });
   }, []);
 
   useEffect(() => {
     if (counter === null) return;
-    const t = setInterval(() => setCounter(c => (c ?? 0) + Math.floor(Math.random() * 3)), 800);
+    const t = setInterval(() => {
+      setCounter(c => {
+        const next = (c ?? 0) + Math.floor(Math.random() * 3);
+        localStorage.setItem("smc_counter", String(next));
+        return next;
+      });
+    }, 800);
     return () => clearInterval(t);
   }, [counter !== null]);
 
@@ -77,7 +77,7 @@ export default function Landing() {
     { name: "Dropbox", count: "68M", type: "passwords", color: "#e05c4b" },
     { name: "Marriott", count: "500M", type: "passports", color: "#b47fe8" },
     { name: "Uber", count: "57M", type: "emails", color: "#6c9ef7" },
-    { name: "MyFitnessPal", count: "144M", type: "passwords", color: "#e05c4b" },
+    { name: "AT&T", count: "73M", type: "SSNs", color: "#e05c4b" },
     { name: "Snapchat", count: "4.6M", type: "phones", color: "#c48b20" },
   ];
   const items = [...ticker, ...ticker];
@@ -87,13 +87,6 @@ export default function Landing() {
     { label: "Features", href: "/features" },
     { label: "Pricing", href: "/pricing" },
     { label: "Blog", href: "/blog" },
-  ];
-
-  const facts = [
-    { stat: "81%", desc: "of breaches use stolen passwords", color: "#e05c4b" },
-    { stat: "287", desc: "days avg to detect a breach", color: "#c48b20" },
-    { stat: "15B+", desc: "credentials on dark web now", color: "#6c9ef7" },
-    { stat: "1 in 2", desc: "people already exposed", color: "#b47fe8" },
   ];
 
   return (
@@ -162,50 +155,49 @@ export default function Landing() {
 
       {/* HERO */}
       <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 20px 60px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: "120vw", height: "60vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.08) 0%, rgba(108,158,247,0.04) 40%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: "120vw", height: "60vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.1) 0%, rgba(108,158,247,0.05) 40%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
 
-        {/* live pill — now real data */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "100px", marginBottom: "40px", background: "rgba(255,255,255,0.04)", backdropFilter: "blur(10px)", position: "relative", zIndex: 1 }}>
+        {/* Live breach alert pill */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "100px", marginBottom: "32px", background: "rgba(224,92,75,0.06)", backdropFilter: "blur(10px)", position: "relative", zIndex: 1 }}>
           <span style={{ width: "7px", height: "7px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 10px rgba(224,92,75,1)", display: "inline-block", animation: "pulse 2s infinite" }} />
           <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", fontVariantNumeric: "tabular-nums" }}>
             {mounted && counter !== null ? counter.toLocaleString("en-US") : "—"} credentials scanned
           </span>
         </div>
 
-        {/* hero text */}
-        <div style={{ textAlign: "center", position: "relative", zIndex: 1, marginBottom: "48px" }}>
-          <h1 style={{ fontSize: "clamp(48px, 14vw, 120px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.9, marginBottom: "0" }}>
-            <span style={{ display: "block", color: "#fff" }}>Your</span>
-            <span style={{ display: "block", color: "#fff" }}>password</span>
-            <span style={{ display: "block", color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>is already</span>
-            <span style={{ display: "block", background: "linear-gradient(135deg, #e05c4b, #b47fe8, #6c9ef7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>out there.</span>
+        {/* Hero headline — new aggressive copy */}
+        <div style={{ textAlign: "center", position: "relative", zIndex: 1, marginBottom: "32px", maxWidth: "900px" }}>
+          <h1 style={{ fontSize: "clamp(52px, 14vw, 128px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.88, marginBottom: "0" }}>
+            <span style={{ display: "block", color: "#fff" }}>Your data</span>
+            <span style={{ display: "block", color: "#fff" }}>is already</span>
+            <span style={{ display: "block", background: "linear-gradient(135deg, #e05c4b 0%, #b47fe8 50%, #6c9ef7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>for sale.</span>
           </h1>
         </div>
 
-        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "clamp(15px, 4vw, 18px)", lineHeight: 1.65, maxWidth: "420px", marginBottom: "40px", textAlign: "center", position: "relative", zIndex: 1 }}>
-          15 billion credentials circulating on the dark web. Find out if yours is one of them — free, in 10 seconds.
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "clamp(15px, 3vw, 20px)", lineHeight: 1.6, maxWidth: "460px", marginBottom: "48px", textAlign: "center", position: "relative", zIndex: 1 }}>
+          17 billion credentials are circulating on the dark web right now. Check if yours is one of them — free, in 10 seconds.
         </p>
 
         {/* SCAN BOX */}
-        <div style={{ width: "100%", maxWidth: "500px", position: "relative", zIndex: 1 }}>
-          <div style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "18px", padding: "20px", background: "rgba(255,255,255,0.04)", backdropFilter: "blur(20px)", boxShadow: "0 0 80px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>
-              Free instant scan — no sign up needed
+        <div style={{ width: "100%", maxWidth: "520px", position: "relative", zIndex: 1 }}>
+          <div style={{ border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", padding: "22px", background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", boxShadow: "0 0 80px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.15)", textTransform: "uppercase", marginBottom: "14px" }}>
+              Free instant scan — no account needed
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <input type="email" placeholder="your@email.com" value={email}
                 onChange={e => { setEmail(e.target.value); setResult(null); }}
                 onKeyDown={e => e.key === "Enter" && run()}
-                style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "15px", padding: "14px 16px", outline: "none", borderRadius: "10px", transition: "all 0.2s", boxSizing: "border-box" }}
+                style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", padding: "15px 18px", outline: "none", borderRadius: "12px", transition: "all 0.2s", boxSizing: "border-box" }}
                 onFocus={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)")}
                 onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
               />
               <button onClick={run} disabled={running}
-                style={{ width: "100%", padding: "15px", fontSize: "15px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "10px", cursor: running ? "not-allowed" : "pointer", opacity: running ? 0.7 : 1, boxShadow: "0 0 30px rgba(255,255,255,0.3)", transition: "all 0.15s" }}
-                onMouseEnter={e => { if (!running) e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.6)"; }}
-                onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 30px rgba(255,255,255,0.3)")}
-              >{running ? "Scanning..." : "Check now →"}</button>
+                style={{ width: "100%", padding: "16px", fontSize: "16px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "12px", cursor: running ? "not-allowed" : "pointer", opacity: running ? 0.7 : 1, boxShadow: "0 0 40px rgba(255,255,255,0.35)", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (!running) e.currentTarget.style.boxShadow = "0 0 70px rgba(255,255,255,0.65)"; }}
+                onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.35)")}
+              >{running ? "Scanning..." : "Check now — it's free →"}</button>
             </div>
 
             {running && (
@@ -216,44 +208,37 @@ export default function Landing() {
             )}
 
             {result && (
-              <div style={{ marginTop: "12px", padding: "14px", borderRadius: "10px", border: `1px solid ${result === "breached" ? "rgba(224,92,75,0.4)" : "rgba(108,228,192,0.3)"}`, background: result === "breached" ? "rgba(224,92,75,0.07)" : "rgba(108,228,192,0.05)" }}>
-                <p style={{ color: result === "breached" ? "#e05c4b" : "#6ce4c0", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+              <div style={{ marginTop: "12px", padding: "16px", borderRadius: "12px", border: `1px solid ${result === "breached" ? "rgba(224,92,75,0.4)" : "rgba(108,228,192,0.3)"}`, background: result === "breached" ? "rgba(224,92,75,0.07)" : "rgba(108,228,192,0.05)" }}>
+                <p style={{ color: result === "breached" ? "#e05c4b" : "#6ce4c0", fontSize: "14px", fontWeight: 700, marginBottom: "6px" }}>
                   {result === "breached" ? "⚠ Your data has been exposed" : "✓ No known breaches found"}
                 </p>
-                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", marginBottom: "12px", lineHeight: 1.5 }}>
-                  {result === "breached" ? "Sign in to see which sites leaked your data and what to do." : "Sign in for your full security report and breach history."}
+                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", marginBottom: "14px", lineHeight: 1.5 }}>
+                  {result === "breached" ? "Sign in to see exactly which sites leaked your data and what to do about it." : "Sign in for your full security report, breach monitoring, and history."}
                 </p>
-                <Link href="/app" style={{ display: "block", textAlign: "center", padding: "10px", fontSize: "13px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px" }}>
-                  {result === "breached" ? "See full breach report →" : "View full report →"}
+                <Link href="/app" style={{ display: "block", textAlign: "center", padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>
+                  {result === "breached" ? "See full breach report →" : "View full security report →"}
                 </Link>
               </div>
             )}
 
-            <p style={{ color: "rgba(255,255,255,0.1)", fontSize: "10px", marginTop: "10px", textAlign: "center" }}>
-              Preview only — sign in for full results, score & history
+            <p style={{ color: "rgba(255,255,255,0.08)", fontSize: "10px", marginTop: "10px", textAlign: "center" }}>
+              k-Anonymity · Zero plain-text transmission · No data stored
             </p>
           </div>
         </div>
-      </section>
 
-      {/* TRUST SIGNALS — NEW */}
-      <section style={{ padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
-            {[
-              { icon: "🔒", title: "600+ Breach Databases", sub: "Real-time checks across all major leaks", color: "#6c9ef7" },
-              { icon: "🕵️", title: "K-Anonymity Protected", sub: "Your password is hashed locally — never sent in full", color: "#b47fe8" },
-              { icon: "⚡", title: "Results in 2 Seconds", sub: "Instant scan across 15 billion records", color: "#6ce4c0" },
-              { icon: "🗄️", title: "Zero Data Retention", sub: "We never log or store your password. Ever.", color: "#e05c4b" },
-            ].map(item => (
-              <div key={item.title} style={{ padding: "20px", borderRadius: "14px", border: `1px solid ${item.color}18`, background: `${item.color}06`, position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${item.color}60, transparent)` }} />
-                <div style={{ fontSize: "22px", marginBottom: "10px" }}>{item.icon}</div>
-                <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", marginBottom: "5px" }}>{item.title}</p>
-                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>{item.sub}</p>
-              </div>
-            ))}
-          </div>
+        {/* Social proof */}
+        <div style={{ display: "flex", alignItems: "center", gap: "24px", marginTop: "32px", position: "relative", zIndex: 1, flexWrap: "wrap", justifyContent: "center" }}>
+          {[
+            { val: "600+", label: "breach databases" },
+            { val: "17B+", label: "records indexed" },
+            { val: "k-Anon", label: "password privacy" },
+          ].map(s => (
+            <div key={s.label} style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "18px", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{s.val}</p>
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>{s.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -273,21 +258,55 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* STATS */}
-      <section style={{ padding: "80px 20px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
-        <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>The threat is real</p>
-          <h2 style={{ fontSize: "clamp(28px, 6vw, 52px)", fontWeight: 800, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center", lineHeight: 1.1 }}>
-            Numbers that should<br />
-            <span style={{ color: "rgba(255,255,255,0.35)" }}>scare you.</span>
+      {/* TRUST SIGNALS */}
+      <section style={{ padding: "60px 20px", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+            {[
+              { icon: "🔒", title: "600+ Breach Databases", sub: "Real-time checks across every major leak", color: "#6c9ef7" },
+              { icon: "🕵️", title: "K-Anonymity Protected", sub: "Your password never leaves your device in plain text", color: "#b47fe8" },
+              { icon: "⚡", title: "Results in Under 2s", sub: "Instant scan across 17 billion records", color: "#6ce4c0" },
+              { icon: "🗄️", title: "Zero Data Retention", sub: "We never log or store your password. Ever.", color: "#e05c4b" },
+            ].map(item => (
+              <div key={item.title} style={{ padding: "22px", borderRadius: "16px", border: `1px solid ${item.color}18`, background: `${item.color}06`, position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${item.color}60, transparent)` }} />
+                <div style={{ fontSize: "24px", marginBottom: "12px" }}>{item.icon}</div>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>{item.title}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WHAT WE CHECK */}
+      <section style={{ padding: "60px 20px", position: "relative" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>What we check</p>
+          <h2 style={{ fontSize: "clamp(28px, 6vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center", lineHeight: 1.05 }}>
+            Everything exposed.<br />
+            <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>Nothing hidden.</span>
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
-            {facts.map((f, i) => (
-              <div key={i} style={{ padding: "28px 24px", borderRadius: "16px", border: `1px solid ${f.color}20`, background: `${f.color}06`, position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(to right, ${f.color}, transparent)` }} />
-                <p style={{ fontSize: "clamp(32px, 6vw, 48px)", fontWeight: 800, color: f.color, letterSpacing: "-0.04em", textShadow: `0 0 30px ${f.color}`, marginBottom: "8px", lineHeight: 1 }}>{f.stat}</p>
-                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{f.desc}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", overflow: "hidden" }}>
+            {[
+              { num: "01", title: "Email breach detection", desc: "Cross-referenced against 600+ breach databases instantly. See every site that leaked your data.", color: "#6c9ef7", tag: "Real-time" },
+              { num: "02", title: "Password exposure check", desc: "k-Anonymity model — your password is hashed locally and never sent in full. Zero risk.", color: "#b47fe8", tag: "k-Anonymity" },
+              { num: "03", title: "Security score 0–100", desc: "A real calculated score based on breach severity, recency, and data types exposed.", color: "#6ce4c0", tag: "Calculated" },
+              { num: "04", title: "Live breach intelligence", desc: "Real-time feed of new breaches as they're discovered. Know before the news does.", color: "#e05c4b", tag: "Live" },
+              { num: "05", title: "Daily breach monitoring", desc: "Add emails to your watchlist. Get instant alerts the moment a new breach is detected.", color: "#c48b20", tag: "Alerts" },
+              { num: "06", title: "Family protection", desc: "Protect everyone you care about. Monitor up to 5 family members from one dashboard.", color: "#b47fe8", tag: "Family" },
+            ].map(f => (
+              <div key={f.num}
+                style={{ padding: "24px 32px", background: "#000", transition: "background 0.2s", display: "flex", alignItems: "center", gap: "20px" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#080808")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#000")}
+              >
+                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.12)", letterSpacing: "0.1em", width: "24px", flexShrink: 0 }}>{f.num}</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>{f.title}</p>
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)", lineHeight: 1.55 }}>{f.desc}</p>
+                </div>
+                <span style={{ fontSize: "10px", padding: "3px 10px", borderRadius: "5px", background: `${f.color}15`, color: f.color, border: `1px solid ${f.color}30`, whiteSpace: "nowrap", flexShrink: 0 }}>{f.tag}</span>
               </div>
             ))}
           </div>
@@ -310,76 +329,82 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* FEATURES */}
+      {/* PRICING PREVIEW */}
       <section style={{ padding: "80px 20px", position: "relative" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>What we check</p>
-          <h2 style={{ fontSize: "clamp(28px, 6vw, 52px)", fontWeight: 800, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center", lineHeight: 1.1 }}>
-            Everything exposed.<br />
-            <span style={{ color: "rgba(255,255,255,0.35)" }}>Nothing hidden from you.</span>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>Pricing</p>
+          <h2 style={{ fontSize: "clamp(28px, 6vw, 52px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center", lineHeight: 1.05 }}>
+            Free forever.<br />
+            <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>More if you need it.</span>
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "10px" }}>
             {[
-              { num: "01", title: "Email breach detection", desc: "Cross-referenced against 600+ breach databases instantly. See every site that leaked your data.", color: "#6c9ef7", tag: "Real-time" },
-              { num: "02", title: "Password exposure check", desc: "k-Anonymity model — your password is hashed locally and never sent in full. Zero risk.", color: "#b47fe8", tag: "k-Anonymity" },
-              { num: "03", title: "Security score 0–100", desc: "A clear score tells you exactly how exposed you are and what your biggest risks are right now.", color: "#6ce4c0", tag: "Instant" },
-              { num: "04", title: "Phone number scanner", desc: "Check if your phone appears in SMS leaks, spam databases, and phone number breach records.", color: "#c48b20", tag: "Coming soon" },
-              { num: "05", title: "Daily breach monitoring", desc: "Add up to 3 emails to your watchlist. Get instant alerts when a new breach is detected.", color: "#e05c4b", tag: "Alerts" },
-              { num: "06", title: "Zero data retention", desc: "We never store your credentials. Your data is never our product. Privacy is the whole point.", color: "#6c9ef7", tag: "Private" },
-            ].map(f => (
-              <div key={f.num}
-                style={{ padding: "28px 32px", background: "#000", transition: "background 0.2s", display: "flex", alignItems: "center", gap: "20px" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#0a0a0a")}
-                onMouseLeave={e => (e.currentTarget.style.background = "#000")}
-              >
-                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", letterSpacing: "0.1em", width: "24px", flexShrink: 0 }}>{f.num}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: "15px", fontWeight: 600, color: "#fff", marginBottom: "4px" }}>{f.title}</p>
-                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)", lineHeight: 1.55 }}>{f.desc}</p>
+              {
+                name: "Free", price: "$0", sub: "Forever. No card needed.",
+                color: "#6ce4c0",
+                features: ["5 scans/day", "Email breach check", "Password k-anonymity", "Security score", "3 watchlist emails"],
+                cta: "Start free →", href: "/app", outline: true,
+              },
+              {
+                name: "Pro", price: "$4.99", sub: "/month · cancel anytime",
+                color: "#6c9ef7",
+                features: ["Unlimited scans", "Full breach sources", "Unlimited watchlist", "Priority alerts", "Early access features"],
+                cta: "Upgrade to Pro →", href: "/pricing", outline: false, badge: "Most popular",
+              },
+              {
+                name: "Family", price: "$9.99", sub: "/month · up to 5 members",
+                color: "#b47fe8",
+                features: ["Everything in Pro", "5 family members", "Family dashboard", "Parental alerts", "One billing account"],
+                cta: "Protect your family →", href: "/pricing", outline: false, badge: "Best value",
+              },
+            ].map(plan => (
+              <div key={plan.name} style={{ padding: "28px", borderRadius: "18px", border: `1px solid ${plan.outline ? "rgba(255,255,255,0.08)" : `${plan.color}25`}`, background: plan.outline ? "rgba(255,255,255,0.01)" : `${plan.color}06`, position: "relative", overflow: "hidden" }}>
+                {!plan.outline && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(to right, ${plan.color}, transparent)` }} />}
+                {(plan as any).badge && (
+                  <div style={{ position: "absolute", top: "16px", right: "16px", fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: plan.color, background: `${plan.color}15`, border: `1px solid ${plan.color}30`, padding: "2px 8px", borderRadius: "4px" }}>{(plan as any).badge.toUpperCase()}</div>
+                )}
+                <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "12px" }}>{plan.name}</p>
+                <p style={{ fontSize: "40px", fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "4px" }}>{plan.price}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)", marginBottom: "20px" }}>{plan.sub}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
+                  {plan.features.map(f => (
+                    <div key={f} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: plan.color, boxShadow: `0 0 4px ${plan.color}`, flexShrink: 0 }} />
+                      <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>{f}</span>
+                    </div>
+                  ))}
                 </div>
-                <span style={{ fontSize: "10px", padding: "3px 10px", borderRadius: "5px", background: `${f.color}15`, color: f.color, border: `1px solid ${f.color}30`, whiteSpace: "nowrap", flexShrink: 0 }}>{f.tag}</span>
+                <Link href={plan.href} style={{ display: "block", textAlign: "center", padding: "12px", fontSize: "13px", fontWeight: 700, color: plan.outline ? "rgba(255,255,255,0.6)" : "#000", background: plan.outline ? "transparent" : "#fff", border: plan.outline ? "1px solid rgba(255,255,255,0.12)" : "none", textDecoration: "none", borderRadius: "10px", boxShadow: plan.outline ? "none" : `0 0 30px ${plan.color}40`, transition: "all 0.2s" }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = plan.outline ? "none" : `0 0 50px ${plan.color}60`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = plan.outline ? "none" : `0 0 30px ${plan.color}40`; e.currentTarget.style.transform = "translateY(0)"; }}
+                >{plan.cta}</Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TICKER 3 */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "#060606", position: "relative" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to right, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to left, #060606, transparent)", zIndex: 2, pointerEvents: "none" }} />
-        <div style={{ display: "flex", width: "max-content", animation: "ticker 25s linear infinite" }}>
-          {[...Array(3)].flatMap(() => ["DATA BREACH", "CREDENTIALS EXPOSED", "PASSWORD LEAKED", "IDENTITY STOLEN", "ACCOUNT COMPROMISED", "DARK WEB SALE", "PHISHING ATTACK", "CREDENTIAL STUFFING"].map((text, i) => (
-            <div key={`${text}-${i}`} style={{ display: "flex", alignItems: "center", gap: "16px", padding: "0 24px", height: "44px", flexShrink: 0 }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.1)", letterSpacing: "0.15em", whiteSpace: "nowrap" }}>{text}</span>
-              <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: ["#e05c4b", "#6c9ef7", "#b47fe8", "#c48b20", "#6ce4c0"][i % 5], flexShrink: 0 }} />
-            </div>
-          )))}
-        </div>
-      </div>
-
-      {/* NAVIGATE */}
-      <section style={{ padding: "80px 20px" }}>
-        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>Navigate</p>
-          <h2 style={{ fontSize: "clamp(28px, 6vw, 52px)", fontWeight: 800, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center" }}>Everything in one place.</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+      {/* STATS */}
+      <section style={{ padding: "60px 20px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
+        <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px", textAlign: "center" }}>The threat is real</p>
+          <h2 style={{ fontSize: "clamp(28px, 6vw, 52px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "48px", textAlign: "center", lineHeight: 1.05 }}>
+            Numbers that should<br />
+            <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>scare you.</span>
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
             {[
-              { label: "How It Works", desc: "3 steps to your score", href: "/how-it-works", color: "#6c9ef7" },
-              { label: "Features", desc: "What we scan & check", href: "/features", color: "#b47fe8" },
-              { label: "Pricing", desc: "Free forever + Pro", href: "/pricing", color: "#6ce4c0" },
-              { label: "Blog", desc: "Security guides & tips", href: "/blog", color: "#c48b20" },
-            ].map(card => (
-              <Link key={card.href} href={card.href}
-                style={{ padding: "22px 18px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.01)", textDecoration: "none", display: "block", transition: "all 0.2s", position: "relative", overflow: "hidden" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.01)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.transform = "translateY(0)"; }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${card.color}60, transparent)` }} />
-                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: card.color, boxShadow: `0 0 10px ${card.color}`, display: "block", marginBottom: "14px" }} />
-                <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "5px", letterSpacing: "-0.01em" }}>{card.label}</p>
-                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>{card.desc}</p>
-              </Link>
+              { stat: "81%", desc: "of breaches use stolen passwords", color: "#e05c4b" },
+              { stat: "287", desc: "days avg to detect a breach", color: "#c48b20" },
+              { stat: "17B+", desc: "credentials on dark web now", color: "#6c9ef7" },
+              { stat: "1 in 2", desc: "people already exposed", color: "#b47fe8" },
+            ].map((f, i) => (
+              <div key={i} style={{ padding: "28px 24px", borderRadius: "16px", border: `1px solid ${f.color}20`, background: `${f.color}06`, position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: `linear-gradient(to right, ${f.color}, transparent)` }} />
+                <p style={{ fontSize: "clamp(32px, 6vw, 52px)", fontWeight: 900, color: f.color, letterSpacing: "-0.04em", textShadow: `0 0 30px ${f.color}`, marginBottom: "8px", lineHeight: 1 }}>{f.stat}</p>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{f.desc}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -388,31 +413,46 @@ export default function Landing() {
       {/* FINAL CTA */}
       <section style={{ padding: "100px 20px", textAlign: "center", position: "relative", overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "600px", height: "300px", background: "radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 65%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "800px", height: "400px", background: "radial-gradient(ellipse, rgba(224,92,75,0.08) 0%, transparent 65%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <h2 style={{ fontSize: "clamp(40px, 12vw, 96px)", fontWeight: 900, letterSpacing: "-0.05em", marginBottom: "16px", lineHeight: 0.9 }}>
-            Know before<br />
-            <span style={{ background: "linear-gradient(135deg, #e05c4b, #b47fe8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>it's too late.</span>
+          <h2 style={{ fontSize: "clamp(44px, 12vw, 104px)", fontWeight: 900, letterSpacing: "-0.05em", marginBottom: "16px", lineHeight: 0.88 }}>
+            Find out<br />
+            <span style={{ background: "linear-gradient(135deg, #e05c4b, #b47fe8, #6c9ef7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>right now.</span>
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: "16px", marginBottom: "40px" }}>
-            Free. 10 seconds. No sign up required.
+          <p style={{ color: "rgba(255,255,255,0.25)", fontSize: "17px", marginBottom: "40px", lineHeight: 1.6 }}>
+            Free. 10 seconds. No account required to start.
           </p>
-          <Link href="/app"
-            style={{ padding: "18px 56px", fontSize: "17px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", display: "inline-block", boxShadow: "0 0 60px rgba(255,255,255,0.4)", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 100px rgba(255,255,255,0.7)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.4)"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >Scan my credentials →</Link>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <Link href="/app"
+              style={{ padding: "18px 56px", fontSize: "17px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", display: "inline-block", boxShadow: "0 0 60px rgba(255,255,255,0.4)", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 100px rgba(255,255,255,0.7)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.4)"; e.currentTarget.style.transform = "translateY(0)"; }}
+            >Scan my credentials →</Link>
+            <Link href="/pricing"
+              style={{ padding: "18px 32px", fontSize: "17px", fontWeight: 700, color: "rgba(255,255,255,0.5)", background: "transparent", textDecoration: "none", borderRadius: "12px", display: "inline-block", border: "1px solid rgba(255,255,255,0.12)", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+            >See pricing</Link>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ padding: "24px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+      <footer style={{ padding: "28px 24px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
         <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 700, letterSpacing: "0.15em" }}>SCANMYCREDS</span>
+        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+          {[
+            { label: "Privacy", href: "/privacy" },
+            { label: "Terms", href: "/terms" },
+            { label: "Blog", href: "/blog" },
+          ].map(l => (
+            <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.15)", fontSize: "12px", textDecoration: "none" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.15)")}
+            >{l.label}</Link>
+          ))}
+        </div>
         <p style={{ color: "rgba(255,255,255,0.1)", fontSize: "11px" }}>© 2026 · k-Anonymity · Zero data retention</p>
-        <Link href="/app" style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", textDecoration: "none" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
-        >Launch App →</Link>
       </footer>
 
       <style>{`

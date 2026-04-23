@@ -14,11 +14,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const plan = body.plan === "family" ? "family" : "pro";
+    const priceId = plan === "family"
+      ? process.env.STRIPE_FAMILY_PRICE_ID!
+      : process.env.STRIPE_PRO_PRICE_ID!;
+
     await connectDB();
     const user = await User.findOne({ email: session.user.email }).lean() as any;
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // Reuse existing Stripe customer or create new one
     let customerId = user.stripeCustomerId;
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -36,25 +41,18 @@ export async function POST(req: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: process.env.STRIPE_PRO_PRICE_ID!,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${process.env.NEXTAUTH_URL}/app/dashboard?upgraded=true`,
       cancel_url: `${process.env.NEXTAUTH_URL}/pricing?cancelled=true`,
-      metadata: { userEmail: session.user.email },
-      subscription_data: {
-        metadata: { userEmail: session.user.email },
-      },
+      metadata: { userEmail: session.user.email, plan },
+      subscription_data: { metadata: { userEmail: session.user.email, plan } },
       allow_promotion_codes: true,
     });
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
     console.error("Stripe checkout error:", error);
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create checkout" }, { status: 500 });
   }
 }
