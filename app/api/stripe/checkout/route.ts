@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(req: NextRequest) {
   try {
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
     const priceId = plan === "family"
       ? process.env.STRIPE_FAMILY_PRICE_ID!
       : process.env.STRIPE_PRO_PRICE_ID!;
+
+    if (!priceId) {
+      return NextResponse.json({ error: "Price not configured" }, { status: 500 });
+    }
 
     await connectDB();
     const user = await User.findOne({ email: session.user.email }).lean() as any;

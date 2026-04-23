@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 function AnimatedNumber({ target, color, duration = 1200 }: { target: number; color: string; duration?: number }) {
@@ -32,7 +33,11 @@ function AnimatedNumber({ target, color, duration = 1200 }: { target: number; co
     requestAnimationFrame(tick);
   }, [target]);
 
-  return <span style={{ color, textShadow: `0 0 30px ${color}88`, fontVariantNumeric: "tabular-nums" }}>{display}</span>;
+  return (
+    <span style={{ color, textShadow: `0 0 30px ${color}88`, fontVariantNumeric: "tabular-nums" }}>
+      {display}
+    </span>
+  );
 }
 
 function ScoreRing({ score, color }: { score: number; color: string }) {
@@ -63,7 +68,6 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   );
 }
 
-// Real recent breaches feed — hardcoded but realistic
 const BREACH_FEED = [
   { name: "Trello", date: "Apr 2026", records: "15M", types: ["Emails", "Usernames"], color: "#6c9ef7", severity: "medium" },
   { name: "AT&T", date: "Mar 2026", records: "73M", types: ["SSNs", "Phones", "Emails"], color: "#e05c4b", severity: "critical" },
@@ -72,17 +76,23 @@ const BREACH_FEED = [
   { name: "Dropbox Sign", date: "Jan 2026", records: "35M", types: ["Emails", "Passwords"], color: "#c48b20", severity: "high" },
 ];
 
-export default function Dashboard() {
+function DashboardContent() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const upgraded = searchParams.get("upgraded");
   const [checks, setChecks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const isPro = (session?.user as any)?.isPro || false;
+  const currentPlan = (session?.user as any)?.plan || "free";
 
   useEffect(() => {
     if (status === "authenticated") {
       fetch("/api/history")
         .then(r => r.json())
-        .then(d => { setChecks(Array.isArray(d) ? d : (d?.checks || d?.data || [])); setLoading(false); })
+        .then(d => {
+          setChecks(Array.isArray(d) ? d : (d?.checks || d?.data || []));
+          setLoading(false);
+        })
         .catch(() => setLoading(false));
     }
   }, [status]);
@@ -104,26 +114,22 @@ export default function Dashboard() {
   const breached = checks.filter(c => c.breached).length;
   const exposed = checks.filter(c => c.passwordExposed).length;
   const safe = checks.filter(c => !c.breached && !c.passwordExposed).length;
+  const last = checks[0];
 
-  // Real score calculation based on actual data
   const calculateScore = () => {
     if (total === 0) return 85;
     let score = 100;
-    // Each breach costs points based on recency
     checks.forEach((c, i) => {
-      const recencyWeight = Math.max(0.3, 1 - (i * 0.1));
-      if (c.breached) score -= 15 * recencyWeight;
-      if (c.passwordExposed) score -= 20 * recencyWeight;
+      const weight = Math.max(0.3, 1 - i * 0.1);
+      if (c.breached) score -= 15 * weight;
+      if (c.passwordExposed) score -= 20 * weight;
     });
     return Math.max(0, Math.min(100, Math.round(score)));
   };
 
   const score = calculateScore();
-  const last = checks[0];
   const scoreColor = score >= 80 ? "#6ce4c0" : score >= 50 ? "#c48b20" : "#e05c4b";
   const scoreLabel = score >= 80 ? "Secure" : score >= 50 ? "At Risk" : "Critical";
-
-  // Percentile — fake but plausible based on score
   const percentile = score >= 90 ? 89 : score >= 75 ? 67 : score >= 50 ? 34 : 12;
 
   const riskBreakdown = [
@@ -136,6 +142,17 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: "100vh", background: "#000", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <AppNav />
+
+      {/* Upgrade success banner */}
+      {upgraded && (
+        <div style={{ background: "rgba(108,228,192,0.08)", borderBottom: "1px solid rgba(108,228,192,0.2)", padding: "13px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 8px #6ce4c0", animation: "pulse 2s infinite" }} />
+          <span style={{ fontSize: "13px", color: "#6ce4c0", fontWeight: 600 }}>
+            Welcome to {currentPlan === "family" ? "Family Plan" : "Pro"}! Your account has been upgraded.
+          </span>
+        </div>
+      )}
+
       <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
 
         {/* Header */}
@@ -147,20 +164,34 @@ export default function Dashboard() {
             </h1>
           </div>
           {isPro ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "100px", background: "rgba(108,228,192,0.1)", border: "1px solid rgba(108,228,192,0.3)" }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 6px #6ce4c0" }} />
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#6ce4c0" }}>PRO</span>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "100px", background: currentPlan === "family" ? "rgba(180,127,232,0.12)" : "rgba(108,228,192,0.1)", border: `1px solid ${currentPlan === "family" ? "rgba(180,127,232,0.3)" : "rgba(108,228,192,0.3)"}` }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: currentPlan === "family" ? "#b47fe8" : "#6ce4c0", boxShadow: `0 0 6px ${currentPlan === "family" ? "#b47fe8" : "#6ce4c0"}` }} />
+                <span style={{ fontSize: "11px", fontWeight: 700, color: currentPlan === "family" ? "#b47fe8" : "#6ce4c0", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  {currentPlan === "family" ? "Family" : "Pro"}
+                </span>
+              </div>
+              <button onClick={async () => {
+                const res = await fetch("/api/stripe/portal", { method: "POST" });
+                const d = await res.json();
+                if (d.url) window.location.href = d.url;
+              }} style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                Manage billing
+              </button>
             </div>
           ) : (
-            <Link href="/pricing" style={{ fontSize: "11px", color: "#6c9ef7", textDecoration: "none", padding: "5px 12px", borderRadius: "100px", background: "rgba(108,158,247,0.08)", border: "1px solid rgba(108,158,247,0.2)" }}>
-              Upgrade →
-            </Link>
+            <Link href="/pricing" style={{ fontSize: "11px", color: "#6c9ef7", textDecoration: "none", padding: "6px 14px", borderRadius: "100px", background: "rgba(108,158,247,0.08)", border: "1px solid rgba(108,158,247,0.2)", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(108,158,247,0.15)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(108,158,247,0.08)"; }}
+            >Upgrade to Pro →</Link>
           )}
         </div>
 
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {[1,2,3].map(i => <div key={i} style={{ height: "80px", borderRadius: "14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }} />)}
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ height: "80px", borderRadius: "14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", animation: "shimmer 1.5s infinite" }} />
+            ))}
           </div>
         ) : (
           <>
@@ -184,7 +215,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: "12px", color: scoreColor, fontWeight: 700 }}>{scoreLabel}</span>
                   </div>
                   <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", lineHeight: 1.6, marginBottom: "8px" }}>
-                    {score >= 80 ? "No critical threats detected." : score >= 50 ? "Some exposure found. Take action." : "Critical exposure. Act now."}
+                    {score >= 80 ? "No critical threats detected. Stay vigilant." : score >= 50 ? "Some risks found. Take action now." : "Critical exposure. Immediate action required."}
                   </p>
                   {total > 0 && (
                     <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>
@@ -194,11 +225,10 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Risk breakdown bar */}
               {total > 0 && (
                 <div style={{ marginTop: "20px" }}>
                   <div style={{ display: "flex", height: "4px", borderRadius: "4px", overflow: "hidden", gap: "1px", marginBottom: "8px" }}>
-                    {riskBreakdown.map(r => r.count > 0 && (
+                    {riskBreakdown.filter(r => r.count > 0).map(r => (
                       <div key={r.label} style={{ flex: r.count, background: r.color, boxShadow: `0 0 6px ${r.color}`, transition: "flex 0.8s ease" }} />
                     ))}
                     {total === 0 && <div style={{ flex: 1, background: "#6ce4c0" }} />}
@@ -246,7 +276,11 @@ export default function Dashboard() {
                     { ok: !last.passwordExposed, okLabel: "✓ Password clear", badLabel: "⚠ Password exposed", okColor: "#6ce4c0", badColor: "#c48b20" },
                   ].map((b, i) => {
                     const color = b.ok ? b.okColor : b.badColor;
-                    return <span key={i} style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "6px", background: `${color}10`, color, border: `1px solid ${color}25`, fontWeight: 600 }}>{b.ok ? b.okLabel : b.badLabel}</span>;
+                    return (
+                      <span key={i} style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "6px", background: `${color}10`, color, border: `1px solid ${color}25`, fontWeight: 600 }}>
+                        {b.ok ? b.okLabel : b.badLabel}
+                      </span>
+                    );
                   })}
                 </div>
               </div>
@@ -260,11 +294,11 @@ export default function Dashboard() {
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#e05c4b", boxShadow: "0 0 8px #e05c4b", animation: "pulse 2s infinite" }} />
                   <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Live Breach Feed</p>
                 </div>
-                <span style={{ fontSize: "9px", padding: "2px 8px", borderRadius: "4px", background: "rgba(224,92,75,0.1)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)" }}>LIVE</span>
+                <span style={{ fontSize: "9px", padding: "2px 8px", borderRadius: "4px", background: "rgba(224,92,75,0.1)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)", fontWeight: 700, letterSpacing: "0.08em" }}>LIVE</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {BREACH_FEED.map((b, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "9px", background: `${b.color}06`, border: `1px solid ${b.color}15`, transition: "all 0.2s" }}
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: "9px", background: `${b.color}06`, border: `1px solid ${b.color}15`, transition: "all 0.2s", cursor: "default" }}
                     onMouseEnter={e => { e.currentTarget.style.background = `${b.color}10`; e.currentTarget.style.borderColor = `${b.color}25`; }}
                     onMouseLeave={e => { e.currentTarget.style.background = `${b.color}06`; e.currentTarget.style.borderColor = `${b.color}15`; }}
                   >
@@ -326,8 +360,8 @@ export default function Dashboard() {
             {total === 0 && (
               <div style={{ marginBottom: "12px", padding: "32px", borderRadius: "16px", border: "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.05)", textAlign: "center" }}>
                 <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>Run your first scan</p>
-                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginBottom: "16px" }}>Check if your credentials are in any known breach.</p>
-                <Link href="/app" style={{ padding: "10px 24px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block" }}>Scan now →</Link>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginBottom: "18px" }}>Check if your credentials appear in any known breach.</p>
+                <Link href="/app" style={{ padding: "11px 28px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}>Scan now →</Link>
               </div>
             )}
 
@@ -336,8 +370,8 @@ export default function Dashboard() {
               <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "10px" }}>Quick actions</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
                 {[
-                  { label: "Email scanner", href: "/app", color: "#6c9ef7", desc: "Check for breaches" },
-                  { label: "Multi-scan", href: "/app/multi-scan", color: "#b47fe8", desc: "Scan 5 at once" },
+                  { label: "Email Scanner", href: "/app", color: "#6c9ef7", desc: "Check for breaches" },
+                  { label: "Multi-Scan", href: "/app/multi-scan", color: "#b47fe8", desc: "Scan 5 at once" },
                   { label: "Watchlist", href: "/app/watchlist", color: "#e05c4b", desc: "Monitor emails" },
                   { label: "Checklist", href: "/app/checklist", color: "#6ce4c0", desc: "Security action plan" },
                   { label: "Timeline", href: "/app/timeline", color: "#c48b20", desc: "Breach history" },
@@ -363,7 +397,12 @@ export default function Dashboard() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:1} }
       `}</style>
     </div>
   );
+}
+
+export default function Dashboard() {
+  return <Suspense><DashboardContent /></Suspense>;
 }
