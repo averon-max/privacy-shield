@@ -89,6 +89,7 @@ export default function App() {
   const [scanProgress, setScanProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<"scan" | "tips" | "info">("scan");
   const [liveCounter, setLiveCounter] = useState<number | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const { data: session, status } = useSession();
 
   const scanMessages = [
@@ -96,7 +97,6 @@ export default function App() {
     "Cross-referencing 600+ sources...", "Verifying password hash...", "Generating threat report...",
   ];
 
-  // Counter with localStorage persistence — never resets to 0
   useEffect(() => {
     const cached = localStorage.getItem("smc_counter");
     const cachedTime = localStorage.getItem("smc_counter_time");
@@ -155,7 +155,7 @@ export default function App() {
 
   const handleCheck = async () => {
     if (!email || !email.includes("@")) { setError("Please enter a valid email"); return; }
-    setLoading(true); setError(""); setResult(null);
+    setLoading(true); setError(""); setResult(null); setSourcesOpen(false);
     try {
       const res = await fetch("/api/checkEmail", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -214,7 +214,6 @@ export default function App() {
       <AppNav />
       <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
 
-        {/* Page header */}
         <div style={{ marginBottom: "28px" }}>
           <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "6px" }}>Credential check</p>
           <h1 style={{ fontSize: "clamp(24px, 5vw, 38px)", fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1, marginBottom: "10px" }}>Email Scanner</h1>
@@ -226,7 +225,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: "flex", gap: "1px", marginBottom: "20px", background: "rgba(255,255,255,0.04)", borderRadius: "12px", padding: "4px" }}>
           {(["scan", "tips", "info"] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, padding: "9px", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: activeTab === tab ? "#fff" : "rgba(255,255,255,0.3)", background: activeTab === tab ? "rgba(255,255,255,0.09)" : "transparent", border: activeTab === tab ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent", cursor: "pointer", borderRadius: "8px", transition: "all 0.2s" }}>
@@ -237,6 +235,7 @@ export default function App() {
 
         {activeTab === "scan" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
             {/* Input card */}
             <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "22px", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(108,158,247,0.4), transparent)" }} />
@@ -296,6 +295,7 @@ export default function App() {
 
             {result && threat && (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
                 {/* Score */}
                 <div style={{ padding: "28px", borderRadius: "16px", border: `1px solid ${threat.border}`, background: threat.bg, boxShadow: threat.glow, textAlign: "center", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${threat.color}60, transparent)` }} />
@@ -308,25 +308,46 @@ export default function App() {
                   {result.breachCount ? <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginTop: "10px" }}>Found in <span style={{ color: threat.color, fontWeight: 600 }}>{result.breachCount}</span> breach{result.breachCount > 1 ? "es" : ""}</p> : null}
                 </div>
 
-                {/* Email status */}
-                <div style={{ padding: "16px 18px", borderRadius: "14px", border: `1px solid ${result.breached ? "rgba(224,92,75,0.25)" : "rgba(108,228,192,0.2)"}`, background: result.breached ? "rgba(224,92,75,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
+                {/* Email status with collapsible sources */}
+                <div style={{ borderRadius: "14px", border: `1px solid ${result.breached ? "rgba(224,92,75,0.25)" : "rgba(108,228,192,0.2)"}`, background: result.breached ? "rgba(224,92,75,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: result.breached ? "#e05c4b" : "#6ce4c0", borderRadius: "2px 0 0 2px" }} />
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: result.breached ? "12px" : "0" }}>
+                  <div style={{ padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: result.breached ? "#e05c4b" : "#6ce4c0", boxShadow: `0 0 5px ${result.breached ? "#e05c4b" : "#6ce4c0"}` }} />
                       <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Email</span>
                     </div>
-                    <span style={{ fontSize: "12px", color: result.breached ? "#e05c4b" : "#6ce4c0", fontWeight: 700 }}>
-                      {result.breached ? `⚠ ${result.breachCount} breach${(result.breachCount ?? 0) > 1 ? "es" : ""} found` : "✓ Clear"}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "12px", color: result.breached ? "#e05c4b" : "#6ce4c0", fontWeight: 700 }}>
+                        {result.breached ? `⚠ ${result.breachCount} breach${(result.breachCount ?? 0) > 1 ? "es" : ""} found` : "✓ Clear"}
+                      </span>
+                      {result.breached && result.breachSources && result.breachSources.length > 0 && (
+                        <button onClick={() => setSourcesOpen(o => !o)} style={{ padding: "3px 10px", fontSize: "10px", fontWeight: 700, color: sourcesOpen ? "#fff" : "#e05c4b", background: sourcesOpen ? "rgba(224,92,75,0.2)" : "rgba(224,92,75,0.08)", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "5px", cursor: "pointer", transition: "all 0.2s", letterSpacing: "0.05em" }}>
+                          {sourcesOpen ? "Hide" : `Sources (${result.breachSources.length})`}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {result.breached && result.breachSources && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-                      {result.breachSources.slice(0, 20).map((site: string) => {
-                        const color = BREACH_COLORS[site] || "#e05c4b";
-                        return <span key={site} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: `${color}12`, color, border: `1px solid ${color}25` }}>{site}</span>;
-                      })}
-                      {(result.breachSources.length > 20) && <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>+{result.breachSources.length - 20} more</span>}
+                  {sourcesOpen && result.breachSources && (
+                    <div style={{ padding: "0 18px 16px" }}>
+                      <div style={{ height: "1px", background: "rgba(224,92,75,0.12)", marginBottom: "12px" }} />
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "10px" }}>
+                        {result.breachSources.map((site: string) => {
+                          const color = BREACH_COLORS[site] || "#e05c4b";
+                          return <span key={site} style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: `${color}12`, color, border: `1px solid ${color}25`, fontWeight: 500 }}>{site}</span>;
+                        })}
+                      </div>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "5px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#e05c4b" }}>{result.breachSources.length}</span>
+                          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)" }}>breach sources</span>
+                        </div>
+                        {result.exposedDataTypes && result.exposedDataTypes.length > 0 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "5px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                            <span style={{ fontSize: "12px", fontWeight: 700, color: "#c48b20" }}>{result.exposedDataTypes.length}</span>
+                            <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)" }}>data types exposed</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
