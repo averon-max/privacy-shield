@@ -1,5 +1,6 @@
 "use client";
-export const dynamic = "force-dynamic";`nimport { useState, useEffect } from "react";
+export const dynamic = "force-dynamic";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import AppNav from "@/components/AppNav";
@@ -51,15 +52,16 @@ function ShareReportButton({ result, threat }: { result: ResultData; threat: any
   };
 
   const copy = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/app/report?slug=${slug}`);
-    setCopied(true); setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(window.location.origin + "/app/report?slug=" + slug);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (slug) return (
     <div style={{ padding: "13px 16px", borderRadius: "10px", border: "1px solid rgba(108,158,247,0.2)", background: "rgba(108,158,247,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
       <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>/report?slug={slug}</span>
-      <button onClick={copy} style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 600, color: copied ? "#6ce4c0" : "#6c9ef7", background: copied ? "rgba(108,228,192,0.1)" : "rgba(108,158,247,0.1)", border: `1px solid ${copied ? "rgba(108,228,192,0.3)" : "rgba(108,158,247,0.3)"}`, borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
-        {copied ? "✓ Copied" : "Copy"}
+      <button onClick={copy} style={{ padding: "5px 12px", fontSize: "11px", fontWeight: 600, color: copied ? "#6ce4c0" : "#6c9ef7", background: copied ? "rgba(108,228,192,0.1)" : "rgba(108,158,247,0.1)", border: "1px solid " + (copied ? "rgba(108,228,192,0.3)" : "rgba(108,158,247,0.3)"), borderRadius: "6px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+        {copied ? "Copied" : "Copy"}
       </button>
     </div>
   );
@@ -73,7 +75,7 @@ function ShareReportButton({ result, threat }: { result: ResultData; threat: any
         <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#6c9ef7", boxShadow: "0 0 5px #6c9ef7" }} />
         <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{generating ? "Generating..." : "Share this security report"}</span>
       </div>
-      <span style={{ fontSize: "12px", color: "#6c9ef7" }}>Get link →</span>
+      <span style={{ fontSize: "12px", color: "#6c9ef7" }}>Get link</span>
     </button>
   );
 }
@@ -135,7 +137,8 @@ export default function App() {
 
   const getStrength = (pwd: string) => {
     let s = 0;
-    if (pwd.length >= 8) s++; if (pwd.length >= 12) s++;
+    if (pwd.length >= 8) s++;
+    if (pwd.length >= 12) s++;
     if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) s++;
     if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) s++;
     return [
@@ -178,11 +181,11 @@ export default function App() {
     { color: "#b47fe8", title: "Watch for phishing attempts", desc: "After a breach your email gets sold. Be extra skeptical of any emails asking you to click links." },
     { color: "#6ce4c0", title: "Use a password manager", desc: "Bitwarden is free and generates unique passwords for every site." },
   ] : [
-    { color: "#6ce4c0", title: "Stay proactive — scan monthly", desc: "No breaches today doesn't mean you're safe forever. New leaks are discovered daily." },
+    { color: "#6ce4c0", title: "Stay proactive — scan monthly", desc: "No breaches today does not mean you are safe forever. New leaks are discovered daily." },
     { color: "#6c9ef7", title: "Use unique passwords everywhere", desc: "One password per site. If any single site gets breached, your other accounts stay safe." },
     { color: "#b47fe8", title: "Enable 2FA everywhere", desc: "Two-factor authentication blocks 99% of automated account takeovers." },
     { color: "#c48b20", title: "Use a password manager", desc: "Bitwarden is free and generates strong unique passwords for every site." },
-    { color: "#e05c4b", title: "Avoid common passwords", desc: "'123456' appears in over 23 million breach records. Use our generator instead." },
+    { color: "#e05c4b", title: "Avoid common passwords", desc: "123456 appears in over 23 million breach records. Use our generator instead." },
   ];
 
   const breachFacts = [
@@ -201,9 +204,9 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif", padding: "24px" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ color: "#333", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>Authentication required</p>
-          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", marginBottom: "16px" }}>Sign in →</Link>
+          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", marginBottom: "16px" }}>Sign in</Link>
           <br />
-          <Link href="/" style={{ color: "#333", fontSize: "12px", textDecoration: "none" }}>← Back to home</Link>
+          <Link href="/" style={{ color: "#333", fontSize: "12px", textDecoration: "none" }}>Back to home</Link>
         </div>
       </div>
     );
@@ -235,8 +238,6 @@ export default function App() {
 
         {activeTab === "scan" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-
-            {/* Input card */}
             <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "22px", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(108,158,247,0.4), transparent)" }} />
               <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "16px" }}>Scan credentials</p>
@@ -265,8 +266,8 @@ export default function App() {
               {strength && password && (
                 <div style={{ marginBottom: "14px" }}>
                   <div style={{ display: "flex", gap: "3px", marginBottom: "5px" }}>
-                    {[1,2,3,4].map(l => (
-                      <div key={l} style={{ height: "3px", flex: 1, borderRadius: "2px", background: ["Weak","Fair","Good","Strong"].indexOf(strength.label) >= l - 1 ? strength.bg : "rgba(255,255,255,0.06)", transition: "all 0.3s", boxShadow: ["Weak","Fair","Good","Strong"].indexOf(strength.label) >= l - 1 ? strength.glow : "none" }} />
+                    {[1, 2, 3, 4].map(l => (
+                      <div key={l} style={{ height: "3px", flex: 1, borderRadius: "2px", background: ["Weak", "Fair", "Good", "Strong"].indexOf(strength.label) >= l - 1 ? strength.bg : "rgba(255,255,255,0.06)", transition: "all 0.3s", boxShadow: ["Weak", "Fair", "Good", "Strong"].indexOf(strength.label) >= l - 1 ? strength.glow : "none" }} />
                     ))}
                   </div>
                   <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>Strength: <span style={{ color: strength.text, fontWeight: 600 }}>{strength.label}</span></span>
@@ -276,53 +277,55 @@ export default function App() {
               <button onClick={handleCheck} disabled={loading} style={{ width: "100%", padding: "15px", fontSize: "15px", fontWeight: 700, color: loading ? "rgba(255,255,255,0.4)" : "#000", background: loading ? "rgba(255,255,255,0.05)" : "#fff", border: loading ? "1px solid rgba(255,255,255,0.1)" : "none", borderRadius: "10px", cursor: loading ? "not-allowed" : "pointer", boxShadow: loading ? "none" : "0 0 30px rgba(255,255,255,0.25)", transition: "all 0.2s" }}>
                 {loading ? (
                   <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "monospace", fontSize: "12px" }}>
-                    <span style={{ animation: "blink 1s step-end infinite", color: "#6c9ef7" }}>█</span>
+                    <span style={{ animation: "blink 1s step-end infinite", color: "#6c9ef7" }}>_</span>
                     {scanMessage}
                   </span>
-                ) : "Run Security Scan →"}
+                ) : "Run Security Scan"}
               </button>
 
               {loading && (
                 <div style={{ marginTop: "10px", height: "2px", background: "rgba(255,255,255,0.05)", borderRadius: "2px", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${scanProgress}%`, background: "linear-gradient(to right, #6c9ef7, #b47fe8)", borderRadius: "2px", transition: "width 0.4s ease", boxShadow: "0 0 8px rgba(108,158,247,0.8)" }} />
+                  <div style={{ height: "100%", width: scanProgress + "%", background: "linear-gradient(to right, #6c9ef7, #b47fe8)", borderRadius: "2px", transition: "width 0.4s ease", boxShadow: "0 0 8px rgba(108,158,247,0.8)" }} />
                 </div>
               )}
             </div>
 
             {error && (
-              <div style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid rgba(224,92,75,0.3)", background: "rgba(224,92,75,0.07)", color: "#e05c4b", fontSize: "13px" }}>⚠ {error}</div>
+              <div style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid rgba(224,92,75,0.3)", background: "rgba(224,92,75,0.07)", color: "#e05c4b", fontSize: "13px" }}>
+                {error}
+                {(error.includes("limit") || error.includes("upgrade")) && (
+                  <Link href="/pricing" style={{ marginLeft: "8px", color: "#6c9ef7", fontSize: "12px", textDecoration: "none", fontWeight: 700 }}>Upgrade to Pro</Link>
+                )}
+              </div>
             )}
 
             {result && threat && (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-
-                {/* Score */}
-                <div style={{ padding: "28px", borderRadius: "16px", border: `1px solid ${threat.border}`, background: threat.bg, boxShadow: threat.glow, textAlign: "center", position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${threat.color}60, transparent)` }} />
+                <div style={{ padding: "28px", borderRadius: "16px", border: "1px solid " + threat.border, background: threat.bg, boxShadow: threat.glow, textAlign: "center", position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + threat.color + "60, transparent)" }} />
                   <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "8px" }}>Security Score</p>
-                  <p style={{ fontSize: "72px", fontWeight: 800, color: threat.color, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "10px", textShadow: `0 0 60px ${threat.color}` }}>{threat.score}</p>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "5px 14px", borderRadius: "100px", background: `${threat.color}18`, border: `1px solid ${threat.color}40` }}>
-                    <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: threat.color, boxShadow: `0 0 6px ${threat.color}`, animation: "pulse 2s infinite" }} />
+                  <p style={{ fontSize: "72px", fontWeight: 800, color: threat.color, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "10px", textShadow: "0 0 60px " + threat.color }}>{threat.score}</p>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "5px 14px", borderRadius: "100px", background: threat.color + "18", border: "1px solid " + threat.color + "40" }}>
+                    <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: threat.color, boxShadow: "0 0 6px " + threat.color, animation: "pulse 2s infinite" }} />
                     <span style={{ fontSize: "11px", color: threat.color, fontWeight: 700 }}>{threat.level}</span>
                   </div>
                   {result.breachCount ? <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginTop: "10px" }}>Found in <span style={{ color: threat.color, fontWeight: 600 }}>{result.breachCount}</span> breach{result.breachCount > 1 ? "es" : ""}</p> : null}
                 </div>
 
-                {/* Email status with collapsible sources */}
-                <div style={{ borderRadius: "14px", border: `1px solid ${result.breached ? "rgba(224,92,75,0.25)" : "rgba(108,228,192,0.2)"}`, background: result.breached ? "rgba(224,92,75,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
+                <div style={{ borderRadius: "14px", border: "1px solid " + (result.breached ? "rgba(224,92,75,0.25)" : "rgba(108,228,192,0.2)"), background: result.breached ? "rgba(224,92,75,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: result.breached ? "#e05c4b" : "#6ce4c0", borderRadius: "2px 0 0 2px" }} />
                   <div style={{ padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: result.breached ? "#e05c4b" : "#6ce4c0", boxShadow: `0 0 5px ${result.breached ? "#e05c4b" : "#6ce4c0"}` }} />
+                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: result.breached ? "#e05c4b" : "#6ce4c0", boxShadow: "0 0 5px " + (result.breached ? "#e05c4b" : "#6ce4c0") }} />
                       <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Email</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span style={{ fontSize: "12px", color: result.breached ? "#e05c4b" : "#6ce4c0", fontWeight: 700 }}>
-                        {result.breached ? `⚠ ${result.breachCount} breach${(result.breachCount ?? 0) > 1 ? "es" : ""} found` : "✓ Clear"}
+                        {result.breached ? (result.breachCount ?? 0) + " breach" + ((result.breachCount ?? 0) > 1 ? "es" : "") + " found" : "Clear"}
                       </span>
                       {result.breached && result.breachSources && result.breachSources.length > 0 && (
-                        <button onClick={() => setSourcesOpen(o => !o)} style={{ padding: "3px 10px", fontSize: "10px", fontWeight: 700, color: sourcesOpen ? "#fff" : "#e05c4b", background: sourcesOpen ? "rgba(224,92,75,0.2)" : "rgba(224,92,75,0.08)", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "5px", cursor: "pointer", transition: "all 0.2s", letterSpacing: "0.05em" }}>
-                          {sourcesOpen ? "Hide" : `Sources (${result.breachSources.length})`}
+                        <button onClick={() => setSourcesOpen(o => !o)} style={{ padding: "3px 10px", fontSize: "10px", fontWeight: 700, color: sourcesOpen ? "#fff" : "#e05c4b", background: sourcesOpen ? "rgba(224,92,75,0.2)" : "rgba(224,92,75,0.08)", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "5px", cursor: "pointer", transition: "all 0.2s" }}>
+                          {sourcesOpen ? "Hide" : "Sources (" + result.breachSources.length + ")"}
                         </button>
                       )}
                     </div>
@@ -333,7 +336,7 @@ export default function App() {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "10px" }}>
                         {result.breachSources.map((site: string) => {
                           const color = BREACH_COLORS[site] || "#e05c4b";
-                          return <span key={site} style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: `${color}12`, color, border: `1px solid ${color}25`, fontWeight: 500 }}>{site}</span>;
+                          return <span key={site} style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: color + "12", color, border: "1px solid " + color + "25", fontWeight: 500 }}>{site}</span>;
                         })}
                       </div>
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -352,30 +355,28 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Password status */}
-                <div style={{ padding: "16px 18px", borderRadius: "14px", border: `1px solid ${result.passwordExposed ? "rgba(196,139,32,0.25)" : "rgba(108,228,192,0.2)"}`, background: result.passwordExposed ? "rgba(196,139,32,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
+                <div style={{ padding: "16px 18px", borderRadius: "14px", border: "1px solid " + (result.passwordExposed ? "rgba(196,139,32,0.25)" : "rgba(108,228,192,0.2)"), background: result.passwordExposed ? "rgba(196,139,32,0.05)" : "rgba(108,228,192,0.04)", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: result.passwordExposed ? "#c48b20" : "#6ce4c0", borderRadius: "2px 0 0 2px" }} />
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: result.passwordExposed ? "#c48b20" : "#6ce4c0", boxShadow: `0 0 5px ${result.passwordExposed ? "#c48b20" : "#6ce4c0"}` }} />
+                      <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: result.passwordExposed ? "#c48b20" : "#6ce4c0", boxShadow: "0 0 5px " + (result.passwordExposed ? "#c48b20" : "#6ce4c0") }} />
                       <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Password</span>
                     </div>
                     <span style={{ fontSize: "12px", color: result.passwordExposed ? "#c48b20" : "#6ce4c0", fontWeight: 700 }}>
-                      {result.passwordExposed ? `⚠ Exposed ${result.passwordBreachCount?.toLocaleString()}×` : password ? "✓ Not found in breaches" : "— Not checked"}
+                      {result.passwordExposed ? "Exposed " + (result.passwordBreachCount?.toLocaleString() ?? "") + "x" : password ? "Not found in breaches" : "Not checked"}
                     </span>
                   </div>
                 </div>
 
-                {/* Data types */}
                 {result.breached && result.exposedDataTypes && result.exposedDataTypes.length > 0 && (
                   <div style={{ padding: "16px 18px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}>
                     <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Data types exposed</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                       {result.exposedDataTypes.map((type, i) => {
-                        const color = DATA_TYPE_COLORS[type] || ["#e05c4b","#6c9ef7","#b47fe8","#c48b20","#6ce4c0"][i % 5];
+                        const color = DATA_TYPE_COLORS[type] || ["#e05c4b", "#6c9ef7", "#b47fe8", "#c48b20", "#6ce4c0"][i % 5];
                         return (
-                          <div key={type} style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "5px", background: `${color}10`, border: `1px solid ${color}25` }}>
-                            <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: color, boxShadow: `0 0 4px ${color}` }} />
+                          <div key={type} style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "5px", background: color + "10", border: "1px solid " + color + "25" }}>
+                            <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: color, boxShadow: "0 0 4px " + color }} />
                             <span style={{ fontSize: "11px", color }}>{type}</span>
                           </div>
                         );
@@ -384,7 +385,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Actions */}
                 {result.breached && (
                   <div style={{ padding: "16px 18px", borderRadius: "14px", border: "1px solid rgba(224,92,75,0.15)", background: "rgba(224,92,75,0.04)" }}>
                     <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Immediate actions</p>
@@ -395,7 +395,7 @@ export default function App() {
                       { text: "Watch for phishing emails targeting this address", color: "#b47fe8" },
                     ].map((a, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: i < 3 ? "8px" : "0" }}>
-                        <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: a.color, boxShadow: `0 0 4px ${a.color}`, flexShrink: 0, marginTop: "5px" }} />
+                        <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: a.color, boxShadow: "0 0 4px " + a.color, flexShrink: 0, marginTop: "5px" }} />
                         <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}>{a.text}</span>
                       </div>
                     ))}
@@ -412,7 +412,7 @@ export default function App() {
                     <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 5px #6ce4c0" }} />
                     <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>Generate a strong replacement password</span>
                   </div>
-                  <span style={{ fontSize: "12px", color: "#6ce4c0" }}>Open →</span>
+                  <span style={{ fontSize: "12px", color: "#6ce4c0" }}>Open</span>
                 </Link>
 
                 <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.1)", textAlign: "center" }}>{result.email} · k-Anonymity · Zero retention</p>
@@ -424,14 +424,14 @@ export default function App() {
         {activeTab === "tips" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {result && threat && (
-              <div style={{ padding: "12px 16px", borderRadius: "10px", border: `1px solid ${threat.color}25`, background: `${threat.color}08`, marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: threat.color, boxShadow: `0 0 5px ${threat.color}`, flexShrink: 0 }} />
+              <div style={{ padding: "12px 16px", borderRadius: "10px", border: "1px solid " + threat.color + "25", background: threat.color + "08", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: threat.color, boxShadow: "0 0 5px " + threat.color, flexShrink: 0 }} />
                 <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>Tips based on your {threat.level.toLowerCase()} risk level</span>
               </div>
             )}
             {dynamicTips.map((tip, i) => (
-              <div key={i} style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "16px 18px", display: "flex", gap: "12px", background: "rgba(255,255,255,0.01)", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: `linear-gradient(to bottom, ${tip.color}, transparent)` }} />
+              <div key={i} style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "16px 18px", background: "rgba(255,255,255,0.01)", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: "linear-gradient(to bottom, " + tip.color + ", transparent)" }} />
                 <div style={{ paddingLeft: "8px" }}>
                   <p style={{ color: "#fff", fontSize: "13px", fontWeight: 700, marginBottom: "5px" }}>{tip.title}</p>
                   <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", lineHeight: 1.6 }}>{tip.desc}</p>
@@ -448,15 +448,15 @@ export default function App() {
               <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", lineHeight: 1.6 }}>Real verified statistics from security researchers and industry reports.</p>
             </div>
             {breachFacts.map((f, i) => (
-              <div key={i} style={{ padding: "18px", borderRadius: "14px", border: `1px solid ${f.color}20`, background: `${f.color}06`, position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${f.color}50, transparent)` }} />
-                <p style={{ fontSize: "32px", fontWeight: 800, color: f.color, letterSpacing: "-0.02em", textShadow: `0 0 20px ${f.color}`, marginBottom: "5px", lineHeight: 1 }}>{f.stat}</p>
+              <div key={i} style={{ padding: "18px", borderRadius: "14px", border: "1px solid " + f.color + "20", background: f.color + "06", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + f.color + "50, transparent)" }} />
+                <p style={{ fontSize: "32px", fontWeight: 800, color: f.color, letterSpacing: "-0.02em", textShadow: "0 0 20px " + f.color, marginBottom: "5px", lineHeight: 1 }}>{f.stat}</p>
                 <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", lineHeight: 1.5 }}>{f.desc}</p>
               </div>
             ))}
             <div style={{ padding: "14px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>Learn more about staying secure</span>
-              <Link href="/blog" style={{ fontSize: "12px", color: "#6c9ef7", textDecoration: "none" }}>Blog →</Link>
+              <Link href="/blog" style={{ fontSize: "12px", color: "#6c9ef7", textDecoration: "none" }}>Blog</Link>
             </div>
           </div>
         )}
@@ -471,4 +471,3 @@ export default function App() {
     </div>
   );
 }
-

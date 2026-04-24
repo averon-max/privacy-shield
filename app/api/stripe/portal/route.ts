@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: "Not configured" }, { status: 500 });
-    }
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return NextResponse.json({ error: "Not configured" }, { status: 500 });
 
-    // @ts-ignore
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const { default: Stripe } = await import("stripe");
+    const stripe = new (Stripe as any)(key);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -27,12 +25,12 @@ export async function POST(req: NextRequest) {
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${process.env.NEXTAUTH_URL}/app/dashboard`,
+      return_url: process.env.NEXTAUTH_URL + "/app/dashboard",
     });
 
     return NextResponse.json({ url: portalSession.url });
   } catch (error) {
     console.error("Portal error:", error);
-    return NextResponse.json({ error: "Failed to open billing portal" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to open portal" }, { status: 500 });
   }
 }
