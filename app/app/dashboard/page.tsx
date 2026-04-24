@@ -1,7 +1,5 @@
 "use client";
-export const dynamic = "force-dynamic";
-export const dynamic = "force-dynamic";
-import { useState, useEffect, useRef, Suspense } from "react";
+export const dynamic = "force-dynamic";`nimport { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
@@ -408,3 +406,4 @@ function DashboardContent() {
 export default function Dashboard() {
   return <Suspense><DashboardContent /></Suspense>;
 }
+
