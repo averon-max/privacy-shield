@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
 export async function POST(req: NextRequest) {
   try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    }
+
+    // @ts-ignore
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const body = await req.text();
-    const sig = req.headers.get("stripe-signature")!;
+    const sig = req.headers.get("stripe-signature");
 
-    let event: import("stripe").Stripe.Event;
+    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: "Missing signature or secret" }, { status: 400 });
+    }
+
+    let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(
-        body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
-      );
+      event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
       console.error("Webhook signature failed:", err);
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -27,7 +32,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
 
       case "checkout.session.completed": {
-        const session = event.data.object as import("stripe").Stripe.Checkout.Session;
+        const session = event.data.object as Stripe.Checkout.Session;
         const email = session.metadata?.userEmail;
         const plan = session.metadata?.plan || "pro";
         const subscriptionId = session.subscription as string;
@@ -42,9 +47,9 @@ export async function POST(req: NextRequest) {
       }
 
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as import("stripe").Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        const customer = await stripe.customers.retrieve(customerId) as import("stripe").Stripe.Customer;
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
         if (customer.email) {
           await User.findOneAndUpdate({ email: customer.email }, { isPro: true });
           console.log(`✅ Pro renewed for ${customer.email}`);
@@ -53,33 +58,32 @@ export async function POST(req: NextRequest) {
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as import("stripe").Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice;
         console.warn(`⚠ Payment failed for customer ${invoice.customer}`);
         break;
       }
 
       case "customer.subscription.deleted": {
-        const sub = event.data.object as import("stripe").Stripe.Subscription;
-        const customer = await stripe.customers.retrieve(sub.customer as string) as import("stripe").Stripe.Customer;
+        const sub = event.data.object as Stripe.Subscription;
+        const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
         if (customer.email) {
           await User.findOneAndUpdate(
             { email: customer.email },
             { isPro: false, plan: "free", stripeSubscriptionId: null, proCancelledAt: new Date() }
           );
-          console.log(`❌ Subscription cancelled for ${customer.email}`);
+          console.log(`❌ Cancelled for ${customer.email}`);
         }
         break;
       }
 
       case "customer.subscription.updated": {
-        const sub = event.data.object as import("stripe").Stripe.Subscription;
-        const customer = await stripe.customers.retrieve(sub.customer as string) as import("stripe").Stripe.Customer;
+        const sub = event.data.object as Stripe.Subscription;
+        const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
         if (customer.email && sub.status !== "active") {
           await User.findOneAndUpdate(
             { email: customer.email },
             { isPro: false, plan: "free" }
           );
-          console.log(`⚠ Sub paused for ${customer.email}, status: ${sub.status}`);
         }
         break;
       }

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
 export async function POST(req: NextRequest) {
   try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    }
+
+    // @ts-ignore
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {

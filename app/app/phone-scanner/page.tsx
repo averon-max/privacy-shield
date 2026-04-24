@@ -1,4 +1,5 @@
-﻿"use client";
+"use client";
+export const dynamic = "force-dynamic";
 import AppNav from "@/components/AppNav";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -13,7 +14,7 @@ export default function PhoneScanner() {
       <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ color: "#333", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>Authentication required</p>
-          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block" }}>Sign in →</Link>
+          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block" }}>Sign in ></Link>
         </div>
       </div>
     );
@@ -30,7 +31,7 @@ export default function PhoneScanner() {
         {/* icon */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "32px" }}>
           <div style={{ width: "72px", height: "72px", borderRadius: "20px", background: "rgba(196,139,32,0.07)", border: "1px solid rgba(196,139,32,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "32px", boxShadow: "0 0 40px rgba(196,139,32,0.08)" }}>
-            📱
+            ??
           </div>
         </div>
 
@@ -61,7 +62,7 @@ export default function PhoneScanner() {
           ))}
         </div>
 
-        {/* CTA — scan email instead */}
+        {/* CTA � scan email instead */}
         <Link href="/app" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderRadius: "12px", border: "1px solid rgba(108,228,192,0.15)", background: "rgba(108,228,192,0.04)", textDecoration: "none", transition: "all 0.2s" }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,228,192,0.3)"; e.currentTarget.style.background = "rgba(108,228,192,0.08)"; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(108,228,192,0.15)"; e.currentTarget.style.background = "rgba(108,228,192,0.04)"; }}
@@ -73,7 +74,7 @@ export default function PhoneScanner() {
               <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>600+ breach databases available now</p>
             </div>
           </div>
-          <span style={{ fontSize: "13px", color: "#6ce4c0" }}>→</span>
+          <span style={{ fontSize: "13px", color: "#6ce4c0" }}>></span>
         </Link>
 
       </div>

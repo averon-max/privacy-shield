@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
 export async function POST(req: NextRequest) {
   try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("STRIPE_SECRET_KEY is not set");
+      return NextResponse.json({ error: "Payment system not configured" }, { status: 500 });
+    }
+
+    // @ts-ignore — version string varies by Stripe SDK release
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -17,10 +23,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const plan = body.plan === "family" ? "family" : "pro";
     const priceId = plan === "family"
-      ? process.env.STRIPE_FAMILY_PRICE_ID!
-      : process.env.STRIPE_PRO_PRICE_ID!;
+      ? process.env.STRIPE_FAMILY_PRICE_ID
+      : process.env.STRIPE_PRO_PRICE_ID;
 
     if (!priceId) {
+      console.error(`Price ID not set for plan: ${plan}`);
       return NextResponse.json({ error: "Price not configured" }, { status: 500 });
     }
 
