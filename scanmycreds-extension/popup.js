@@ -83,7 +83,7 @@ function tickCounter(start) {
   }, 800);
 }
 
-// ── Scan ──────────────────────────────────────────────────────────────────────
+// ── Scan (gated) ──────────────────────────────────────────────────────────────
 async function startScan() {
   const email = emailInput.value.trim();
   if (!email || !email.includes("@")) {
@@ -91,6 +91,31 @@ async function startScan() {
     return;
   }
 
+  // Check free scan limit (5/day)
+  chrome.storage.local.get(["scanCount", "scanDate"], async (res) => {
+    const today = new Date().toDateString();
+    const isToday = res.scanDate === today;
+    const count = isToday ? (res.scanCount || 0) : 0;
+
+    if (count >= 5) {
+      showError("Daily limit reached (5/day). Upgrade to Pro for unlimited scans.");
+      document.getElementById("proBanner").style.display = "flex";
+      return;
+    }
+
+    // Update count
+    chrome.storage.local.set({
+      scanCount: count + 1,
+      scanDate: today,
+    });
+
+    // Continue with scan
+    await doScan(email);
+  });
+}
+
+// ── Scan (core logic) ─────────────────────────────────────────────────────────
+async function doScan(email) {
   // Save last email
   chrome.storage.local.set({ lastEmail: email });
 
