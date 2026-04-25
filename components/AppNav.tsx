@@ -14,6 +14,7 @@ export default function AppNav() {
     { label: "Scanner", href: "/app" },
     { label: "Phone", href: "/app/phone-scanner", comingSoon: true },
     { label: "Multi-Scan", href: "/app/multi-scan" },
+    { label: "Dark Web", href: "/app/dark-web" },
     { label: "History", href: "/app/history" },
     { label: "Timeline", href: "/app/timeline" },
     { label: "Checklist", href: "/app/checklist" },
@@ -29,15 +30,15 @@ export default function AppNav() {
   return (
     <>
       {menuOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 200, display: "flex", flexDirection: "column", padding: "20px" }}>
+        <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 200, display: "flex", flexDirection: "column", padding: "20px", animation: "fadeIn 0.2s ease" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
             <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 700, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>SCANMYCREDS</Link>
-            <button onClick={() => setMenuOpen(false)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", width: "36px", height: "36px", borderRadius: "8px", cursor: "pointer", fontSize: "18px" }}>×</button>
+            <button onClick={() => setMenuOpen(false)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", width: "36px", height: "36px", borderRadius: "8px", cursor: "pointer", fontSize: "18px" }}>x</button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, overflowY: "auto" }}>
-            {tabs.map(tab => (
+            {tabs.map((tab, i) => (
               <Link key={tab.href} href={tab.href} onClick={() => setMenuOpen(false)}
-                style={{ fontSize: "22px", fontWeight: 700, color: isActive(tab.href) ? "#fff" : "rgba(255,255,255,0.4)", textDecoration: "none", padding: "12px 0", letterSpacing: "-0.02em", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                style={{ fontSize: "22px", fontWeight: 700, color: isActive(tab.href) ? "#fff" : "rgba(255,255,255,0.4)", textDecoration: "none", padding: "12px 0", letterSpacing: "-0.02em", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between", animation: "slideInLeft 0.3s ease both", animationDelay: (i * 0.04) + "s" }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   {tab.label}
@@ -93,6 +94,10 @@ export default function AppNav() {
           ))}
         </div>
       </div>
+      <style>{`
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes slideInLeft { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:translateX(0)} }
+      `}</style>
     </>
   );
 }

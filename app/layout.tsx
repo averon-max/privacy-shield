@@ -8,22 +8,13 @@ export const metadata: Metadata = {
     template: "%s | ScanMyCreds",
   },
   description: "Instantly check if your email or password has been exposed in a data breach. Free, real-time scan across 600+ breach databases. k-Anonymity protected.",
-  keywords: ["data breach checker", "have i been pwned alternative", "email breach check", "password exposed check", "credential leak scanner", "dark web monitor"],
+  keywords: ["data breach checker", "have i been pwned alternative", "email breach check", "password exposed check", "credential leak scanner"],
   authors: [{ name: "ScanMyCreds" }],
-  creator: "ScanMyCreds",
-  publisher: "ScanMyCreds",
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://www.scanmycreds.com",
-    siteName: "ScanMyCreds",
+    type: "website", locale: "en_US", url: "https://www.scanmycreds.com", siteName: "ScanMyCreds",
     title: "ScanMyCreds — Check If Your Email Was in a Data Breach",
-    description: "Free real-time scan across 600+ breach databases. Find out if your credentials are on the dark web in 10 seconds.",
+    description: "Free real-time scan across 600+ breach databases.",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "ScanMyCreds" }],
   },
   twitter: {
@@ -32,9 +23,7 @@ export const metadata: Metadata = {
     description: "Free real-time scan across 600+ breach databases.",
     images: ["/og-image.png"],
   },
-  alternates: {
-    canonical: "https://www.scanmycreds.com",
-  },
+  alternates: { canonical: "https://www.scanmycreds.com" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
