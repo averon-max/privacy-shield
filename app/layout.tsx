@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import SessionWrapper from "@/components/SessionWrapper";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.scanmycreds.com"),
@@ -36,9 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body style={{ margin: 0, padding: 0, background: "#000", color: "#fff" }}>
-        <SessionWrapper session={null}>
-          {children}
-        </SessionWrapper>
+        {children}
       </body>
     </html>
   );
