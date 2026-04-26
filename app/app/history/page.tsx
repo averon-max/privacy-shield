@@ -1,5 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -39,7 +40,10 @@ export default function History() {
   const [filtered, setFiltered] = useState<Check[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "breached" | "safe">("all");
-  const { status } = useSession();
+  
+  // FIXED: Safe access to session
+  const sessionState = useSession();
+  const status = sessionState?.status;
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -47,7 +51,9 @@ export default function History() {
         const arr = Array.isArray(d) ? d : (d?.checks || d?.data || []);
         setChecks(arr); setFiltered(arr); setLoading(false);
       }).catch(() => { setChecks([]); setFiltered([]); setLoading(false); });
-    } else if (status === "unauthenticated") setLoading(false);
+    } else if (status === "unauthenticated") {
+      setLoading(false);
+    }
   }, [status]);
 
   useEffect(() => {
@@ -76,7 +82,13 @@ export default function History() {
     return { label: "Safe", color: "#6ce4c0" };
   };
 
-  if (status === "loading") return null;
+  if (status === "loading") {
+    return (
+      <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        Loading history...
+      </div>
+    );
+  }
 
   if (status === "unauthenticated") {
     return (
@@ -94,7 +106,6 @@ export default function History() {
       <AppNav />
       <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
 
-        {/* Page header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px", gap: "12px" }}>
           <div>
             <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "6px" }}>Scan records</p>
@@ -108,7 +119,6 @@ export default function History() {
 
         {checks.length > 0 && (
           <>
-            {/* Stats */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "14px" }}>
               {[
                 { label: "Total", value: checks.length, color: "#fff" },
@@ -125,7 +135,6 @@ export default function History() {
               ))}
             </div>
 
-            {/* Filter tabs */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "16px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "3px" }}>
               {([
                 { key: "all", label: `All (${checks.length})` },
@@ -187,4 +196,3 @@ export default function History() {
     </div>
   );
 }
-

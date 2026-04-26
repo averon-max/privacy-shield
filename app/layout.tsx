@@ -2,27 +2,15 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.scanmycreds.com"),
-  title: {
-    default: "ScanMyCreds — Check If Your Email Was in a Data Breach",
-    template: "%s | ScanMyCreds",
-  },
-  description: "Instantly check if your email or password has been exposed in a data breach. Free, real-time scan across 600+ breach databases. k-Anonymity protected.",
-  keywords: ["data breach checker", "have i been pwned alternative", "email breach check", "password exposed check", "credential leak scanner"],
-  authors: [{ name: "ScanMyCreds" }],
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+  title: { default: "ScanMyCreds — Check If Your Email Was in a Data Breach", template: "%s | ScanMyCreds" },
+  description: "Instantly check if your email or password has been exposed in a data breach. Free real-time scan across 600+ breach databases.",
   openGraph: {
-    type: "website", locale: "en_US", url: "https://www.scanmycreds.com", siteName: "ScanMyCreds",
+    type: "website", url: "https://www.scanmycreds.com", siteName: "ScanMyCreds",
     title: "ScanMyCreds — Check If Your Email Was in a Data Breach",
     description: "Free real-time scan across 600+ breach databases.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "ScanMyCreds" }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "ScanMyCreds — Check If Your Email Was in a Data Breach",
-    description: "Free real-time scan across 600+ breach databases.",
-    images: ["/og-image.png"],
-  },
-  alternates: { canonical: "https://www.scanmycreds.com" },
+  twitter: { card: "summary_large_image", images: ["/og-image.png"] },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
