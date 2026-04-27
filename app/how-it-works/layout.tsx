@@ -1,11 +1,8 @@
-import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import SessionWrapper from "@/components/SessionWrapper";
 
-export const metadata: Metadata = {
-  title: "How It Works — Breach Detection in 3 Steps",
-  description: "Learn how ScanMyCreds checks your email against 600+ breach databases using k-anonymity to keep your password safe. Free, instant, private.",
-  alternates: { canonical: "https://www.scanmycreds.com/how-it-works" },
-};
-
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return children;
+export default async function Layout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions);
+  return <SessionWrapper session={session}>{children}</SessionWrapper>;
 }
