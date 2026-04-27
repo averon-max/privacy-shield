@@ -6,18 +6,11 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
-const ALLOWED_DOMAINS = [
-  "gmail.com", "googlemail.com", "outlook.com", "outlook.co.uk", "outlook.fr",
-  "outlook.de", "hotmail.com", "hotmail.co.uk", "live.com", "yahoo.com",
-  "yahoo.co.uk", "yahoo.fr", "icloud.com", "me.com", "mac.com",
-  "proton.me", "protonmail.com", "protonmail.ch", "aol.com", "zoho.com", "mail.com"
-];
-
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
       name: "credentials",
@@ -27,11 +20,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email.toLowerCase().trim();
-        if (credentials.password.length < 8) return null;
         try {
           await connectDB();
-          const user = await User.findOne({ email }).lean() as any;
+          const user = await User.findOne({
+            email: credentials.email.toLowerCase().trim()
+          }).lean() as any;
           if (!user || !user.password) return null;
           const valid = await bcrypt.compare(credentials.password, user.password);
           if (!valid) return null;
@@ -43,15 +36,19 @@ export const authOptions: NextAuthOptions = {
             isPro: user.isPro || false,
             plan: user.plan || "free",
           };
-        } catch { return null; }
+        } catch (err) {
+          console.error("Auth error:", err);
+          return null;
+        }
       },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  pages: { signIn: "/login" },
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
+  pages: { signIn: "/login" },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
+      console.log("signIn callback:", account?.provider, user?.email);
       if (account?.provider === "google") {
         try {
           await connectDB();
@@ -64,9 +61,11 @@ export const authOptions: NextAuthOptions = {
               isPro: false,
               plan: "free",
             });
+            console.log("Created new Google user:", user.email);
           }
         } catch (err) {
-          console.error("Google signIn DB error:", err);
+          console.error("signIn DB error:", err);
+          return false;
         }
       }
       return true;
@@ -74,9 +73,6 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.image = user.image;
         token.isPro = (user as any).isPro || false;
         token.plan = (user as any).plan || "free";
       }
@@ -95,21 +91,20 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-        session.user.image = token.image as string;
+        (session.user as any).id = token.id;
         (session.user as any).isPro = token.isPro || false;
         (session.user as any).plan = token.plan || "free";
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
+      console.log("redirect callback - url:", url, "baseUrl:", baseUrl);
       if (url.startsWith("/")) return baseUrl + url;
-      if (url.startsWith(baseUrl)) return url;
-      return baseUrl + "/app";
+      if (new URL(url).origin === baseUrl) return url;
+      return baseUrl + "/app/dashboard";
     },
   },
+  debug: process.env.NODE_ENV === "development",
 };
 
 const handler = NextAuth(authOptions);

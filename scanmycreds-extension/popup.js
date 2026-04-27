@@ -1,3 +1,18 @@
+// Make all functions globally available for onclick attributes
+window.switchTab = switchTab;
+window.switchGenTab = switchGenTab;
+window.startScan = startScan;
+window.generatePassword = generatePassword;
+window.generatePassphrase = generatePassphrase;
+window.copyGen = copyGen;
+window.copyPhrase = copyPhrase;
+window.toggleOpt = toggleOpt;
+window.updateLength = updateLength;
+window.updateWordCount = updateWordCount;
+window.analyzePassword = analyzePassword;
+window.toggleHealthPwd = toggleHealthPwd;
+window.openApp = openApp;
+window.clearHistory = clearHistory;
 const API_BASE = "https://www.scanmycreds.com";
 const FREE_SCAN_LIMIT = 5;
 

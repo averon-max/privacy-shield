@@ -1,20 +1,31 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
 function PricingContent() {
-  const { data: session } = useSession();
   const searchParams = useSearchParams();
   const cancelled = searchParams.get("cancelled");
   const [loading, setLoading] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState("free");
 
-  const isPro = (session?.user as any)?.isPro;
-  const currentPlan = (session?.user as any)?.plan || "free";
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(data => {
+        if (data?.user) {
+          setIsPro(data.user.isPro || false);
+          setCurrentPlan(data.user.plan || "free");
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleUpgrade = async (plan: "pro" | "family") => {
-    if (!session) {
+    const sessionRes = await fetch("/api/auth/session");
+    const sessionData = await sessionRes.json();
+    if (!sessionData?.user) {
       window.location.href = "/login?next=/pricing";
       return;
     }
@@ -46,9 +57,7 @@ function PricingContent() {
       {/* Nav */}
       <nav style={{ padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
-        <Link href="/app" style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
-          {session ? "Go to app →" : "Sign in →"}
-        </Link>
+        <Link href="/app" style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>Go to app →</Link>
       </nav>
 
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "64px 24px 80px" }}>
