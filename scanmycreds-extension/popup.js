@@ -1,395 +1,311 @@
-// Make all functions globally available for onclick attributes
-window.switchTab = switchTab;
-window.switchGenTab = switchGenTab;
-window.startScan = startScan;
-window.generatePassword = generatePassword;
-window.generatePassphrase = generatePassphrase;
-window.copyGen = copyGen;
-window.copyPhrase = copyPhrase;
-window.toggleOpt = toggleOpt;
-window.updateLength = updateLength;
-window.updateWordCount = updateWordCount;
-window.analyzePassword = analyzePassword;
-window.toggleHealthPwd = toggleHealthPwd;
-window.openApp = openApp;
-window.clearHistory = clearHistory;
-const API_BASE = "https://www.scanmycreds.com";
-const FREE_SCAN_LIMIT = 5;
+const BASE = "https://www.scanmycreds.com";
+const MSGS = ["Connecting to breach database...", "Scanning 15B records...", "Cross-referencing 600+ sources...", "Generating report..."];
+const WORDS = ["correct","horse","battery","staple","purple","monkey","dragon","coffee","silver","rocket","forest","ocean","mountain","thunder","castle","river","bridge","winter","summer","falcon","shadow","crystal","copper","velvet","amber","cobalt","crimson","eagle","phoenix","storm","glacier","harbor","jungle","onyx","prism","quartz","titan","vortex","zenith","mosaic","nebula"];
 
-const SCAN_MESSAGES = [
-  "Connecting to breach database...",
-  "Scanning 15B records...",
-  "Cross-referencing 600+ sources...",
-  "Generating threat report...",
-];
-
-const WORDS = ["correct","horse","battery","staple","purple","monkey","dragon","coffee","silver","rocket","forest","ocean","mountain","thunder","castle","river","bridge","winter","summer","falcon","shadow","crystal","copper","velvet","amber","cobalt","crimson","eagle","phoenix","storm","glacier","harbor","jungle","mosaic","nebula","onyx","prism","quartz","titan","vortex","zenith"];
-
-let progressInterval = null;
-let msgInterval = null;
-let progressVal = 0;
-let genState = { upper: true, lower: true, numbers: true, symbols: true, length: 16 };
-let healthShowPwd = false;
+var genOpts = { upper: true, lower: true, nums: true, syms: true, len: 16 };
+var healthShown = false;
+var scanRunning = false;
+var msgTimer = null;
+var progTimer = null;
+var progVal = 0;
+var msgIdx = 0;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", function() {
   loadCounter();
   loadHistory();
-  checkScanLimit();
+  checkLimit();
 
-  chrome.storage.local.get(["lastEmail"], (res) => {
-    if (res.lastEmail) document.getElementById("emailInput").value = res.lastEmail;
+  chrome.storage.local.get(["lastEmail"], function(r) {
+    if (r.lastEmail) document.getElementById("emailInput").value = r.lastEmail;
   });
 
-  document.getElementById("emailInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") startScan();
+  document.getElementById("emailInput").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") doScan();
+  });
+
+  document.getElementById("scanBtn").addEventListener("click", function() {
+    doScan();
+  });
+
+  document.getElementById("ctaBtn").addEventListener("click", function() {
+    chrome.tabs.create({ url: BASE + "/app" });
   });
 });
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll(".tab-btn").forEach((b, i) => {
-    const tabs = ["scan", "generator", "health", "darkweb", "history"];
-    b.classList.toggle("active", tabs[i] === tab);
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  var tabs = ["scan","gen","health","dark","hist"];
+  tabs.forEach(function(t) {
+    document.getElementById("tab-" + t).classList.toggle("active", t === name);
+    document.getElementById("panel-" + t).classList.toggle("active", t === name);
   });
-  ["scanTab", "generatorTab", "healthTab", "darkwebTab", "historyTab"].forEach(id => {
-    document.getElementById(id).classList.remove("active");
-  });
-  const map = { scan: "scanTab", generator: "generatorTab", health: "healthTab", darkweb: "darkwebTab", history: "historyTab" };
-  document.getElementById(map[tab]).classList.add("active");
-  if (tab === "history") renderHistory();
+  if (name === "hist") loadHistory();
 }
 
-function switchGenTab(tab, btn) {
-  document.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("passwordGen").style.display = tab === "password" ? "block" : "none";
-  document.getElementById("passphraseGen").style.display = tab === "passphrase" ? "block" : "none";
+function showSubtab(name) {
+  ["pwd","phrase"].forEach(function(t) {
+    document.getElementById("subtab-" + t).classList.toggle("active", t === name);
+    document.getElementById("sub-" + t).classList.toggle("active", t === name);
+  });
 }
 
 // ── Counter ───────────────────────────────────────────────────────────────────
 function loadCounter() {
-  chrome.storage.local.get(["smc_count", "smc_count_time"], (res) => {
-    const isRecent = res.smc_count_time && Date.now() - res.smc_count_time < 1000 * 60 * 5;
-    if (res.smc_count && isRecent) {
-      document.getElementById("counter").textContent = Number(res.smc_count).toLocaleString() + " scanned";
-      tickCounter(res.smc_count);
+  chrome.storage.local.get(["smc_count","smc_count_ts"], function(r) {
+    var fresh = r.smc_count_ts && (Date.now() - r.smc_count_ts) < 300000;
+    if (r.smc_count && fresh) {
+      setCounter(r.smc_count);
+      tickCounter(r.smc_count);
     }
-    fetch(API_BASE + "/api/stats")
-      .then(r => r.json())
-      .then(d => {
-        const val = Math.max(d.count, res.smc_count || 0);
-        chrome.storage.local.set({ smc_count: val, smc_count_time: Date.now() });
-        document.getElementById("counter").textContent = Number(val).toLocaleString() + " scanned";
-        tickCounter(val);
+    fetch(BASE + "/api/stats")
+      .then(function(x) { return x.json(); })
+      .then(function(d) {
+        var v = Math.max(d.count || 0, r.smc_count || 0);
+        chrome.storage.local.set({ smc_count: v, smc_count_ts: Date.now() });
+        setCounter(v);
+        tickCounter(v);
       })
-      .catch(() => {
-        if (!res.smc_count) document.getElementById("counter").textContent = "15B+ records";
+      .catch(function() {
+        if (!r.smc_count) document.getElementById("counterText").textContent = "15B+ records";
       });
   });
 }
 
+function setCounter(n) {
+  document.getElementById("counterText").textContent = Number(n).toLocaleString() + " scanned";
+}
+
 function tickCounter(start) {
-  setInterval(() => {
+  setInterval(function() {
     start += Math.floor(Math.random() * 3);
-    document.getElementById("counter").textContent = Number(start).toLocaleString() + " scanned";
+    document.getElementById("counterText").textContent = Number(start).toLocaleString() + " scanned";
   }, 800);
 }
 
-// ── Scan limit check ──────────────────────────────────────────────────────────
-function checkScanLimit() {
-  chrome.storage.local.get(["scanCount", "scanDate"], (res) => {
-    const today = new Date().toDateString();
-    const isToday = res.scanDate === today;
-    const count = isToday ? (res.scanCount || 0) : 0;
-    if (count >= FREE_SCAN_LIMIT) {
-      document.getElementById("proBanner").style.display = "flex";
+// ── Scan limit ────────────────────────────────────────────────────────────────
+function checkLimit() {
+  chrome.storage.local.get(["scanCount","scanDate"], function(r) {
+    var today = new Date().toDateString();
+    var count = (r.scanDate === today) ? (r.scanCount || 0) : 0;
+    if (count >= 5) {
+      document.getElementById("limitBanner").classList.add("show");
     }
   });
 }
 
 // ── Scan ──────────────────────────────────────────────────────────────────────
-function startScan() {
-  const email = document.getElementById("emailInput").value.trim();
+function doScan() {
+  var email = document.getElementById("emailInput").value.trim();
   if (!email || !email.includes("@")) {
-    showError("Please enter a valid email address");
+    showErr("scanError", "Please enter a valid email address");
     return;
   }
 
-  chrome.storage.local.get(["scanCount", "scanDate"], async (res) => {
-    const today = new Date().toDateString();
-    const isToday = res.scanDate === today;
-    const count = isToday ? (res.scanCount || 0) : 0;
+  chrome.storage.local.get(["scanCount","scanDate"], function(r) {
+    var today = new Date().toDateString();
+    var isToday = r.scanDate === today;
+    var count = isToday ? (r.scanCount || 0) : 0;
 
-    if (count >= FREE_SCAN_LIMIT) {
-      showError("Daily limit reached (5/day). Upgrade to Pro for unlimited scans.");
-      document.getElementById("proBanner").style.display = "flex";
+    if (count >= 5) {
+      showErr("scanError", "Daily limit reached. Upgrade to Pro for unlimited scans.");
+      document.getElementById("limitBanner").classList.add("show");
       return;
     }
 
     chrome.storage.local.set({ scanCount: count + 1, scanDate: today });
     chrome.storage.local.set({ lastEmail: email });
 
-    hideError();
-    document.getElementById("resultCard").classList.remove("active");
+    hideErr("scanError");
+    document.getElementById("resultBox").classList.remove("show");
     document.getElementById("scanBtn").disabled = true;
-    document.getElementById("progressBar").classList.add("active");
-    document.getElementById("scanMsg").classList.add("active");
-    progressVal = 0;
+    document.getElementById("scanProgress").classList.add("show");
+    document.getElementById("scanMsg").classList.add("show");
 
-    let msgIdx = 0;
-    document.getElementById("scanMsgText").textContent = SCAN_MESSAGES[0];
-    msgInterval = setInterval(() => {
-      msgIdx = (msgIdx + 1) % SCAN_MESSAGES.length;
-      document.getElementById("scanMsgText").textContent = SCAN_MESSAGES[msgIdx];
+    progVal = 0;
+    msgIdx = 0;
+    document.getElementById("scanMsg").textContent = MSGS[0];
+
+    msgTimer = setInterval(function() {
+      msgIdx = (msgIdx + 1) % MSGS.length;
+      document.getElementById("scanMsg").textContent = MSGS[msgIdx];
     }, 800);
 
-    progressInterval = setInterval(() => {
-      progressVal = Math.min(progressVal + Math.random() * 12, 92);
-      document.getElementById("progressFill").style.width = progressVal + "%";
+    progTimer = setInterval(function() {
+      progVal = Math.min(progVal + Math.random() * 10, 90);
+      document.getElementById("scanFill").style.width = progVal + "%";
     }, 400);
 
-    try {
-      const res2 = await fetch(API_BASE + "/api/checkEmail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: "", extensionCheck: true }),
-      });
-      const data = await res2.json();
+    fetch(BASE + "/api/checkEmail", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email, password: "", extensionCheck: true })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      clearInterval(msgTimer);
+      clearInterval(progTimer);
+      document.getElementById("scanFill").style.width = "100%";
 
-      clearInterval(msgInterval);
-      clearInterval(progressInterval);
-      document.getElementById("progressFill").style.width = "100%";
-
-      setTimeout(() => {
-        document.getElementById("progressBar").classList.remove("active");
-        document.getElementById("scanMsg").classList.remove("active");
+      setTimeout(function() {
+        document.getElementById("scanProgress").classList.remove("show");
+        document.getElementById("scanMsg").classList.remove("show");
         document.getElementById("scanBtn").disabled = false;
 
-        if (!res2.ok) {
-          showError(data.error || "Scan failed. Please try again.");
+        if (data.error && !data.breached && data.breached !== false) {
+          showErr("scanError", data.error || "Scan failed");
           return;
         }
 
         showResult(email, data);
-        saveToHistory(email, data);
-        updateBadge(data);
-      }, 400);
-
-    } catch {
-      clearInterval(msgInterval);
-      clearInterval(progressInterval);
-      document.getElementById("progressBar").classList.remove("active");
-      document.getElementById("scanMsg").classList.remove("active");
+        saveHistory(email, data);
+        setBadge(data);
+      }, 300);
+    })
+    .catch(function() {
+      clearInterval(msgTimer);
+      clearInterval(progTimer);
+      document.getElementById("scanProgress").classList.remove("show");
+      document.getElementById("scanMsg").classList.remove("show");
       document.getElementById("scanBtn").disabled = false;
-      showError("Connection failed. Check your internet and try again.");
-    }
+      showErr("scanError", "Connection failed. Check your internet.");
+    });
   });
 }
 
-// ── Show Result ───────────────────────────────────────────────────────────────
 function showResult(email, data) {
-  const breached = data.breached || false;
-  const pwdExposed = data.passwordExposed || false;
-  const breachCount = data.breachCount || 0;
-  const sources = data.breachSources || [];
+  var breached = data.breached || false;
+  var pwdExp = data.passwordExposed || false;
+  var count = data.breachCount || 0;
+  var sources = data.breachSources || [];
 
-  let score, color, label, bgColor, borderColor;
-  if (breached && pwdExposed) {
-    score = 12; color = "#e05c4b"; label = "Critical";
-    bgColor = "rgba(224,92,75,0.08)"; borderColor = "rgba(224,92,75,0.3)";
-  } else if (breached) {
-    score = 35; color = "#e05c4b"; label = "High Risk";
-    bgColor = "rgba(224,92,75,0.06)"; borderColor = "rgba(224,92,75,0.25)";
-  } else if (pwdExposed) {
-    score = 52; color = "#c48b20"; label = "Medium";
-    bgColor = "rgba(196,139,32,0.08)"; borderColor = "rgba(196,139,32,0.3)";
+  var score, color, label, bg, border;
+  if (breached && pwdExp) { score=12; color="#e05c4b"; label="Critical"; bg="rgba(224,92,75,0.08)"; border="rgba(224,92,75,0.3)"; }
+  else if (breached) { score=35; color="#e05c4b"; label="High Risk"; bg="rgba(224,92,75,0.06)"; border="rgba(224,92,75,0.2)"; }
+  else if (pwdExp) { score=52; color="#c48b20"; label="Medium"; bg="rgba(196,139,32,0.08)"; border="rgba(196,139,32,0.3)"; }
+  else { score=98; color="#6ce4c0"; label="Secure"; bg="rgba(108,228,192,0.06)"; border="rgba(108,228,192,0.2)"; }
+
+  var box = document.getElementById("resultBox");
+  box.style.background = bg;
+  box.style.border = "1px solid " + border;
+  box.style.borderRadius = "10px";
+
+  document.getElementById("scoreArea").innerHTML =
+    '<div><p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:3px">Score</p>' +
+    '<p class="score-num" style="color:' + color + ';text-shadow:0 0 24px ' + color + '">' + score + '</p></div>' +
+    '<div class="badge" style="background:' + color + '18;border:1px solid ' + color + '40">' +
+    '<span class="badge-dot" style="background:' + color + ';box-shadow:0 0 5px ' + color + '"></span>' +
+    '<span style="color:' + color + '">' + label + '</span></div>';
+
+  document.getElementById("statusItems").innerHTML =
+    '<div class="status-row" style="background:' + (breached ? "rgba(224,92,75,0.06)" : "rgba(108,228,192,0.05)") + ';border:1px solid ' + (breached ? "rgba(224,92,75,0.15)" : "rgba(108,228,192,0.15)") + '">' +
+    '<span class="status-label"><span class="dot" style="background:' + (breached?"#e05c4b":"#6ce4c0") + ';box-shadow:0 0 4px ' + (breached?"#e05c4b":"#6ce4c0") + '"></span>Email</span>' +
+    '<span class="status-val" style="color:' + (breached?"#e05c4b":"#6ce4c0") + '">' + (breached ? count + " breach" + (count!==1?"es":"") + " found" : "Clear") + '</span></div>' +
+    '<div class="status-row"><span class="status-label"><span class="dot" style="background:rgba(255,255,255,0.2)"></span>Password</span>' +
+    '<span class="status-val" style="color:rgba(255,255,255,0.3)">Sign in to check</span></div>';
+
+  var srcEl = document.getElementById("sourcesArea");
+  if (breached && sources.length > 0) {
+    srcEl.innerHTML = sources.slice(0,6).map(function(s) {
+      return '<span class="src-tag">' + s + '</span>';
+    }).join("") + (sources.length>6 ? '<span class="src-tag">+' + (sources.length-6) + '</span>' : "");
   } else {
-    score = 98; color = "#6ce4c0"; label = "Secure";
-    bgColor = "rgba(108,228,192,0.06)"; borderColor = "rgba(108,228,192,0.25)";
-  }
-
-  const card = document.getElementById("resultCard");
-  card.style.background = bgColor;
-  card.style.border = "1px solid " + borderColor;
-
-  document.getElementById("scoreRow").innerHTML =
-    '<div>' +
-    '<p style="font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:4px">Security Score</p>' +
-    '<p class="score-num" style="color:' + color + ';text-shadow:0 0 30px ' + color + '">' + score + '</p>' +
-    '</div>' +
-    '<div class="threat-badge" style="background:' + color + '18;border:1px solid ' + color + '40">' +
-    '<span class="badge-dot" style="background:' + color + ';box-shadow:0 0 6px ' + color + '"></span>' +
-    '<span style="color:' + color + '">' + label + '</span>' +
-    '</div>';
-
-  document.getElementById("statusRow").innerHTML =
-    '<div class="status-item" style="background:' + (breached ? "rgba(224,92,75,0.06)" : "rgba(108,228,192,0.05)") + ';border:1px solid ' + (breached ? "rgba(224,92,75,0.15)" : "rgba(108,228,192,0.15)") + '">' +
-    '<div class="status-label"><span class="status-dot" style="background:' + (breached ? "#e05c4b" : "#6ce4c0") + ';box-shadow:0 0 4px ' + (breached ? "#e05c4b" : "#6ce4c0") + '"></span>Email</div>' +
-    '<span class="status-val" style="color:' + (breached ? "#e05c4b" : "#6ce4c0") + '">' + (breached ? "⚠ " + breachCount + " breach" + (breachCount > 1 ? "es" : "") : "✓ Clear") + '</span>' +
-    '</div>' +
-    '<div class="status-item">' +
-    '<div class="status-label"><span class="status-dot" style="background:rgba(255,255,255,0.2)"></span>Password</div>' +
-    '<span class="status-val" style="color:rgba(255,255,255,0.3)">Sign in to check</span>' +
-    '</div>';
-
-  const sourcesEl = document.getElementById("breachSources");
-  if (sources.length > 0 && breached) {
-    sourcesEl.innerHTML = sources.slice(0, 6).map(s =>
-      '<span class="breach-tag">' + s + '</span>'
-    ).join("") + (sources.length > 6 ? '<span class="breach-tag">+' + (sources.length - 6) + ' more</span>' : "");
-    sourcesEl.style.display = "flex";
-  } else {
-    sourcesEl.style.display = "none";
+    srcEl.innerHTML = "";
   }
 
   document.getElementById("ctaText").textContent = breached ? "See full breach report" : "View full security report";
-  card.classList.add("active");
+  box.classList.add("show");
 }
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
-function updateBadge(data) {
-  const bad = data.breached || data.passwordExposed;
+function setBadge(data) {
+  var bad = data.breached || data.passwordExposed;
   chrome.action.setBadgeText({ text: bad ? "!" : "✓" });
   chrome.action.setBadgeBackgroundColor({ color: bad ? "#e05c4b" : "#6ce4c0" });
 }
 
-// ── History ───────────────────────────────────────────────────────────────────
-function saveToHistory(email, data) {
-  chrome.storage.local.get(["scanHistory"], (res) => {
-    const history = res.scanHistory || [];
-    const entry = {
-      email,
-      breached: data.breached || false,
-      passwordExposed: data.passwordExposed || false,
-      breachCount: data.breachCount || 0,
-      date: new Date().toLocaleDateString(),
-    };
-    const filtered = history.filter(h => h.email !== email);
-    const updated = [entry, ...filtered].slice(0, 10);
-    chrome.storage.local.set({ scanHistory: updated });
-  });
-}
-
-function loadHistory() {
-  chrome.storage.local.get(["scanHistory"], (res) => {
-    renderHistoryData(res.scanHistory || []);
-  });
-}
-
-function renderHistory() {
-  chrome.storage.local.get(["scanHistory"], (res) => {
-    renderHistoryData(res.scanHistory || []);
-  });
-}
-
-function renderHistoryData(history) {
-  const list = document.getElementById("historyList");
-  const empty = document.getElementById("historyEmpty");
-  if (!history || history.length === 0) {
-    list.innerHTML = "";
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-  list.innerHTML = history.map(h => {
-    const color = (h.breached || h.passwordExposed) ? "#e05c4b" : "#6ce4c0";
-    const label = h.breached ? "Breached" : h.passwordExposed ? "Exposed" : "Safe";
-    return '<div class="history-item">' +
-      '<div style="display:flex;align-items:center;gap:7px;min-width:0">' +
-      '<span style="width:5px;height:5px;border-radius:50%;background:' + color + ';box-shadow:0 0 4px ' + color + ';flex-shrink:0"></span>' +
-      '<span class="history-email">' + h.email + '</span>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">' +
-      '<span class="history-status" style="color:' + color + '">' + label + '</span>' +
-      '<span style="font-size:9px;color:rgba(255,255,255,0.15)">' + h.date + '</span>' +
-      '</div>' +
-      '</div>';
-  }).join("");
-}
-
 // ── Generator ─────────────────────────────────────────────────────────────────
-function updateLength(v) {
-  genState.length = parseInt(v);
-  document.getElementById("lengthVal").textContent = v;
+function updateLen(v) {
+  genOpts.len = parseInt(v);
+  document.getElementById("lenVal").textContent = v;
 }
 
-function updateWordCount(v) {
-  document.getElementById("wordCountVal").textContent = v;
+function updateWords(v) {
+  document.getElementById("wordVal").textContent = v;
 }
 
 function toggleOpt(opt) {
-  genState[opt] = !genState[opt];
-  const ids = { upper: "tUpper", lower: "tLower", numbers: "tNumbers", symbols: "tSymbols" };
-  document.getElementById(ids[opt]).classList.toggle("on", genState[opt]);
+  var map = { upper:"tog-upper", lower:"tog-lower", nums:"tog-nums", syms:"tog-syms" };
+  genOpts[opt] = !genOpts[opt];
+  document.getElementById(map[opt]).classList.toggle("on", genOpts[opt]);
 }
 
-function generatePassword() {
-  let chars = "";
-  if (genState.upper) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  if (genState.lower) chars += "abcdefghijklmnopqrstuvwxyz";
-  if (genState.numbers) chars += "0123456789";
-  if (genState.symbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
+function genPwd() {
+  var chars = "";
+  if (genOpts.upper) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (genOpts.lower) chars += "abcdefghijklmnopqrstuvwxyz";
+  if (genOpts.nums)  chars += "0123456789";
+  if (genOpts.syms)  chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
   if (!chars) return;
 
-  const arr = new Uint32Array(genState.length);
+  var arr = new Uint32Array(genOpts.len);
   crypto.getRandomValues(arr);
-  const pwd = Array.from(arr, n => chars[n % chars.length]).join("");
+  var pwd = Array.from(arr, function(n) { return chars[n % chars.length]; }).join("");
 
-  document.getElementById("genText").style.color = "#fff";
-  document.getElementById("genText").textContent = pwd;
-  document.getElementById("copyGenBtn").style.display = "block";
-  document.getElementById("copyGenBtn").textContent = "Copy";
+  var el = document.getElementById("pwdText");
+  el.textContent = pwd;
+  el.className = "";
+  document.getElementById("pwdCopy").style.display = "block";
+  document.getElementById("pwdCopy").textContent = "Copy";
 
-  let s = 0;
+  var s = 0;
   if (pwd.length >= 12) s++;
   if (pwd.length >= 16) s++;
   if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) s++;
   if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) s++;
-  const cols = ["#e05c4b", "#c48b20", "#6c9ef7", "#6ce4c0"];
-  const labs = ["Weak", "Fair", "Good", "Strong"];
-  const ws = ["25%", "50%", "75%", "100%"];
-  const idx = Math.max(0, s - 1);
-  const fill = document.getElementById("strengthFill");
-  fill.style.width = ws[idx];
-  fill.style.background = cols[idx];
-  fill.style.boxShadow = "0 0 6px " + cols[idx];
-  document.getElementById("strengthLabel").textContent = labs[idx];
-  document.getElementById("strengthLabel").style.color = cols[idx];
+  var cols = ["#e05c4b","#c48b20","#6c9ef7","#6ce4c0"];
+  var labs = ["Weak","Fair","Good","Strong"];
+  var ws   = ["25%","50%","75%","100%"];
+  var i = Math.max(0, s-1);
+  var f = document.getElementById("strFill");
+  f.style.width = ws[i]; f.style.background = cols[i]; f.style.boxShadow = "0 0 5px "+cols[i];
+  var l = document.getElementById("strLabel");
+  l.textContent = labs[i]; l.style.color = cols[i];
 }
 
-function generatePassphrase() {
-  const count = parseInt(document.getElementById("wordSlider").value);
-  const arr = new Uint32Array(count);
+function genPhrase() {
+  var count = parseInt(document.getElementById("wordSlider").value);
+  var arr = new Uint32Array(count);
   crypto.getRandomValues(arr);
-  const phrase = Array.from(arr, n => WORDS[n % WORDS.length]).join("-");
-  document.getElementById("phraseText").style.color = "#fff";
-  document.getElementById("phraseText").textContent = phrase;
-  document.getElementById("copyPhraseBtn").style.display = "block";
-  document.getElementById("copyPhraseBtn").textContent = "Copy";
+  var phrase = Array.from(arr, function(n) { return WORDS[n % WORDS.length]; }).join("-");
+  var el = document.getElementById("phraseText");
+  el.textContent = phrase;
+  el.className = "";
+  document.getElementById("phraseCopy").style.display = "block";
+  document.getElementById("phraseCopy").textContent = "Copy";
 }
 
-function copyGen() {
-  navigator.clipboard.writeText(document.getElementById("genText").textContent);
-  document.getElementById("copyGenBtn").textContent = "Copied";
-  setTimeout(() => { document.getElementById("copyGenBtn").textContent = "Copy"; }, 2000);
+function copyPwd() {
+  var t = document.getElementById("pwdText").textContent;
+  navigator.clipboard.writeText(t);
+  var b = document.getElementById("pwdCopy");
+  b.textContent = "Copied"; setTimeout(function() { b.textContent = "Copy"; }, 2000);
 }
 
 function copyPhrase() {
-  navigator.clipboard.writeText(document.getElementById("phraseText").textContent);
-  document.getElementById("copyPhraseBtn").textContent = "Copied";
-  setTimeout(() => { document.getElementById("copyPhraseBtn").textContent = "Copy"; }, 2000);
+  var t = document.getElementById("phraseText").textContent;
+  navigator.clipboard.writeText(t);
+  var b = document.getElementById("phraseCopy");
+  b.textContent = "Copied"; setTimeout(function() { b.textContent = "Copy"; }, 2000);
 }
 
 // ── Password Health ───────────────────────────────────────────────────────────
-function toggleHealthPwd() {
-  healthShowPwd = !healthShowPwd;
-  const input = document.getElementById("healthInput");
-  input.type = healthShowPwd ? "text" : "password";
-  document.querySelector(".health-toggle").textContent = healthShowPwd ? "hide" : "show";
+function toggleHealth() {
+  healthShown = !healthShown;
+  document.getElementById("healthInput").type = healthShown ? "text" : "password";
+  document.getElementById("healthToggle").textContent = healthShown ? "hide" : "show";
 }
 
-function analyzePassword(pwd) {
+function analyzeHealth(pwd) {
   if (!pwd) {
     document.getElementById("healthResult").style.display = "none";
     document.getElementById("healthEmpty").style.display = "block";
@@ -398,79 +314,84 @@ function analyzePassword(pwd) {
   document.getElementById("healthEmpty").style.display = "none";
   document.getElementById("healthResult").style.display = "block";
 
-  const issues = [];
-  let score = 100;
+  var issues = [];
+  var score = 100;
 
-  if (pwd.length < 8) { issues.push({ text: "Too short — minimum 8 characters", color: "#e05c4b" }); score -= 30; }
-  else if (pwd.length < 12) { issues.push({ text: "Consider using 12+ characters for better security", color: "#c48b20" }); score -= 10; }
-
-  if (!/[A-Z]/.test(pwd)) { issues.push({ text: "Add uppercase letters (A-Z)", color: "#c48b20" }); score -= 15; }
-  if (!/[a-z]/.test(pwd)) { issues.push({ text: "Add lowercase letters (a-z)", color: "#c48b20" }); score -= 15; }
-  if (!/[0-9]/.test(pwd)) { issues.push({ text: "Add numbers for stronger entropy", color: "#6c9ef7" }); score -= 10; }
-  if (!/[^A-Za-z0-9]/.test(pwd)) { issues.push({ text: "Add symbols (!@#$) for maximum strength", color: "#6c9ef7" }); score -= 10; }
-
-  if (/^[a-zA-Z]+[0-9]+$/.test(pwd)) { issues.push({ text: "Word+numbers pattern is easy to crack", color: "#e05c4b" }); score -= 20; }
-  if (/(.)\1{2,}/.test(pwd)) { issues.push({ text: "Repeated characters weaken your password", color: "#c48b20" }); score -= 15; }
-  if (/qwerty|asdf|zxcv|1234|abcd/i.test(pwd)) { issues.push({ text: "Keyboard walk pattern detected — very common", color: "#e05c4b" }); score -= 25; }
-  if (/password|passwd|letmein|welcome|admin|login/i.test(pwd)) { issues.push({ text: "Common password word detected", color: "#e05c4b" }); score -= 30; }
-  if (/^[0-9]+$/.test(pwd)) { issues.push({ text: "Numbers only — extremely weak", color: "#e05c4b" }); score -= 40; }
+  if (pwd.length < 8) { issues.push({ t:"Too short — use at least 8 characters", c:"#e05c4b" }); score -= 30; }
+  else if (pwd.length < 12) { issues.push({ t:"Consider 12+ characters", c:"#c48b20" }); score -= 10; }
+  if (!/[A-Z]/.test(pwd)) { issues.push({ t:"Add uppercase letters", c:"#c48b20" }); score -= 15; }
+  if (!/[a-z]/.test(pwd)) { issues.push({ t:"Add lowercase letters", c:"#c48b20" }); score -= 15; }
+  if (!/[0-9]/.test(pwd)) { issues.push({ t:"Add numbers", c:"#6c9ef7" }); score -= 10; }
+  if (!/[^A-Za-z0-9]/.test(pwd)) { issues.push({ t:"Add symbols for max strength", c:"#6c9ef7" }); score -= 10; }
+  if (/^[a-zA-Z]+[0-9]+$/.test(pwd)) { issues.push({ t:"Word+numbers pattern is easy to crack", c:"#e05c4b" }); score -= 20; }
+  if (/(.)\1{2,}/.test(pwd)) { issues.push({ t:"Repeated characters weaken it", c:"#c48b20" }); score -= 15; }
+  if (/qwerty|asdf|1234|abcd/i.test(pwd)) { issues.push({ t:"Keyboard walk pattern detected", c:"#e05c4b" }); score -= 25; }
+  if (/password|passwd|letmein|welcome/i.test(pwd)) { issues.push({ t:"Common password word detected", c:"#e05c4b" }); score -= 30; }
+  if (/^[0-9]+$/.test(pwd)) { issues.push({ t:"Numbers only — extremely weak", c:"#e05c4b" }); score -= 40; }
 
   score = Math.max(0, Math.min(100, score));
-  const scoreColor = score >= 80 ? "#6ce4c0" : score >= 50 ? "#c48b20" : "#e05c4b";
-  const scoreLabel = score >= 80 ? "Strong" : score >= 60 ? "Good" : score >= 40 ? "Fair" : "Weak";
+  var sc = score >= 80 ? "#6ce4c0" : score >= 50 ? "#c48b20" : "#e05c4b";
+  var sl = score >= 80 ? "Strong" : score >= 60 ? "Good" : score >= 40 ? "Fair" : "Weak";
 
-  const card = document.getElementById("healthScoreCard");
-  card.style.background = scoreColor + "08";
-  card.style.border = "1px solid " + scoreColor + "25";
+  var box = document.getElementById("healthBox");
+  box.style.background = sc + "08"; box.style.border = "1px solid " + sc + "25"; box.style.borderRadius = "10px";
+  var num = document.getElementById("healthNum");
+  num.textContent = score; num.style.color = sc; num.style.textShadow = "0 0 24px " + sc;
+  var lbl = document.getElementById("healthLbl");
+  lbl.textContent = sl; lbl.style.color = sc;
 
-  document.getElementById("healthScoreNum").textContent = score;
-  document.getElementById("healthScoreNum").style.color = scoreColor;
-  document.getElementById("healthScoreNum").style.textShadow = "0 0 30px " + scoreColor;
-  document.getElementById("healthScoreLabel").textContent = scoreLabel;
-  document.getElementById("healthScoreLabel").style.color = scoreColor;
+  if (issues.length === 0) issues.push({ t:"Excellent — no issues detected", c:"#6ce4c0" });
 
-  if (issues.length === 0) issues.push({ text: "Excellent password — no issues detected", color: "#6ce4c0" });
-
-  document.getElementById("issueList").innerHTML = issues.map(issue =>
-    '<div class="issue-item">' +
-    '<span class="issue-dot" style="background:' + issue.color + ';box-shadow:0 0 4px ' + issue.color + '"></span>' +
-    '<span class="issue-text">' + issue.text + '</span>' +
-    '</div>'
-  ).join("");
+  document.getElementById("issueList").innerHTML = issues.map(function(x) {
+    return '<div class="issue"><span class="issue-dot" style="background:' + x.c + ';box-shadow:0 0 4px ' + x.c + '"></span><span class="issue-text">' + x.t + '</span></div>';
+  }).join("");
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function openApp() {
-  chrome.tabs.create({ url: API_BASE + "/app" });
-}
-
-function clearHistory() {
-  chrome.storage.local.remove(["scanHistory"], () => {
-    renderHistoryData([]);
+// ── History ───────────────────────────────────────────────────────────────────
+function saveHistory(email, data) {
+  chrome.storage.local.get(["scanHist"], function(r) {
+    var hist = r.scanHist || [];
+    var entry = { email:email, breached:data.breached||false, pwdExp:data.passwordExposed||false, count:data.breachCount||0, date:new Date().toLocaleDateString() };
+    var filtered = hist.filter(function(h) { return h.email !== email; });
+    var updated = [entry].concat(filtered).slice(0,10);
+    chrome.storage.local.set({ scanHist: updated });
   });
 }
 
-function showError(msg) {
-  const el = document.getElementById("errorBox");
-  el.textContent = msg;
-  el.classList.add("active");
+function loadHistory() {
+  chrome.storage.local.get(["scanHist"], function(r) {
+    renderHistory(r.scanHist || []);
+  });
 }
 
-function hideError() {
-  document.getElementById("errorBox").classList.remove("active");
+function renderHistory(hist) {
+  var list = document.getElementById("histList");
+  var empty = document.getElementById("histEmpty");
+  if (!hist || hist.length === 0) {
+    list.innerHTML = ""; empty.style.display = "block"; return;
+  }
+  empty.style.display = "none";
+  list.innerHTML = hist.map(function(h) {
+    var c = (h.breached || h.pwdExp) ? "#e05c4b" : "#6ce4c0";
+    var lbl = h.breached ? "Breached" : h.pwdExp ? "Exposed" : "Safe";
+    return '<div class="hist-row"><span class="hist-email"><span class="hist-hdot" style="background:' + c + ';box-shadow:0 0 4px ' + c + '"></span>' + h.email + '</span><div class="hist-right"><span class="hist-status" style="color:' + c + '">' + lbl + '</span><span class="hist-date">' + h.date + '</span></div></div>';
+  }).join("");
 }
-// Expose all functions globally for HTML onclick attributes
-window.switchTab = switchTab;
-window.switchGenTab = switchGenTab;
-window.startScan = startScan;
-window.generatePassword = generatePassword;
-window.generatePassphrase = generatePassphrase;
-window.copyGen = copyGen;
-window.copyPhrase = copyPhrase;
-window.toggleOpt = toggleOpt;
-window.updateLength = updateLength;
-window.updateWordCount = updateWordCount;
-window.analyzePassword = analyzePassword;
-window.toggleHealthPwd = toggleHealthPwd;
-window.openApp = openApp;
-window.clearHistory = clearHistory;
+
+function clearHist() {
+  chrome.storage.local.remove(["scanHist"], function() { renderHistory([]); });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function openFullApp() {
+  chrome.tabs.create({ url: BASE + "/app" });
+}
+
+function showErr(id, msg) {
+  var el = document.getElementById(id);
+  el.textContent = msg; el.classList.add("show");
+}
+
+function hideErr(id) {
+  document.getElementById(id).classList.remove("show");
+}

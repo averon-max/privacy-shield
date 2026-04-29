@@ -1,288 +1,238 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ScanMyCreds</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { width: 380px; min-height: 520px; background: #000; color: #fff; font-family: 'DM Sans', system-ui, sans-serif; overflow-x: hidden; }
-
-    .header { padding: 14px 18px 10px; border-bottom: 1px solid rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: space-between; }
-    .logo { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255,255,255,0.4); text-transform: uppercase; }
-    .live-pill { display: flex; align-items: center; gap: 5px; }
-    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #e05c4b; box-shadow: 0 0 8px #e05c4b; animation: pulse 2s infinite; }
-    .live-count { font-size: 10px; color: rgba(255,255,255,0.25); }
-
-    .tab-bar { display: flex; gap: 1px; padding: 8px 18px 0; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .tab-btn { flex: 1; padding: 7px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.3); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-    .tab-btn.active { color: #fff; border-bottom-color: #fff; }
-
-    .tab-content { display: none; padding: 16px 18px; }
-    .tab-content.active { display: block; }
-
-    input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 13px; padding: 11px 14px; border-radius: 9px; outline: none; transition: all 0.2s; font-family: inherit; }
-    input:focus { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
-    input::placeholder { color: rgba(255,255,255,0.2); }
-
-    .scan-btn { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; color: #000; background: #fff; border: none; border-radius: 9px; cursor: pointer; box-shadow: 0 0 24px rgba(255,255,255,0.25); transition: all 0.2s; font-family: inherit; margin-top: 8px; }
-    .scan-btn:hover { box-shadow: 0 0 40px rgba(255,255,255,0.5); }
-    .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-
-    .progress-bar { height: 2px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 10px; display: none; }
-    .progress-bar.active { display: block; }
-    .progress-fill { height: 100%; width: 0%; background: linear-gradient(to right, #6c9ef7, #b47fe8); border-radius: 2px; transition: width 0.4s ease; box-shadow: 0 0 6px rgba(108,158,247,0.8); }
-
-    .scan-msg { font-size: 10px; color: rgba(255,255,255,0.3); font-family: monospace; margin-top: 7px; display: none; align-items: center; gap: 6px; }
-    .scan-msg.active { display: flex; }
-    .cursor { color: #6c9ef7; animation: blink 1s step-end infinite; }
-
-    .result-card { margin-top: 12px; border-radius: 12px; overflow: hidden; display: none; animation: fadeUp 0.3s ease; }
-    .result-card.active { display: block; }
-
-    .score-row { padding: 16px; display: flex; align-items: center; justify-content: space-between; }
-    .score-num { font-size: 44px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
-    .threat-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; }
-    .badge-dot { width: 5px; height: 5px; border-radius: 50%; animation: pulse 2s infinite; }
-
-    .status-row { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 6px; }
-    .status-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(0,0,0,0.2); }
-    .status-label { display: flex; align-items: center; gap: 6px; font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.08em; }
-    .status-dot { width: 4px; height: 4px; border-radius: 50%; }
-    .status-val { font-size: 11px; font-weight: 700; }
-
-    .breach-sources { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 14px 14px; }
-    .breach-tag { font-size: 9px; padding: 2px 7px; border-radius: 4px; background: rgba(224,92,75,0.12); color: #e05c4b; border: 1px solid rgba(224,92,75,0.25); }
-
-    .cta-btn { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(108,228,192,0.2); background: rgba(108,228,192,0.05); text-decoration: none; cursor: pointer; transition: all 0.2s; margin: 0 14px 14px; }
-    .cta-btn:hover { border-color: rgba(108,228,192,0.4); background: rgba(108,228,192,0.09); }
-    .cta-left { display: flex; align-items: center; gap: 7px; }
-    .cta-dot { width: 5px; height: 5px; border-radius: 50%; background: #6ce4c0; box-shadow: 0 0 5px #6ce4c0; }
-    .cta-text { font-size: 11px; color: rgba(255,255,255,0.5); }
-    .cta-arrow { font-size: 11px; color: #6ce4c0; }
-
-    .error-box { padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(224,92,75,0.3); background: rgba(224,92,75,0.07); color: #e05c4b; font-size: 11px; margin-top: 8px; display: none; }
-    .error-box.active { display: block; }
-
-    /* Generator tab */
-    .subtab-row { display: flex; gap: 4px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 3px; }
-    .subtab-btn { flex: 1; padding: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.3); background: transparent; border: 1px solid transparent; border-radius: 5px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-    .subtab-btn.active { color: #fff; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); }
-
-    .gen-output { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 13px 14px; font-family: monospace; font-size: 13px; color: #fff; word-break: break-all; min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; position: relative; overflow: hidden; }
-    .gen-output::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, rgba(108,158,247,0.4), transparent); }
-    .copy-btn { padding: 4px 10px; font-size: 10px; font-weight: 700; color: #6c9ef7; background: rgba(108,158,247,0.1); border: 1px solid rgba(108,158,247,0.25); border-radius: 5px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.2s; }
-
-    .strength-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
-    .strength-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease, background 0.3s ease; }
-
-    .slider-wrap { margin-bottom: 10px; }
-    .slider-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; color: rgba(255,255,255,0.35); }
-    .slider-val { color: #fff; font-weight: 700; }
-    input[type=range] { width: 100%; accent-color: #6c9ef7; height: 3px; display: block; }
-
-    .toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
-    .toggle-btn { padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.35); font-size: 11px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
-    .toggle-btn.on { border-color: rgba(108,158,247,0.3); background: rgba(108,158,247,0.08); color: #fff; }
-    .toggle-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; transition: all 0.2s; }
-    .toggle-btn.on .toggle-dot { background: #6c9ef7; box-shadow: 0 0 5px #6c9ef7; }
-
-    .gen-btn { width: 100%; padding: 11px; font-size: 13px; font-weight: 700; color: #000; background: #fff; border: none; border-radius: 9px; cursor: pointer; box-shadow: 0 0 20px rgba(255,255,255,0.2); font-family: inherit; transition: all 0.2s; }
-    .gen-btn:hover { box-shadow: 0 0 36px rgba(255,255,255,0.4); }
-
-    /* Password health tab */
-    .health-input-wrap { position: relative; margin-bottom: 10px; }
-    .health-input { padding-right: 50px !important; }
-    .health-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 9px; color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; text-transform: uppercase; font-family: inherit; }
-
-    .health-score { padding: 16px; border-radius: 12px; margin-bottom: 10px; text-align: center; }
-    .health-score-num { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 6px; }
-    .health-label { font-size: 11px; font-weight: 700; }
-
-    .issue-list { display: flex; flex-direction: column; gap: 6px; }
-    .issue-item { display: flex; align-items: flex-start; gap: 8px; padding: 9px 11px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
-    .issue-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-    .issue-text { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.5; }
-
-    /* Dark web tab */
-    .market-list { display: flex; flex-direction: column; gap: 5px; }
-    .market-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); }
-    .market-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); }
-    .market-status { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
-
-    .price-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); margin-bottom: 5px; }
-    .price-type { font-size: 10px; color: rgba(255,255,255,0.4); }
-    .price-val { font-size: 11px; font-weight: 700; }
-
-    /* History tab */
-    .history-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .history-email { font-size: 11px; color: rgba(255,255,255,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
-    .history-status { font-size: 10px; font-weight: 700; }
-
-    /* Pro banner */
-    .pro-banner { margin: 0 0 12px; padding: 10px 13px; border-radius: 9px; background: rgba(108,158,247,0.08); border: 1px solid rgba(108,158,247,0.2); display: flex; align-items: center; justify-content: space-between; }
-    .pro-text { font-size: 11px; color: rgba(255,255,255,0.4); }
-    .pro-link { font-size: 11px; font-weight: 700; color: #6c9ef7; text-decoration: none; }
-
-    /* Footer */
-    .footer { padding: 10px 18px 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
-    .footer-link { font-size: 10px; color: rgba(255,255,255,0.2); text-decoration: none; cursor: pointer; transition: color 0.2s; background: none; border: none; font-family: inherit; }
-    .footer-link:hover { color: rgba(255,255,255,0.5); }
-
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  </style>
+<meta charset="UTF-8" />
+<title>ScanMyCreds</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 380px; background: #000; color: #fff; font-family: system-ui, sans-serif; }
+.header { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); text-transform: uppercase; }
+.counter { font-size: 10px; color: rgba(255,255,255,0.25); display: flex; align-items: center; gap: 5px; }
+.counter-dot { width: 5px; height: 5px; border-radius: 50%; background: #e05c4b; box-shadow: 0 0 6px #e05c4b; animation: pulse 2s infinite; }
+.tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.tab { flex: 1; padding: 9px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.3); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.tab.active { color: #fff; border-bottom-color: #fff; }
+.panel { display: none; padding: 14px 16px; min-height: 200px; }
+.panel.active { display: block; }
+input[type=text], input[type=email], input[type=password] { width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 13px; border-radius: 8px; outline: none; font-family: inherit; transition: border-color 0.2s; }
+input:focus { border-color: rgba(255,255,255,0.35); }
+input::placeholder { color: rgba(255,255,255,0.2); }
+.btn { width: 100%; padding: 11px; font-size: 13px; font-weight: 700; color: #000; background: #fff; border: none; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 0 20px rgba(255,255,255,0.2); margin-top: 8px; }
+.btn:hover { box-shadow: 0 0 36px rgba(255,255,255,0.45); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.btn-outline { background: transparent; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15); box-shadow: none; }
+.btn-outline:hover { border-color: rgba(255,255,255,0.35); color: #fff; box-shadow: none; }
+.error { padding: 9px 11px; border-radius: 7px; background: rgba(224,92,75,0.08); border: 1px solid rgba(224,92,75,0.25); color: #e05c4b; font-size: 11px; margin-top: 8px; display: none; }
+.error.show { display: block; }
+.progress { height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 8px; display: none; }
+.progress.show { display: block; }
+.progress-fill { height: 100%; width: 0; background: linear-gradient(to right, #6c9ef7, #b47fe8); transition: width 0.3s; }
+.msg { font-size: 10px; color: rgba(255,255,255,0.3); font-family: monospace; margin-top: 6px; display: none; }
+.msg.show { display: block; }
+.result-box { margin-top: 10px; border-radius: 10px; overflow: hidden; display: none; }
+.result-box.show { display: block; }
+.score-area { padding: 14px; display: flex; align-items: center; justify-content: space-between; }
+.score-num { font-size: 40px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.badge { display: flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; }
+.status-items { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+.status-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-radius: 6px; background: rgba(0,0,0,0.25); }
+.status-label { font-size: 10px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; display: flex; align-items: center; gap: 5px; }
+.dot { width: 4px; height: 4px; border-radius: 50%; }
+.status-val { font-size: 10px; font-weight: 700; }
+.sources { display: flex; flex-wrap: wrap; gap: 3px; padding: 0 12px 12px; }
+.src-tag { font-size: 9px; padding: 2px 6px; border-radius: 3px; background: rgba(224,92,75,0.1); color: #e05c4b; border: 1px solid rgba(224,92,75,0.2); }
+.cta { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 7px; border: 1px solid rgba(108,228,192,0.2); background: rgba(108,228,192,0.05); cursor: pointer; margin: 0 12px 12px; transition: all 0.2s; }
+.cta:hover { border-color: rgba(108,228,192,0.4); background: rgba(108,228,192,0.09); }
+.cta-t { font-size: 11px; color: rgba(255,255,255,0.45); }
+.cta-a { font-size: 11px; color: #6ce4c0; font-weight: 700; }
+.limit-banner { display: none; align-items: center; justify-content: space-between; padding: 8px 11px; border-radius: 7px; background: rgba(108,158,247,0.07); border: 1px solid rgba(108,158,247,0.2); margin-bottom: 10px; }
+.limit-banner.show { display: flex; }
+.limit-text { font-size: 11px; color: rgba(255,255,255,0.35); }
+.limit-link { font-size: 11px; font-weight: 700; color: #6c9ef7; text-decoration: none; }
+.section-label { font-size: 9px; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 10px; }
+.subtabs { display: flex; gap: 3px; background: rgba(255,255,255,0.04); border-radius: 7px; padding: 3px; margin-bottom: 12px; }
+.subtab { flex: 1; padding: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.3); background: transparent; border: 1px solid transparent; border-radius: 5px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.subtab.active { color: #fff; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); }
+.subpanel { display: none; }
+.subpanel.active { display: block; }
+.gen-out { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 11px 12px; font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.gen-placeholder { color: rgba(255,255,255,0.2); }
+.copy-btn { padding: 4px 9px; font-size: 10px; font-weight: 700; color: #6c9ef7; background: rgba(108,158,247,0.1); border: 1px solid rgba(108,158,247,0.25); border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.2s; display: none; }
+.str-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+.str-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+.str-lbl { font-size: 10px; color: rgba(255,255,255,0.25); margin-bottom: 10px; }
+.slider-wrap { margin-bottom: 10px; }
+.slider-top { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+.slider-top span:last-child { color: #fff; font-weight: 700; }
+input[type=range] { width: 100%; accent-color: #6c9ef7; height: 3px; display: block; cursor: pointer; }
+.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.toggle { padding: 8px 10px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.35); font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
+.toggle.on { border-color: rgba(108,158,247,0.3); background: rgba(108,158,247,0.08); color: #fff; }
+.tdot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; transition: all 0.2s; }
+.toggle.on .tdot { background: #6c9ef7; box-shadow: 0 0 5px #6c9ef7; }
+.health-score-box { padding: 14px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+.health-score-num { font-size: 38px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
+.health-score-lbl { font-size: 11px; font-weight: 700; }
+.issues { display: flex; flex-direction: column; gap: 5px; }
+.issue { display: flex; align-items: flex-start; gap: 7px; padding: 8px 10px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
+.issue-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.issue-text { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+.price-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px; }
+.price-type { font-size: 11px; color: rgba(255,255,255,0.4); }
+.price-val { font-size: 11px; font-weight: 700; }
+.market-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px; }
+.market-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 6px; }
+.market-mdot { width: 5px; height: 5px; border-radius: 50%; animation: pulse 2s infinite; }
+.market-status { font-size: 9px; padding: 2px 7px; border-radius: 3px; font-weight: 700; }
+.hist-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.hist-email { font-size: 11px; color: rgba(255,255,255,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; display: flex; align-items: center; gap: 6px; }
+.hist-hdot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+.hist-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hist-status { font-size: 10px; font-weight: 700; }
+.hist-date { font-size: 9px; color: rgba(255,255,255,0.18); }
+.empty { text-align: center; padding: 24px 0; color: rgba(255,255,255,0.2); font-size: 12px; }
+.footer { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; }
+.footer-btn { font-size: 10px; color: rgba(255,255,255,0.2); background: none; border: none; cursor: pointer; font-family: inherit; transition: color 0.2s; }
+.footer-btn:hover { color: rgba(255,255,255,0.5); }
+.health-input-wrap { position: relative; }
+.health-input { padding-right: 46px !important; }
+.health-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 9px; color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; text-transform: uppercase; font-family: inherit; letter-spacing: 0.05em; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
 </head>
 <body>
 
-  <div class="header">
-    <span class="logo">ScanMyCreds</span>
-    <div class="live-pill">
-      <span class="live-dot"></span>
-      <span class="live-count" id="counter">Loading...</span>
+<div class="header">
+  <span class="logo">ScanMyCreds</span>
+  <div class="counter">
+    <span class="counter-dot"></span>
+    <span id="counterText">Loading...</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-scan" onclick="showTab('scan')">Scan</button>
+  <button class="tab" id="tab-gen" onclick="showTab('gen')">Generator</button>
+  <button class="tab" id="tab-health" onclick="showTab('health')">Health</button>
+  <button class="tab" id="tab-dark" onclick="showTab('dark')">Dark Web</button>
+  <button class="tab" id="tab-hist" onclick="showTab('hist')">History</button>
+</div>
+
+<!-- SCAN -->
+<div class="panel active" id="panel-scan">
+  <div class="limit-banner" id="limitBanner">
+    <span class="limit-text">Daily limit reached (5/day)</span>
+    <a class="limit-link" href="https://www.scanmycreds.com/pricing" target="_blank">Upgrade Pro</a>
+  </div>
+  <p class="section-label">Check your credentials</p>
+  <input type="email" id="emailInput" placeholder="your@email.com" />
+  <div class="error" id="scanError"></div>
+  <button class="btn" id="scanBtn">Scan now</button>
+  <div class="progress" id="scanProgress"><div class="progress-fill" id="scanFill"></div></div>
+  <div class="msg" id="scanMsg">Connecting...</div>
+  <div class="result-box" id="resultBox">
+    <div class="score-area" id="scoreArea"></div>
+    <div class="status-items" id="statusItems"></div>
+    <div class="sources" id="sourcesArea"></div>
+    <div class="cta" id="ctaBtn">
+      <span class="cta-t" id="ctaText">View full report</span>
+      <span class="cta-a">Open app →</span>
     </div>
   </div>
+</div>
 
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('scan')">Scan</button>
-    <button class="tab-btn" onclick="switchTab('generator')">Generator</button>
-    <button class="tab-btn" onclick="switchTab('health')">Health</button>
-    <button class="tab-btn" onclick="switchTab('darkweb')">Dark Web</button>
-    <button class="tab-btn" onclick="switchTab('history')">History</button>
+<!-- GENERATOR -->
+<div class="panel" id="panel-gen">
+  <div class="subtabs">
+    <button class="subtab active" id="subtab-pwd" onclick="showSubtab('pwd')">Password</button>
+    <button class="subtab" id="subtab-phrase" onclick="showSubtab('phrase')">Passphrase</button>
   </div>
-
-  <!-- SCAN TAB -->
-  <div id="scanTab" class="tab-content active">
-    <div class="pro-banner" id="proBanner" style="display:none">
-      <span class="pro-text">Upgrade for unlimited scans</span>
-      <a href="https://www.scanmycreds.com/pricing" target="_blank" class="pro-link">Go Pro</a>
+  <div class="subpanel active" id="sub-pwd">
+    <div class="gen-out" id="pwdOut">
+      <span class="gen-placeholder" id="pwdText">Click generate</span>
+      <button class="copy-btn" id="pwdCopy" onclick="copyPwd()">Copy</button>
     </div>
-
-    <p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.18);text-transform:uppercase;margin-bottom:10px">Check credentials</p>
-    <input type="email" id="emailInput" placeholder="your@email.com" style="margin-bottom:0" />
-    <div class="error-box" id="errorBox"></div>
-    <button class="scan-btn" id="scanBtn" onclick="startScan()">Scan now</button>
-
-    <div class="progress-bar" id="progressBar">
-      <div class="progress-fill" id="progressFill"></div>
+    <div class="str-bar"><div class="str-fill" id="strFill" style="width:0"></div></div>
+    <div class="str-lbl">Strength: <span id="strLabel">—</span></div>
+    <div class="slider-wrap">
+      <div class="slider-top"><span>Length</span><span id="lenVal">16</span></div>
+      <input type="range" min="8" max="64" value="16" id="lenSlider" oninput="updateLen(this.value)" />
     </div>
-    <div class="scan-msg" id="scanMsg">
-      <span class="cursor">_</span>
-      <span id="scanMsgText">Connecting...</span>
+    <div class="toggles">
+      <button class="toggle on" id="tog-upper" onclick="toggleOpt('upper')"><span class="tdot"></span>A-Z Upper</button>
+      <button class="toggle on" id="tog-lower" onclick="toggleOpt('lower')"><span class="tdot"></span>a-z Lower</button>
+      <button class="toggle on" id="tog-nums" onclick="toggleOpt('nums')"><span class="tdot"></span>0-9 Numbers</button>
+      <button class="toggle on" id="tog-syms" onclick="toggleOpt('syms')"><span class="tdot"></span>!@# Symbols</button>
     </div>
-
-    <div class="result-card" id="resultCard">
-      <div class="score-row" id="scoreRow"></div>
-      <div class="status-row" id="statusRow"></div>
-      <div class="breach-sources" id="breachSources"></div>
-      <div class="cta-btn" id="ctaBtn" onclick="openApp()">
-        <div class="cta-left">
-          <span class="cta-dot"></span>
-          <span class="cta-text" id="ctaText">View full report</span>
-        </div>
-        <span class="cta-arrow">→</span>
-      </div>
-    </div>
+    <button class="btn" onclick="genPwd()">Generate Password</button>
   </div>
-
-  <!-- GENERATOR TAB -->
-  <div id="generatorTab" class="tab-content">
-    <div class="subtab-row">
-      <button class="subtab-btn active" onclick="switchGenTab('password', this)">Password</button>
-      <button class="subtab-btn" onclick="switchGenTab('passphrase', this)">Passphrase</button>
+  <div class="subpanel" id="sub-phrase">
+    <div class="gen-out" id="phraseOut">
+      <span class="gen-placeholder" id="phraseText">Click generate</span>
+      <button class="copy-btn" id="phraseCopy" onclick="copyPhrase()">Copy</button>
     </div>
-
-    <div id="passwordGen">
-      <div class="gen-output" id="genOutput">
-        <span id="genText" style="color:rgba(255,255,255,0.2)">Click generate</span>
-        <button class="copy-btn" id="copyGenBtn" style="display:none" onclick="copyGen()">Copy</button>
-      </div>
-      <div class="strength-bar"><div class="strength-fill" id="strengthFill" style="width:0%"></div></div>
-      <p style="font-size:10px;color:rgba(255,255,255,0.25);margin-bottom:10px">Strength: <span id="strengthLabel" style="color:#fff">—</span></p>
-      <div class="slider-wrap">
-        <div class="slider-label"><span>Length</span><span class="slider-val" id="lengthVal">16</span></div>
-        <input type="range" min="8" max="64" value="16" id="lengthSlider" oninput="updateLength(this.value)" />
-      </div>
-      <div class="toggle-grid">
-        <button class="toggle-btn on" id="tUpper" onclick="toggleOpt('upper')"><span class="toggle-dot"></span>A-Z Upper</button>
-        <button class="toggle-btn on" id="tLower" onclick="toggleOpt('lower')"><span class="toggle-dot"></span>a-z Lower</button>
-        <button class="toggle-btn on" id="tNumbers" onclick="toggleOpt('numbers')"><span class="toggle-dot"></span>0-9 Numbers</button>
-        <button class="toggle-btn on" id="tSymbols" onclick="toggleOpt('symbols')"><span class="toggle-dot"></span>!@# Symbols</button>
-      </div>
-      <button class="gen-btn" onclick="generatePassword()">Generate Password</button>
+    <div class="slider-wrap">
+      <div class="slider-top"><span>Words</span><span id="wordVal">4</span></div>
+      <input type="range" min="3" max="8" value="4" id="wordSlider" oninput="updateWords(this.value)" />
     </div>
-
-    <div id="passphraseGen" style="display:none">
-      <div class="gen-output" id="phraseOutput">
-        <span id="phraseText" style="color:rgba(255,255,255,0.2)">Click generate</span>
-        <button class="copy-btn" id="copyPhraseBtn" style="display:none" onclick="copyPhrase()">Copy</button>
-      </div>
-      <div class="slider-wrap">
-        <div class="slider-label"><span>Words</span><span class="slider-val" id="wordCountVal">4</span></div>
-        <input type="range" min="3" max="8" value="4" id="wordSlider" oninput="updateWordCount(this.value)" />
-      </div>
-      <p style="font-size:11px;color:rgba(108,158,247,0.7);margin-bottom:10px;padding:8px 10px;background:rgba(108,158,247,0.06);border-radius:7px;border:1px solid rgba(108,158,247,0.15);line-height:1.5">Random words are easier to remember and equally secure.</p>
-      <button class="gen-btn" onclick="generatePassphrase()">Generate Passphrase</button>
-    </div>
+    <p style="font-size:11px;color:rgba(108,158,247,0.7);padding:8px 10px;background:rgba(108,158,247,0.06);border-radius:7px;border:1px solid rgba(108,158,247,0.15);line-height:1.5;margin-bottom:10px">Random words are easier to remember and equally secure.</p>
+    <button class="btn" onclick="genPhrase()">Generate Passphrase</button>
   </div>
+</div>
 
-  <!-- HEALTH TAB -->
-  <div id="healthTab" class="tab-content">
-    <p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.18);text-transform:uppercase;margin-bottom:10px">Password health analyzer</p>
-    <div class="health-input-wrap">
-      <input type="password" id="healthInput" class="health-input" placeholder="Enter a password to analyze" oninput="analyzePassword(this.value)" />
-      <button class="health-toggle" onclick="toggleHealthPwd()">show</button>
-    </div>
-    <div id="healthResult" style="display:none">
-      <div class="health-score" id="healthScoreCard">
-        <div class="health-score-num" id="healthScoreNum">0</div>
-        <div class="health-label" id="healthScoreLabel">—</div>
-      </div>
-      <div class="issue-list" id="issueList"></div>
-    </div>
-    <div id="healthEmpty" style="text-align:center;padding:24px 0;color:rgba(255,255,255,0.2);font-size:12px">Type a password above to analyze it</div>
+<!-- HEALTH -->
+<div class="panel" id="panel-health">
+  <p class="section-label">Password health analyzer</p>
+  <div class="health-input-wrap">
+    <input type="password" id="healthInput" class="health-input" placeholder="Enter password to analyze" oninput="analyzeHealth(this.value)" />
+    <button class="health-toggle" id="healthToggle" onclick="toggleHealth()">show</button>
   </div>
+  <div id="healthResult" style="display:none;margin-top:10px">
+    <div class="health-score-box" id="healthBox">
+      <div class="health-score-num" id="healthNum">0</div>
+      <div class="health-score-lbl" id="healthLbl">—</div>
+    </div>
+    <div class="issues" id="issueList"></div>
+  </div>
+  <div class="empty" id="healthEmpty">Type a password above to analyze it</div>
+</div>
 
-  <!-- DARK WEB TAB -->
-  <div id="darkwebTab" class="tab-content">
-    <p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.18);text-transform:uppercase;margin-bottom:10px">Dark web market prices</p>
-    <div class="market-list" id="marketList">
-      <div class="price-row"><span class="price-type">Email + Password combo</span><span class="price-val" style="color:#e05c4b">$0.10 - $2</span></div>
-      <div class="price-row"><span class="price-type">Full identity (SSN)</span><span class="price-val" style="color:#e05c4b">$10 - $50</span></div>
-      <div class="price-row"><span class="price-type">Credit card details</span><span class="price-val" style="color:#c48b20">$5 - $20</span></div>
-      <div class="price-row"><span class="price-type">Bank account access</span><span class="price-val" style="color:#c48b20">$40 - $200</span></div>
-      <div class="price-row"><span class="price-type">Email account access</span><span class="price-val" style="color:#6c9ef7">$1 - $5</span></div>
-      <div class="price-row"><span class="price-type">Social media account</span><span class="price-val" style="color:#b47fe8">$1 - $10</span></div>
-    </div>
-    <div style="margin-top:12px">
-      <p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.18);text-transform:uppercase;margin-bottom:8px">Active markets</p>
-      <div class="market-list">
-        <div class="market-item"><div style="display:flex;align-items:center;gap:7px"><span style="width:5px;height:5px;border-radius:50%;background:#e05c4b;box-shadow:0 0 5px #e05c4b;animation:pulse 2s infinite"></span><span class="market-name">BreachForums</span></div><span class="market-status" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
-        <div class="market-item"><div style="display:flex;align-items:center;gap:7px"><span style="width:5px;height:5px;border-radius:50%;background:#e05c4b;box-shadow:0 0 5px #e05c4b;animation:pulse 2s infinite"></span><span class="market-name">Telegram leak channels</span></div><span class="market-status" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
-        <div class="market-item"><div style="display:flex;align-items:center;gap:7px"><span style="width:5px;height:5px;border-radius:50%;background:#c48b20;box-shadow:0 0 5px #c48b20"></span><span class="market-name">Dark web paste sites</span></div><span class="market-status" style="background:rgba(196,139,32,0.12);color:#c48b20;border:1px solid rgba(196,139,32,0.25)">Active</span></div>
-        <div class="market-item"><div style="display:flex;align-items:center;gap:7px"><span style="width:5px;height:5px;border-radius:50%;background:#6c9ef7;box-shadow:0 0 5px #6c9ef7"></span><span class="market-name">Credential stuffing lists</span></div><span class="market-status" style="background:rgba(108,158,247,0.12);color:#6c9ef7;border:1px solid rgba(108,158,247,0.25)">Circulating</span></div>
-      </div>
-    </div>
-    <a href="https://www.scanmycreds.com/app/dark-web" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid rgba(108,228,192,0.15);background:rgba(108,228,192,0.04);text-decoration:none;margin-top:12px;transition:all 0.2s">
+<!-- DARK WEB -->
+<div class="panel" id="panel-dark">
+  <p class="section-label">What your data sells for</p>
+  <div class="price-row"><span class="price-type">Email + Password</span><span class="price-val" style="color:#e05c4b">$0.10 - $2</span></div>
+  <div class="price-row"><span class="price-type">Full identity (SSN)</span><span class="price-val" style="color:#e05c4b">$10 - $50</span></div>
+  <div class="price-row"><span class="price-type">Credit card details</span><span class="price-val" style="color:#c48b20">$5 - $20</span></div>
+  <div class="price-row"><span class="price-type">Bank account access</span><span class="price-val" style="color:#c48b20">$40 - $200</span></div>
+  <div class="price-row"><span class="price-type">Email account access</span><span class="price-val" style="color:#6c9ef7">$1 - $5</span></div>
+  <div class="price-row"><span class="price-type">Social media account</span><span class="price-val" style="color:#b47fe8">$1 - $10</span></div>
+  <p class="section-label" style="margin-top:14px">Active markets</p>
+  <div class="market-row"><span class="market-name"><span class="market-mdot" style="background:#e05c4b;box-shadow:0 0 5px #e05c4b"></span>BreachForums</span><span class="market-status" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
+  <div class="market-row"><span class="market-name"><span class="market-mdot" style="background:#e05c4b;box-shadow:0 0 5px #e05c4b"></span>Telegram Leaks</span><span class="market-status" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
+  <div class="market-row"><span class="market-name"><span class="market-mdot" style="background:#c48b20;box-shadow:0 0 5px #c48b20"></span>Dark Web Pastes</span><span class="market-status" style="background:rgba(196,139,32,0.12);color:#c48b20;border:1px solid rgba(196,139,32,0.25)">Active</span></div>
+  <div class="market-row"><span class="market-name"><span class="market-mdot" style="background:#6c9ef7;box-shadow:0 0 5px #6c9ef7"></span>Credential Lists</span><span class="market-status" style="background:rgba(108,158,247,0.12);color:#6c9ef7;border:1px solid rgba(108,158,247,0.25)">Circulating</span></div>
+  <div style="margin-top:10px">
+    <a href="https://www.scanmycreds.com/app/dark-web" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-radius:7px;border:1px solid rgba(108,228,192,0.15);background:rgba(108,228,192,0.04);text-decoration:none">
       <span style="font-size:11px;color:rgba(255,255,255,0.4)">Full dark web exposure report</span>
-      <span style="font-size:11px;color:#6ce4c0;font-weight:700">Open app</span>
+      <span style="font-size:11px;color:#6ce4c0;font-weight:700">Open</span>
     </a>
   </div>
+</div>
 
-  <!-- HISTORY TAB -->
-  <div id="historyTab" class="tab-content">
-    <p style="font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.18);text-transform:uppercase;margin-bottom:10px">Recent scans</p>
-    <div id="historyList"></div>
-    <div id="historyEmpty" style="text-align:center;padding:24px 0;color:rgba(255,255,255,0.2);font-size:12px;display:none">No scans yet</div>
-  </div>
+<!-- HISTORY -->
+<div class="panel" id="panel-hist">
+  <p class="section-label">Recent scans</p>
+  <div id="histList"></div>
+  <div class="empty" id="histEmpty" style="display:none">No scans yet</div>
+</div>
 
-  <div class="footer">
-    <button class="footer-link" onclick="openApp()">Open full app</button>
-    <button class="footer-link" onclick="clearHistory()">Clear history</button>
-  </div>
+<div class="footer">
+  <button class="footer-btn" onclick="openFullApp()">Open full app</button>
+  <button class="footer-btn" onclick="clearHist()">Clear history</button>
+</div>
 
-  <script src="popup.js"></script>
+<script src="popup.js"></script>
 </body>
 </html>
