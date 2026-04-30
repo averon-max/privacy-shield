@@ -96,19 +96,13 @@ export async function generateMetadata(
   props: { params: Promise<{ company: string }> }
 ): Promise<Metadata> {
   const params = await props.params;
-  const company = params?.company?.toLowerCase() ?? "";
+  const company = (params?.company || "").toLowerCase();
   const data = BREACH_DATA[company];
   if (!data) return { title: "Breach Not Found | ScanMyCreds" };
   return {
     title: data.name + " Data Breach — " + data.records + " Records Exposed (" + data.year + ")",
-    description: "The " + data.name + " data breach of " + data.year + " exposed " + data.records + " records. Check if your email was affected — free scan.",
+    description: "The " + data.name + " data breach of " + data.year + " exposed " + data.records + " records. Check if your email was affected.",
     alternates: { canonical: "https://www.scanmycreds.com/breach/" + company },
-    openGraph: {
-      title: data.name + " Data Breach (" + data.year + ") — Was Your Data Exposed?",
-      description: data.records + " records leaked. Check if your email was in the " + data.name + " breach for free.",
-      url: "https://www.scanmycreds.com/breach/" + company,
-      images: [{ url: "/og-image.png", width: 1200, height: 630 }],
-    },
   };
 }
 

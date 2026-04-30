@@ -48,7 +48,6 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/login" },
   callbacks: {
     async signIn({ user, account }) {
-      // CRITICAL: always return true for Google — never block OAuth on DB errors
       if (account?.provider === "google") {
         try {
           await connectDB();
@@ -63,10 +62,9 @@ export const authOptions: NextAuthOptions = {
             });
           }
         } catch (err) {
-          // Log but don't block sign in — user can still access app
           console.error("Google signIn DB error (non-blocking):", err);
         }
-        return true; // ALWAYS return true for Google
+        return true;
       }
       return true;
     },
@@ -76,7 +74,6 @@ export const authOptions: NextAuthOptions = {
         token.isPro = (user as any).isPro || false;
         token.plan = (user as any).plan || "free";
       }
-      // Only try DB lookup if we have email and it's a fresh sign in
       if (account?.provider === "google" && token.email) {
         try {
           await connectDB();
@@ -86,9 +83,7 @@ export const authOptions: NextAuthOptions = {
             token.isPro = dbUser.isPro || false;
             token.plan = dbUser.plan || "free";
           }
-        } catch {
-          // Non-blocking — token still works without DB data
-        }
+        } catch {}
       }
       return token;
     },

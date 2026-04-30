@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+export const dynamic = "force-dynamic";
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -41,7 +42,7 @@ function ReportView() {
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <div style={{ textAlign: "center" }}>
         <p style={{ color: "#e05c4b", fontSize: "14px", marginBottom: "16px" }}>{error}</p>
-        <Link href="/app" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none" }}>← Run a new scan</Link>
+        <Link href="/app" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none" }}>в†ђ Run a new scan</Link>
       </div>
     </div>
   );
@@ -53,8 +54,8 @@ function ReportView() {
         <div style={{ display: "flex", gap: "8px" }}>
           <button onClick={copy}
             style={{ padding: "8px 16px", fontSize: "12px", color: copied ? "#6ce4c0" : "rgba(255,255,255,0.5)", background: copied ? "rgba(108,228,192,0.08)" : "rgba(255,255,255,0.05)", border: `1px solid ${copied ? "rgba(108,228,192,0.25)" : "rgba(255,255,255,0.1)"}`, borderRadius: "7px", cursor: "pointer", transition: "all 0.2s" }}
-          >{copied ? "✓ Copied" : "Copy link"}</button>
-          <Link href="/app" style={{ padding: "8px 16px", fontSize: "12px", color: "#fff", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "7px", textDecoration: "none" }}>Run scan →</Link>
+          >{copied ? "вњ“ Copied" : "Copy link"}</button>
+          <Link href="/app" style={{ padding: "8px 16px", fontSize: "12px", color: "#fff", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "7px", textDecoration: "none" }}>Run scan в†’</Link>
         </div>
       </div>
 
@@ -62,7 +63,7 @@ function ReportView() {
         <div style={{ marginBottom: "28px" }}>
           <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "8px" }}>Security report</p>
           <h1 style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "-0.03em", color: "#fff", marginBottom: "4px" }}>Breach Report</h1>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)" }}>Generated {new Date(report.createdAt).toLocaleDateString()} · Expires {new Date(report.expiresAt).toLocaleDateString()}</p>
+          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)" }}>Generated {new Date(report.createdAt).toLocaleDateString()} В· Expires {new Date(report.expiresAt).toLocaleDateString()}</p>
         </div>
 
         {/* score */}
@@ -83,7 +84,7 @@ function ReportView() {
               <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Email</span>
             </div>
             <span style={{ fontSize: "12px", color: report.breached ? "#e05c4b" : "#6ce4c0", fontWeight: 600 }}>
-              {report.breached ? `⚠ ${report.breachCount} breaches found` : "✓ No breaches found"}
+              {report.breached ? `вљ  ${report.breachCount} breaches found` : "вњ“ No breaches found"}
             </span>
           </div>
         </div>
@@ -96,7 +97,7 @@ function ReportView() {
               <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Password</span>
             </div>
             <span style={{ fontSize: "12px", color: report.passwordExposed ? "#c48b20" : "#6ce4c0", fontWeight: 600 }}>
-              {report.passwordExposed ? "⚠ Exposed in breaches" : "✓ Not found in breaches"}
+              {report.passwordExposed ? "вљ  Exposed in breaches" : "вњ“ Not found in breaches"}
             </span>
           </div>
         </div>
@@ -134,7 +135,7 @@ function ReportView() {
 
         <div style={{ padding: "14px 16px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)" }}>Want to check your own credentials?</span>
-          <Link href="/app" style={{ fontSize: "12px", color: "#6c9ef7", textDecoration: "none" }}>Scan for free →</Link>
+          <Link href="/app" style={{ fontSize: "12px", color: "#6c9ef7", textDecoration: "none" }}>Scan for free в†’</Link>
         </div>
       </div>
       <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
@@ -145,3 +146,4 @@ function ReportView() {
 export default function Report() {
   return <Suspense><ReportView /></Suspense>;
 }
+

@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
-
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: "Payment not configured" }, { status: 500 });
-    }
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    const { default: Stripe } = await import("stripe");
+    const stripe = new (Stripe as any)(key);
 
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    if (!session?.user?.email) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const plan = body.plan === "family" ? "family" : "pro";
-    const priceId = plan === "family"
-      ? process.env.STRIPE_FAMILY_PRICE_ID
-      : process.env.STRIPE_PRO_PRICE_ID;
-
-    if (!priceId) {
-      return NextResponse.json({ error: "Price not configured" }, { status: 500 });
-    }
+    const priceId = plan === "family" ? process.env.STRIPE_FAMILY_PRICE_ID : process.env.STRIPE_PRO_PRICE_ID;
+    if (!priceId) return NextResponse.json({ error: "Price not configured" }, { status: 500 });
 
     await connectDB();
     const user = await User.findOne({ email: session.user.email }).lean() as any;
@@ -48,8 +39,8 @@ export async function POST(req: NextRequest) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: (process.env.NEXTAUTH_URL ?? "") + "/app/dashboard?upgraded=true",
-      cancel_url: (process.env.NEXTAUTH_URL ?? "") + "/pricing?cancelled=true",
+      success_url: (process.env.NEXTAUTH_URL || "") + "/app/dashboard?upgraded=true",
+      cancel_url: (process.env.NEXTAUTH_URL || "") + "/pricing?cancelled=true",
       metadata: { userEmail: session.user.email, plan },
       subscription_data: { metadata: { userEmail: session.user.email, plan } },
       allow_promotion_codes: true,

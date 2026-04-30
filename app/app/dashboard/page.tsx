@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -104,7 +105,7 @@ function DashboardContent() {
       <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
         <div style={{ textAlign: "center" }}>
           <p style={{ color: "#333", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>Authentication required</p>
-          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block" }}>Sign in →</Link>
+          <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block" }}>Sign in в†’</Link>
         </div>
       </div>
     );
@@ -183,7 +184,7 @@ function DashboardContent() {
             <Link href="/pricing" style={{ fontSize: "11px", color: "#6c9ef7", textDecoration: "none", padding: "6px 14px", borderRadius: "100px", background: "rgba(108,158,247,0.08)", border: "1px solid rgba(108,158,247,0.2)", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(108,158,247,0.15)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(108,158,247,0.08)"; }}
-            >Upgrade to Pro →</Link>
+            >Upgrade to Pro в†’</Link>
           )}
         </div>
 
@@ -272,8 +273,8 @@ function DashboardContent() {
                 <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginBottom: "12px" }}>{new Date(last.createdAt).toLocaleString()}</p>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {[
-                    { ok: !last.breached, okLabel: "✓ Email clear", badLabel: "⚠ Email breached", okColor: "#6ce4c0", badColor: "#e05c4b" },
-                    { ok: !last.passwordExposed, okLabel: "✓ Password clear", badLabel: "⚠ Password exposed", okColor: "#6ce4c0", badColor: "#c48b20" },
+                    { ok: !last.breached, okLabel: "вњ“ Email clear", badLabel: "вљ  Email breached", okColor: "#6ce4c0", badColor: "#e05c4b" },
+                    { ok: !last.passwordExposed, okLabel: "вњ“ Password clear", badLabel: "вљ  Password exposed", okColor: "#6ce4c0", badColor: "#c48b20" },
                   ].map((b, i) => {
                     const color = b.ok ? b.okColor : b.badColor;
                     return (
@@ -323,7 +324,7 @@ function DashboardContent() {
               {!isPro && (
                 <div style={{ marginTop: "10px", padding: "10px 12px", borderRadius: "8px", background: "rgba(108,158,247,0.06)", border: "1px solid rgba(108,158,247,0.15)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>Get instant alerts when new breaches drop</span>
-                  <Link href="/pricing" style={{ fontSize: "11px", color: "#6c9ef7", textDecoration: "none", fontWeight: 700 }}>Pro →</Link>
+                  <Link href="/pricing" style={{ fontSize: "11px", color: "#6c9ef7", textDecoration: "none", fontWeight: 700 }}>Pro в†’</Link>
                 </div>
               )}
             </div>
@@ -333,7 +334,7 @@ function DashboardContent() {
               <div style={{ marginBottom: "12px", padding: "18px 20px", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", background: "rgba(255,255,255,0.02)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                   <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Recent activity</p>
-                  <Link href="/app/history" style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View all →</Link>
+                  <Link href="/app/history" style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View all в†’</Link>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                   {checks.slice(0, 5).map((c, i) => {
@@ -361,7 +362,7 @@ function DashboardContent() {
               <div style={{ marginBottom: "12px", padding: "32px", borderRadius: "16px", border: "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.05)", textAlign: "center" }}>
                 <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>Run your first scan</p>
                 <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginBottom: "18px" }}>Check if your credentials appear in any known breach.</p>
-                <Link href="/app" style={{ padding: "11px 28px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}>Scan now →</Link>
+                <Link href="/app" style={{ padding: "11px 28px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}>Scan now в†’</Link>
               </div>
             )}
 

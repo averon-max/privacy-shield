@@ -1,3 +1,1 @@
-﻿export default function RegisterLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
+﻿export default function Layout({ children }: { children: React.ReactNode }) { return <>{children}</> }

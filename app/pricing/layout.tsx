@@ -1,3 +1,3 @@
-﻿export default function PricingLayout({ children }: { children: React.ReactNode }) {
+export default function PricingLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

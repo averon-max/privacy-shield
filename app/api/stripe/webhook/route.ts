@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
-
 export async function POST(req: NextRequest) {
   try {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return NextResponse.json({ error: "Not configured" }, { status: 500 });
+    const { default: Stripe } = await import("stripe");
+    const stripe = new (Stripe as any)(key);
+
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
+    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
 
-    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return NextResponse.json({ error: "Missing signature" }, { status: 400 });
-    }
-
-    let event: Stripe.Event;
+    let event: any;
     try {
       event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-      console.error("Webhook signature failed:", err);
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
@@ -26,42 +24,28 @@ export async function POST(req: NextRequest) {
 
     switch (event.type) {
       case "checkout.session.completed": {
-        const s = event.data.object as Stripe.Checkout.Session;
+        const s = event.data.object;
         const email = s.metadata?.userEmail;
         const plan = s.metadata?.plan || "pro";
-        if (email) {
-          await User.findOneAndUpdate(
-            { email },
-            { isPro: true, plan, stripeSubscriptionId: s.subscription }
-          );
-        }
+        if (email) await User.findOneAndUpdate({ email }, { isPro: true, plan, stripeSubscriptionId: s.subscription });
         break;
       }
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        const customer = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
-        if (customer.email) {
-          await User.findOneAndUpdate({ email: customer.email }, { isPro: true });
-        }
+        const invoice = event.data.object;
+        const customer = await stripe.customers.retrieve(invoice.customer);
+        if (customer.email) await User.findOneAndUpdate({ email: customer.email }, { isPro: true });
         break;
       }
       case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
-        const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
-        if (customer.email) {
-          await User.findOneAndUpdate(
-            { email: customer.email },
-            { isPro: false, plan: "free", stripeSubscriptionId: null, proCancelledAt: new Date() }
-          );
-        }
+        const sub = event.data.object;
+        const customer = await stripe.customers.retrieve(sub.customer);
+        if (customer.email) await User.findOneAndUpdate({ email: customer.email }, { isPro: false, plan: "free", stripeSubscriptionId: null, proCancelledAt: new Date() });
         break;
       }
       case "customer.subscription.updated": {
-        const sub = event.data.object as Stripe.Subscription;
-        const customer = await stripe.customers.retrieve(sub.customer as string) as Stripe.Customer;
-        if (customer.email && sub.status !== "active") {
-          await User.findOneAndUpdate({ email: customer.email }, { isPro: false, plan: "free" });
-        }
+        const sub = event.data.object;
+        const customer = await stripe.customers.retrieve(sub.customer);
+        if (customer.email && sub.status !== "active") await User.findOneAndUpdate({ email: customer.email }, { isPro: false, plan: "free" });
         break;
       }
     }
