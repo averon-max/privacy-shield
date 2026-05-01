@@ -1,54 +1,72 @@
-"use client";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Features — Everything ScanMyCreds Does",
+  description: "Email breach detection, password k-anonymity, security score, dark web monitoring, watchlist alerts and more.",
+};
 
 export default function Features() {
   const features = [
-    { n: "01", title: "Email breach detection", desc: "We cross-reference your email against 600+ known data breaches sourced from XposedOrNot's database. Results come back in under a second, showing every site that leaked your data, what type of data was exposed, and when.", tag: "Real-time", color: "#6c9ef7" },
-    { n: "02", title: "Password exposure check", desc: "Using the k-anonymity model from HaveIBeenPwned's Pwned Passwords API, we check if your password appeared in any breach. Your actual password never leaves your device — only a 5-character hash prefix is ever sent.", tag: "k-Anonymity", color: "#b47fe8" },
-    { n: "03", title: "Security score 0–100", desc: "Every scan generates a score based on how many breaches you've appeared in, whether your password was exposed, and how recent the breaches are. The score gives you an at-a-glance picture of your current exposure.", tag: "Instant", color: "#6ce4c0" },
-    { n: "04", title: "Private breach history", desc: "Every scan you run is saved to your account. Log in at any time to see your full history — when you scanned, what was found, and how your score has changed over time. Your data stays yours.", tag: "Private", color: "#c48b20" },
-    { n: "05", title: "Breach source list", desc: "See exactly which companies leaked your data. Adobe, LinkedIn, Dropbox, Canva — each breach is listed with the number of records exposed and what type of data was included.", tag: "600+ Sources", color: "#e05c4b" },
-    { n: "06", title: "Zero data retention", desc: "We don't store your credentials. Your email is used only to run the check. Your password is never stored, logged, or transmitted in full. Privacy is the whole point.", tag: "Zero logs", color: "#6c9ef7" },
-    { n: "07", title: "Password generator tool", desc: "Built-in secure password generator that creates strong, random passwords. Customize length and character sets. No sign-in required — available at /app/tools.", tag: "Free Tool", color: "#b47fe8" },
-    { n: "08", title: "Personal dashboard", desc: "Your dashboard shows your latest scan results, your security score trend, total breaches found, and quick-access links to rescan or check a new email.", tag: "Dashboard", color: "#6ce4c0" },
+    { title: "Email breach detection", desc: "Cross-referenced in real time against 600+ breach databases worldwide. See every site that leaked your email, when it happened, and what data was exposed.", color: "#6c9ef7", tag: "Core" },
+    { title: "Password k-anonymity check", desc: "Check if your password appeared in any breach — without your password ever leaving your device. Local hashing with partial hash lookup via Have I Been Pwned.", color: "#b47fe8", tag: "Core" },
+    { title: "Security score 0–100", desc: "A calculated score based on breach severity, recency, data types exposed, and password exposure. Not a random number — a real risk assessment.", color: "#6ce4c0", tag: "Core" },
+    { title: "Dark web monitoring", desc: "See what categories of your data are actively being sold on dark web markets. Real pricing data so you understand the actual threat.", color: "#e05c4b", tag: "Monitoring" },
+    { title: "Breach watchlist", desc: "Add up to 3 emails on free (unlimited on Pro). We check them daily and send an instant alert the moment any of them appears in a new breach.", color: "#c48b20", tag: "Monitoring" },
+    { title: "Breach timeline", desc: "See your entire breach history as a timeline. Understand when your data was first exposed and track your security improvement over time.", color: "#6c9ef7", tag: "Dashboard" },
+    { title: "Multi-scan", desc: "Scan up to 5 email addresses at once. Perfect for checking your whole family or all your work aliases in a single click.", color: "#b47fe8", tag: "Pro" },
+    { title: "Security checklist", desc: "An 8-item action plan personalized to your breach history. Check off each step and watch your security score improve.", color: "#6ce4c0", tag: "Dashboard" },
+    { title: "Password generator", desc: "Generate cryptographically random passwords and memorable passphrases. Strength indicator shows you exactly how good each one is.", color: "#c48b20", tag: "Tools" },
+    { title: "Shareable breach reports", desc: "Generate a shareable link to your security report. Share with your IT team, family, or anyone who needs to see your breach status.", color: "#6c9ef7", tag: "Tools" },
+    { title: "Family plan", desc: "Cover up to 5 family members under one subscription. Each gets a full dashboard. One billing account, total family protection.", color: "#b47fe8", tag: "Family" },
+    { title: "Chrome extension", desc: "Scan from anywhere without opening the app. Password generator and health analyzer built in. 5-tab interface with scan history.", color: "#6ce4c0", tag: "Extension" },
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", padding: "120px 40px 80px" }}>
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-        <Link href="/" style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textDecoration: "none", marginBottom: "48px", display: "inline-block" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
-        >← Back</Link>
+    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <nav style={{ padding: "18px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
+        <Link href="/app" style={{ fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", padding: "7px 16px", borderRadius: "7px" }}>Launch App</Link>
+      </nav>
 
-        <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Features</p>
-        <h1 style={{ fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 700, letterSpacing: "-0.04em", marginBottom: "16px", lineHeight: 1.05 }}>Everything that<br />could be exposed</h1>
-        <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "16px", marginBottom: "64px", lineHeight: 1.6, maxWidth: "520px" }}>ScanMyCreds checks every angle — your email, your password, your history. Here's exactly what's under the hood.</p>
+      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "72px 24px 96px" }}>
+        <div style={{ marginBottom: "72px" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>Features</p>
+          <h1 style={{ fontSize: "clamp(36px, 8vw, 72px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.9, marginBottom: "20px" }}>
+            Everything exposed.<br />
+            <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>Nothing hidden.</span>
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "16px", lineHeight: 1.65, maxWidth: "480px" }}>
+            Every feature ScanMyCreds ships. Built to give you full visibility into your credential exposure.
+          </p>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "1px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", overflow: "hidden" }}>
-          {features.map(f => (
-            <div key={f.n} style={{ padding: "32px 28px", background: "#000", transition: "background 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#0a0a0a")}
+        <div style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: "18px", overflow: "hidden", marginBottom: "48px" }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "20px", padding: "22px 28px", background: "#000", borderBottom: i < features.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#070707")}
               onMouseLeave={e => (e.currentTarget.style.background = "#000")}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", letterSpacing: "0.1em" }}>{f.n}</span>
-                <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: `${f.color}18`, color: f.color, border: `1px solid ${f.color}30`, fontWeight: 500 }}>{f.tag}</span>
+              <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: f.color, boxShadow: "0 0 8px " + f.color + "80", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "3px" }}>{f.title}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", lineHeight: 1.55 }}>{f.desc}</p>
               </div>
-              <p style={{ fontSize: "15px", fontWeight: 600, color: "#fff", marginBottom: "10px", letterSpacing: "-0.01em" }}>{f.title}</p>
-              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", lineHeight: 1.65 }}>{f.desc}</p>
+              <span style={{ fontSize: "10px", padding: "3px 10px", borderRadius: "5px", background: f.color + "12", color: f.color, border: "1px solid " + f.color + "25", whiteSpace: "nowrap", flexShrink: 0 }}>{f.tag}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: "64px", padding: "32px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", textAlign: "center" }}>
-          <p style={{ fontSize: "16px", fontWeight: 600, color: "#fff", marginBottom: "8px" }}>See it in action</p>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", marginBottom: "20px" }}>All features available free. No credit card.</p>
-          <Link href="/app" style={{ padding: "12px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", boxShadow: "0 0 30px rgba(255,255,255,0.2)" }}>
-            Try it free →
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <Link href="/app" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px", boxShadow: "0 0 30px rgba(255,255,255,0.25)", transition: "all 0.2s" }}>
+            Start scanning free →
+          </Link>
+          <Link href="/pricing" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "rgba(255,255,255,0.45)", background: "transparent", textDecoration: "none", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", transition: "all 0.2s" }}>
+            See pricing
           </Link>
         </div>
       </div>
+      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
     </div>
   );
 }
