@@ -24,6 +24,12 @@ export default function Features() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .feature-row { display: flex; align-items: center; gap: 20px; padding: 22px 28px; background: #000; transition: background 0.2s; }
+        .feature-row:hover { background: #070707; }
+      `}</style>
+
       <nav style={{ padding: "18px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
         <Link href="/app" style={{ fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", padding: "7px 16px", borderRadius: "7px" }}>Launch App</Link>
@@ -43,10 +49,7 @@ export default function Features() {
 
         <div style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: "18px", overflow: "hidden", marginBottom: "48px" }}>
           {features.map((f, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: "20px", padding: "22px 28px", background: "#000", borderBottom: i < features.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none", transition: "background 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#070707")}
-              onMouseLeave={e => (e.currentTarget.style.background = "#000")}
-            >
+            <div key={i} className="feature-row" style={{ borderBottom: i < features.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
               <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: f.color, boxShadow: "0 0 8px " + f.color + "80", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "3px" }}>{f.title}</p>
@@ -58,15 +61,14 @@ export default function Features() {
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <Link href="/app" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px", boxShadow: "0 0 30px rgba(255,255,255,0.25)", transition: "all 0.2s" }}>
+          <Link href="/app" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px", boxShadow: "0 0 30px rgba(255,255,255,0.25)" }}>
             Start scanning free →
           </Link>
-          <Link href="/pricing" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "rgba(255,255,255,0.45)", background: "transparent", textDecoration: "none", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", transition: "all 0.2s" }}>
+          <Link href="/pricing" style={{ padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "rgba(255,255,255,0.45)", background: "transparent", textDecoration: "none", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)" }}>
             See pricing
           </Link>
         </div>
       </div>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
     </div>
   );
 }
