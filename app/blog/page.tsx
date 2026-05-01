@@ -18,13 +18,20 @@ const posts = [
 export default function Blog() {
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .nav-signin { font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: none; padding: 7px 14px; border-radius: 7px; transition: all 0.2s; }
+        .nav-signin:hover { color: #fff; }
+        .featured-card { display: block; padding: 36px; border-radius: 18px; border: 1px solid ${posts[0].color}25; background: ${posts[0].color}06; text-decoration: none; position: relative; overflow: hidden; transition: all 0.2s; }
+        .featured-card:hover { border-color: ${posts[0].color}50 !important; background: ${posts[0].color}09 !important; transform: translateY(-2px); }
+        .post-card { display: block; padding: 24px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); text-decoration: none; transition: all 0.2s; position: relative; overflow: hidden; }
+        .post-card:hover { border-color: rgba(255,255,255,0.15) !important; background: rgba(255,255,255,0.05) !important; transform: translateY(-2px); }
+      `}</style>
+
       <nav style={{ padding: "18px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
         <div style={{ display: "flex", gap: "8px" }}>
-          <Link href="/login" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none", padding: "7px 14px", borderRadius: "7px", transition: "all 0.2s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
-          >Sign in</Link>
+          <Link href="/login" className="nav-signin">Sign in</Link>
           <Link href="/app" style={{ fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", padding: "7px 16px", borderRadius: "7px", boxShadow: "0 0 16px rgba(255,255,255,0.15)" }}>Launch App</Link>
         </div>
       </nav>
@@ -43,10 +50,7 @@ export default function Blog() {
 
         {/* Featured post */}
         <div style={{ marginBottom: "16px" }}>
-          <Link href={"/blog/" + posts[0].slug} style={{ display: "block", padding: "36px", borderRadius: "18px", border: "1px solid " + posts[0].color + "25", background: posts[0].color + "06", textDecoration: "none", position: "relative", overflow: "hidden", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = posts[0].color + "50"; e.currentTarget.style.background = posts[0].color + "09"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = posts[0].color + "25"; e.currentTarget.style.background = posts[0].color + "06"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
+          <Link href={"/blog/" + posts[0].slug} className="featured-card">
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(to right, " + posts[0].color + ", transparent)" }} />
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
               <span style={{ fontSize: "10px", padding: "3px 10px", borderRadius: "5px", background: posts[0].color + "15", color: posts[0].color, border: "1px solid " + posts[0].color + "28", fontWeight: 700, letterSpacing: "0.08em" }}>{posts[0].tag}</span>
@@ -66,10 +70,7 @@ export default function Blog() {
         {/* Rest of posts */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: "10px", marginBottom: "48px" }}>
           {posts.slice(1).map(post => (
-            <Link key={post.slug} href={"/blog/" + post.slug} style={{ display: "block", padding: "24px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", textDecoration: "none", transition: "all 0.2s", position: "relative", overflow: "hidden" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = post.color + "30"; e.currentTarget.style.background = post.color + "06"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.transform = "translateY(0)"; }}
-            >
+            <Link key={post.slug} href={"/blog/" + post.slug} className="post-card">
               <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: post.color, opacity: 0.4 }} />
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: post.color + "12", color: post.color, border: "1px solid " + post.color + "25", fontWeight: 700, letterSpacing: "0.07em" }}>{post.tag}</span>
@@ -96,8 +97,6 @@ export default function Blog() {
           </Link>
         </div>
       </div>
-
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
     </div>
   );
 }
