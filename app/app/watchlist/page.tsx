@@ -8,18 +8,23 @@ import AppNav from "@/components/AppNav";
 type WatchedEmail = { _id: string; email: string; lastBreachCount: number; lastChecked: string | null; alertsEnabled: boolean; createdAt: string; };
 
 export default function Watchlist() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [watched, setWatched] = useState<WatchedEmail[]>([]);
-  const [limit, setLimit] = useState(3);
+  const [limit, setLimit] = useState<number | null>(3);
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const isPro = (session?.user as any)?.isPro || false;
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/watchlist").then(r => r.json()).then(d => { setWatched(d.watched || []); setLimit(d.limit || 3); setLoading(false); }).catch(() => setLoading(false));
+      fetch("/api/watchlist").then(r => r.json()).then(d => {
+        setWatched(d.watched || []);
+        setLimit(d.limit);
+        setLoading(false);
+      }).catch(() => setLoading(false));
     }
   }, [status]);
 
@@ -49,38 +54,48 @@ export default function Watchlist() {
     );
   }
 
-  const pct = Math.min((watched.length / limit) * 100, 100);
-  const limitColor = watched.length >= limit ? "#e05c4b" : watched.length >= limit - 1 ? "#c48b20" : "#6ce4c0";
+  const limitReached = !isPro && limit !== null && watched.length >= limit;
+  const pct = isPro ? 100 : limit ? Math.min((watched.length / limit) * 100, 100) : 0;
+  const limitColor = isPro ? "#6ce4c0" : limitReached ? "#e05c4b" : limit && watched.length >= limit - 1 ? "#c48b20" : "#6ce4c0";
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
       <AppNav />
       <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
 
-        {/* Page header */}
         <div style={{ marginBottom: "32px" }}>
           <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "6px" }}>Breach monitoring</p>
           <h1 style={{ fontSize: "clamp(24px, 5vw, 38px)", fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1 }}>Watchlist</h1>
           <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", marginTop: "8px", lineHeight: 1.6 }}>Add emails to monitor. Get alerted instantly when a new breach is detected.</p>
         </div>
 
-        {/* Usage meter */}
         <div style={{ marginBottom: "16px", padding: "18px 20px", borderRadius: "16px", border: `1px solid ${limitColor}20`, background: `${limitColor}05`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${limitColor}50, transparent)` }} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>Monitored emails</span>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: limitColor, textShadow: `0 0 12px ${limitColor}` }}>{watched.length} <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.2)" }}>/ {limit}</span></span>
+            <span style={{ fontSize: "14px", fontWeight: 700, color: limitColor, textShadow: `0 0 12px ${limitColor}` }}>
+              {watched.length}
+              {!isPro && limit !== null && (
+                <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.2)" }}> / {limit}</span>
+              )}
+              {isPro && (
+                <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.2)" }}> · unlimited</span>
+              )}
+            </span>
           </div>
-          <div style={{ height: "4px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${pct}%`, background: limitColor, borderRadius: "4px", boxShadow: `0 0 8px ${limitColor}`, transition: "width 0.6s ease" }} />
-          </div>
-          {watched.length >= limit && (
-            <p style={{ fontSize: "11px", color: "#c48b20", marginTop: "8px" }}>Limit reached · <Link href="/pricing" style={{ color: "#6c9ef7", textDecoration: "none" }}>Upgrade to Pro for unlimited →</Link></p>
+          {!isPro && (
+            <div style={{ height: "4px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: limitColor, borderRadius: "4px", boxShadow: `0 0 8px ${limitColor}`, transition: "width 0.6s ease" }} />
+            </div>
+          )}
+          {limitReached && (
+            <p style={{ fontSize: "11px", color: "#c48b20", marginTop: "8px" }}>
+              Limit reached · <Link href="/pricing" style={{ color: "#6c9ef7", textDecoration: "none" }}>Upgrade to Pro for unlimited →</Link>
+            </p>
           )}
         </div>
 
-        {/* Add email */}
-        {watched.length < limit && (
+        {!limitReached && (
           <div style={{ marginBottom: "16px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(255,255,255,0.08), transparent)" }} />
             <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Add email to monitor</p>
@@ -101,7 +116,6 @@ export default function Watchlist() {
           </div>
         )}
 
-        {/* List */}
         {loading ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {[1,2].map(i => <div key={i} style={{ height: "72px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }} />)}
@@ -144,13 +158,12 @@ export default function Watchlist() {
           </div>
         )}
 
-        {/* How it works */}
         <div style={{ marginTop: "24px", padding: "18px 20px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
           <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px" }}>How it works</p>
           {[
             { color: "#6c9ef7", text: "Emails are checked against breach databases every 24 hours" },
             { color: "#b47fe8", text: "You get an instant email alert if a new breach is detected" },
-            { color: "#6ce4c0", text: "Free: monitor up to 3 emails · Pro: unlimited (coming soon)" },
+            { color: "#6ce4c0", text: isPro ? "Pro: unlimited monitored emails" : "Free: monitor up to 3 emails · Pro: unlimited" },
           ].map((item, i) => (
             <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", marginBottom: i < 2 ? "10px" : "0" }}>
               <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: item.color, boxShadow: `0 0 5px ${item.color}`, flexShrink: 0, marginTop: "5px" }} />
@@ -163,4 +176,3 @@ export default function Watchlist() {
     </div>
   );
 }
-

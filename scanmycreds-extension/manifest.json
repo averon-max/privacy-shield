@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ScanMyCreds",
   "version": "2.0.0",
-  "description": "Breach detection, password health, and password generator in your browser",
+  "description": "Real-time breach detection, password health, and security tools.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://www.scanmycreds.com/*",

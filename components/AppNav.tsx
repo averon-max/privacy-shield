@@ -13,6 +13,7 @@ export default function AppNav() {
   const tabs = [
     { label: "Dashboard", href: "/app/dashboard" },
     { label: "Scanner", href: "/app" },
+    { label: "AI", href: "/app/ai", pro: true, badge: "NEW" },
     { label: "Phone", href: "/app/phone-scanner", comingSoon: true },
     { label: "Multi-Scan", href: "/app/multi-scan", pro: true },
     { label: "Dark Web", href: "/app/dark-web" },
@@ -30,6 +31,19 @@ export default function AppNav() {
     return pathname.startsWith(href);
   };
 
+  const renderBadge = (tab: any, mobile = false) => {
+    if (tab.comingSoon) return (
+      <span style={{ fontSize: mobile ? "9px" : "8px", letterSpacing: "0.1em", color: "#c48b20", background: "rgba(196,139,32,0.12)", border: "1px solid rgba(196,139,32,0.2)", padding: mobile ? "2px 7px" : "1px 5px", borderRadius: mobile ? "4px" : "3px", textTransform: "uppercase", fontWeight: 700 }}>Soon</span>
+    );
+    if (tab.badge === "NEW") return (
+      <span style={{ fontSize: mobile ? "9px" : "8px", letterSpacing: "0.1em", color: "#6ce4c0", background: "rgba(108,228,192,0.12)", border: "1px solid rgba(108,228,192,0.25)", padding: mobile ? "2px 7px" : "1px 5px", borderRadius: mobile ? "4px" : "3px", textTransform: "uppercase", fontWeight: 700 }}>New</span>
+    );
+    if (tab.pro && !isPro) return (
+      <span style={{ fontSize: mobile ? "9px" : "8px", letterSpacing: "0.1em", color: "#6c9ef7", background: "rgba(108,158,247,0.12)", border: "1px solid rgba(108,158,247,0.2)", padding: mobile ? "2px 7px" : "1px 5px", borderRadius: mobile ? "4px" : "3px", textTransform: "uppercase", fontWeight: 700 }}>Pro</span>
+    );
+    return null;
+  };
+
   return (
     <>
       {menuOpen && (
@@ -45,12 +59,7 @@ export default function AppNav() {
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   {tab.label}
-                  {tab.comingSoon && (
-                    <span style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "#c48b20", background: "rgba(196,139,32,0.1)", border: "1px solid rgba(196,139,32,0.25)", padding: "2px 7px", borderRadius: "4px", textTransform: "uppercase" }}>Soon</span>
-                  )}
-                  {tab.pro && !isPro && (
-                    <span style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "#6c9ef7", background: "rgba(108,158,247,0.1)", border: "1px solid rgba(108,158,247,0.25)", padding: "2px 7px", borderRadius: "4px", textTransform: "uppercase" }}>Pro</span>
-                  )}
+                  {renderBadge(tab, true)}
                 </span>
                 {isActive(tab.href) && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fff", boxShadow: "0 0 8px rgba(255,255,255,0.8)" }} />}
               </Link>
@@ -93,12 +102,7 @@ export default function AppNav() {
               style={{ padding: "5px 12px", fontSize: "11px", color: isActive(tab.href) ? "#fff" : "rgba(255,255,255,0.3)", background: isActive(tab.href) ? "rgba(255,255,255,0.1)" : "transparent", textDecoration: "none", borderRadius: "6px", border: isActive(tab.href) ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0, display: "flex", alignItems: "center", gap: "5px" }}
             >
               {tab.label}
-              {tab.comingSoon && (
-                <span style={{ fontSize: "8px", letterSpacing: "0.1em", color: "#c48b20", background: "rgba(196,139,32,0.12)", border: "1px solid rgba(196,139,32,0.2)", padding: "1px 5px", borderRadius: "3px", textTransform: "uppercase" }}>Soon</span>
-              )}
-              {tab.pro && !isPro && (
-                <span style={{ fontSize: "8px", letterSpacing: "0.1em", color: "#6c9ef7", background: "rgba(108,158,247,0.12)", border: "1px solid rgba(108,158,247,0.2)", padding: "1px 5px", borderRadius: "3px", textTransform: "uppercase" }}>Pro</span>
-              )}
+              {renderBadge(tab)}
             </Link>
           ))}
         </div>

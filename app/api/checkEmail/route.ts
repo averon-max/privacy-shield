@@ -10,13 +10,27 @@ import { checkPasswordExposure, checkEmailBreaches } from "@/services/checkEmail
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-    try { await rateLimit(ip); } catch {
+
+    // Get session and Pro status up front
+    const session = await getServerSession(authOptions);
+    let isPro = false;
+    if (session?.user?.email) {
+      await connectDB();
+      const user = await User.findOne({ email: session.user.email }).lean() as any;
+      isPro = user?.isPro || false;
+    }
+
+    // Rate limit: free users 30/min, Pro users 200/min
+    try {
+      await rateLimit(ip, isPro);
+    } catch {
       return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
     }
 
     const body = await req.json();
     const { email, password, extensionCheck } = body;
 
+    // Extension unauthenticated check — no DB save, no password check
     if (extensionCheck) {
       try {
         const result = await checkEmailBreaches(email);
@@ -30,7 +44,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const session = await getServerSession(authOptions);
+    // Authenticated checks below
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -41,9 +55,7 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    const user = await User.findOne({ email: session.user.email }).lean() as any;
-    const isPro = user?.isPro || false;
-
+    // Daily limit only for free users
     if (!isPro) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);

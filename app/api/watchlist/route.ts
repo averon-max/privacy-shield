@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import WatchedEmail from "@/models/WatchedEmail";
+import User from "@/models/User";
 
 const FREE_LIMIT = 3;
 
@@ -10,8 +11,12 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// ── GET ──────────────────────────────────────────────────────────────────────
-export async function GET(req: NextRequest) {
+async function getIsPro(email: string): Promise<boolean> {
+  const user = await User.findOne({ email }).lean() as any;
+  return user?.isPro || false;
+}
+
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -20,13 +25,15 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
     const userId = session.user.email;
+    const isPro = await getIsPro(userId);
 
     const watched = await WatchedEmail.find({ userId, active: true }).sort({ createdAt: -1 });
 
     return NextResponse.json({
       watched,
-      limit: FREE_LIMIT,
+      limit: isPro ? null : FREE_LIMIT,
       count: watched.length,
+      isPro,
     });
   } catch (error) {
     console.error("Watchlist GET error:", error);
@@ -34,7 +41,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ── POST ─────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -43,7 +49,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { email } = await req.json();
-
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
@@ -51,14 +56,18 @@ export async function POST(req: NextRequest) {
     await connectDB();
     const userId = session.user.email;
     const cleanEmail = email.toLowerCase().trim();
+    const isPro = await getIsPro(userId);
 
-    // Check limit
-    const currentCount = await WatchedEmail.countDocuments({ userId, active: true });
-    if (currentCount >= FREE_LIMIT) {
-      return NextResponse.json({ error: `Free plan allows ${FREE_LIMIT} emails max. Upgrade to Pro for unlimited.` }, { status: 403 });
+    if (!isPro) {
+      const currentCount = await WatchedEmail.countDocuments({ userId, active: true });
+      if (currentCount >= FREE_LIMIT) {
+        return NextResponse.json(
+          { error: `Free plan allows ${FREE_LIMIT} emails max. Upgrade to Pro for unlimited.` },
+          { status: 403 }
+        );
+      }
     }
 
-    // Check duplicate
     const existing = await WatchedEmail.findOne({ email: cleanEmail, userId, active: true });
     if (existing) {
       return NextResponse.json({ error: "Already watching this email" }, { status: 409 });
@@ -80,7 +89,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ── DELETE ───────────────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
