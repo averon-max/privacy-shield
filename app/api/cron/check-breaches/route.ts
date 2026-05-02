@@ -2,9 +2,7 @@
 import { Resend } from "resend";
 import { connectDB } from "@/lib/db";
 import WatchedEmail from "@/models/WatchedEmail";
-import BreachNews, { computeSeverity } from "@/models/BreachNews";
 import { checkEmailBreaches } from "@/services/checkEmailService";
-import { summarizeBreachForNews } from "@/services/aiExplainer";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -190,44 +188,6 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    // Pull latest breaches from HIBP and cache with AI summaries
-    try {
-      const hibpRes = await fetch("https://haveibeenpwned.com/api/v3/breaches", {
-        headers: { "hibp-api-key": process.env.HIBP_API_KEY || "" },
-      });
-      if (hibpRes.ok) {
-        const allBreaches = await hibpRes.json();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        for (const breach of allBreaches) {
-          if (new Date(breach.AddedDate) < thirtyDaysAgo) continue;
-          const existing = await BreachNews.findOne({ name: breach.Name });
-          if (!existing) {
-            const summary = await summarizeBreachForNews(
-              breach.Name, breach.Domain, breach.DataClasses, breach.PwnCount
-            );
-            await BreachNews.create({
-              name: breach.Name,
-              domain: breach.Domain,
-              breachDate: breach.BreachDate,
-              addedDate: new Date(breach.AddedDate),
-              pwnCount: breach.PwnCount,
-              dataClasses: breach.DataClasses,
-              aiSummary: summary,
-              isVerified: breach.IsVerified,
-              isFabricated: breach.IsFabricated,
-              isSensitive: breach.IsSensitive,
-              severity: computeSeverity(breach.DataClasses, breach.PwnCount),
-            });
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Breach news fetch error:", err);
-    }
-
-    // Check all watched emails and send alerts
     const watchedEmails = await WatchedEmail.find({ active: true });
     let checkedCount = 0;
     let alertCount = 0;
