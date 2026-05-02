@@ -1,21 +1,52 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import AppNav from "@/components/AppNav";
+import PageShell from "@/components/PageShell";
+import Card from "@/components/Card";
 
-const PARTNERS = [
-  { id: "aura", name: "Aura", price: "$12/mo", coverage: "$1M", rating: "4.8", color: "#6c9ef7", highlight: true,
-    features: ["Identity theft insurance","Dark web monitoring","Credit monitoring","VPN included","24/7 US support"] },
-  { id: "lifelock", name: "LifeLock", price: "$9/mo", coverage: "$25K", rating: "4.5", color: "#b47fe8", highlight: false,
-    features: ["Identity theft alerts","Social Security monitoring","Credit bureau monitoring","Lost wallet protection"] },
-  { id: "identityguard", name: "Identity Guard", price: "$7/mo", coverage: "$1M", rating: "4.6", color: "#6ce4c0", highlight: false,
-    features: ["AI-powered monitoring","Dark web scans","Bank account alerts","Identity restoration"] },
+const DEFAULT_ITEMS = [
+  { id: "2fa-email", label: "Enable 2FA on your email account", category: "essential" },
+  { id: "2fa-banking", label: "Enable 2FA on banking and financial accounts", category: "essential" },
+  { id: "password-manager", label: "Install a password manager (1Password, Bitwarden)", category: "essential" },
+  { id: "unique-passwords", label: "Use unique passwords on every account", category: "essential" },
+  { id: "freeze-credit", label: "Freeze your credit at all 3 bureaus", category: "identity" },
+  { id: "monitor-credit", label: "Set up free credit monitoring", category: "identity" },
+  { id: "phishing-aware", label: "Learn to spot phishing emails", category: "knowledge" },
+  { id: "review-app-permissions", label: "Review app permissions on Google/Facebook/Apple", category: "privacy" },
+  { id: "data-broker-removal", label: "Submit data broker removal requests", category: "privacy" },
+  { id: "secure-recovery", label: "Update account recovery email and phone", category: "essential" },
 ];
 
-export default function InsurancePage() {
+const CATEGORY_COLOR: Record<string, string> = {
+  essential: "#e05c4b",
+  identity: "#c48b20",
+  knowledge: "#6c9ef7",
+  privacy: "#b47fe8",
+};
+
+export default function ChecklistPage() {
   const { status } = useSession();
-  const [loading, setLoading] = useState<string | null>(null);
+  const [completed, setCompleted] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/checklist").then(r => r.json()).then(d => {
+        setCompleted(d.completed || []);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }
+  }, [status]);
+
+  async function toggle(id: string) {
+    const next = completed.includes(id) ? completed.filter(x => x !== id) : [...completed, id];
+    setCompleted(next);
+    await fetch("/api/checklist", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, completed: !completed.includes(id) }),
+    });
+  }
 
   if (status === "loading") return null;
   if (status === "unauthenticated") {
@@ -23,84 +54,58 @@ export default function InsurancePage() {
     return null;
   }
 
-  async function handleClick(id: string) {
-    setLoading(id);
-    const res = await fetch("/api/insurance", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ partner: id }),
-    });
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
-    setLoading(null);
-  }
+  const progress = Math.round((completed.length / DEFAULT_ITEMS.length) * 100);
+  const progressColor = progress < 30 ? "#e05c4b" : progress < 70 ? "#c48b20" : "#6ce4c0";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <AppNav />
-      <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
+    <PageShell eyebrow="Action plan" title="Security Checklist" subtitle="Steps to lock down your accounts and reduce identity theft risk">
 
-        <div style={{ marginBottom: "28px" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "6px" }}>Protection</p>
-          <h1 style={{ fontSize: "clamp(22px, 5vw, 36px)", fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1 }}>
-            Identity Theft Insurance
-          </h1>
+      <Card accent={progressColor}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Progress</p>
+          <span style={{ fontSize: "16px", fontWeight: 800, color: progressColor, letterSpacing: "-0.02em", textShadow: `0 0 12px ${progressColor}` }}>
+            {completed.length} <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>/ {DEFAULT_ITEMS.length}</span>
+          </span>
         </div>
-
-        <div style={{ marginBottom: "20px", padding: "14px 16px", borderRadius: "12px", background: "rgba(108,158,247,0.06)", border: "1px solid rgba(108,158,247,0.2)" }}>
-          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
-            <span style={{ color: "#6c9ef7", fontWeight: 700 }}>Note:</span> ScanMyCreds earns a small affiliate fee — never affects pricing or recommendations.
-          </p>
+        <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${progress}%`, background: progressColor, borderRadius: "4px", boxShadow: `0 0 8px ${progressColor}`, transition: "width 0.6s ease" }} />
         </div>
+        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "8px" }}>
+          {progress === 100 ? "🎉 Complete! You're well-protected." : progress >= 70 ? "Almost there." : progress >= 30 ? "Good start. Keep going." : "Get started below."}
+        </p>
+      </Card>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {PARTNERS.map(p => (
-            <div key={p.id} style={{
-              padding: "20px", borderRadius: "16px",
-              border: "1px solid " + (p.highlight ? p.color + "35" : "rgba(255,255,255,0.06)"),
-              background: p.highlight ? p.color + "06" : "rgba(255,255,255,0.02)",
-              position: "relative", overflow: "hidden",
-            }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + p.color + "60, transparent)" }} />
-
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "14px", gap: "12px" }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{p.name}</h3>
-                    {p.highlight && (
-                      <span style={{ fontSize: "9px", padding: "2px 8px", borderRadius: "100px", background: p.color + "15", color: p.color, border: "1px solid " + p.color + "30", fontWeight: 700, letterSpacing: "0.05em" }}>RECOMMENDED</span>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-                    <span style={{ fontSize: "24px", fontWeight: 800, color: p.color, letterSpacing: "-0.02em" }}>{p.price}</span>
-                    <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>up to {p.coverage} coverage</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "2px" }}>Rating</div>
-                  <div style={{ fontSize: "14px", color: "#fff", fontWeight: 700 }}>{p.rating}/5</div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px", marginBottom: "16px" }}>
-                {p.features.map(f => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 4px #6ce4c0" }} />
-                    <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button onClick={() => handleClick(p.id)} disabled={loading === p.id} style={{
-                width: "100%", padding: "11px", borderRadius: "10px", border: "none",
-                background: p.highlight ? "#fff" : "rgba(255,255,255,0.08)",
-                color: p.highlight ? "#000" : "#fff",
-                fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              }}>{loading === p.id ? "Opening..." : "Get protected →"}</button>
-            </div>
-          ))}
+      {loading ? (
+        <Card><div style={{ height: "200px" }} /></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {DEFAULT_ITEMS.map(item => {
+            const done = completed.includes(item.id);
+            const color = CATEGORY_COLOR[item.category];
+            return (
+              <button key={item.id} onClick={() => toggle(item.id)} style={{
+                padding: "13px 16px", borderRadius: "12px",
+                border: `1px solid ${done ? "rgba(108,228,192,0.25)" : "rgba(255,255,255,0.06)"}`,
+                background: done ? "rgba(108,228,192,0.04)" : "rgba(255,255,255,0.02)",
+                cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                display: "flex", alignItems: "center", gap: "12px",
+                position: "relative", overflow: "hidden",
+                transition: "all 0.2s",
+              }}>
+                <div style={{
+                  width: "20px", height: "20px", borderRadius: "5px", flexShrink: 0,
+                  border: done ? "none" : `1.5px solid rgba(255,255,255,0.15)`,
+                  background: done ? "#6ce4c0" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#000", fontSize: "12px", fontWeight: 700,
+                }}>{done ? "✓" : ""}</div>
+                <span style={{ flex: 1, fontSize: "13px", color: done ? "rgba(255,255,255,0.4)" : "#fff", fontWeight: done ? 400 : 500, textDecoration: done ? "line-through" : "none" }}>{item.label}</span>
+                <span style={{ padding: "2px 8px", borderRadius: "5px", fontSize: "9px", fontWeight: 700, background: `${color}12`, color, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>{item.category}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
-    </div>
+      )}
+    </PageShell>
   );
 }
