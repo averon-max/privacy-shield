@@ -1,229 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>ScanMyCreds</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { width: 380px; background: #000; color: #fff; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
-.header { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; }
-.logo { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); text-transform: uppercase; }
-.live { display: flex; align-items: center; gap: 5px; font-size: 10px; color: rgba(255,255,255,0.25); }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #e05c4b; box-shadow: 0 0 7px #e05c4b; animation: pulse 2s infinite; flex-shrink: 0; }
-.tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.07); }
-.tab { flex: 1; padding: 9px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.3); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-.tab.on { color: #fff; border-bottom-color: #fff; }
-.panel { display: none; padding: 16px; }
-.panel.on { display: block; }
-.label { font-size: 9px; letter-spacing: 0.15em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 10px; }
-input[type=email], input[type=text], input[type=password] { width: 100%; padding: 10px 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 13px; border-radius: 9px; outline: none; font-family: inherit; transition: all 0.2s; }
-input:focus { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); }
-input::placeholder { color: rgba(255,255,255,0.2); }
-.pwd-wrap { position: relative; }
-.pwd-wrap input { padding-right: 46px; }
-.show-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 9px; color: rgba(255,255,255,0.3); background: none; border: none; cursor: pointer; text-transform: uppercase; font-family: inherit; letter-spacing: 0.05em; padding: 4px; }
-.btn { width: 100%; padding: 11px; font-size: 13px; font-weight: 700; color: #000; background: #fff; border: none; border-radius: 9px; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 0 20px rgba(255,255,255,0.2); margin-top: 8px; }
-.btn:hover { box-shadow: 0 0 36px rgba(255,255,255,0.45); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-.btn-outline { background: transparent; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15); box-shadow: none; }
-.btn-outline:hover { border-color: rgba(255,255,255,0.35); color: #fff; box-shadow: none; }
-.err { padding: 9px 11px; border-radius: 8px; background: rgba(224,92,75,0.08); border: 1px solid rgba(224,92,75,0.25); color: #e05c4b; font-size: 11px; margin-top: 8px; display: none; }
-.err.on { display: block; }
-.prog { height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-top: 8px; display: none; }
-.prog.on { display: block; }
-.prog-fill { height: 100%; width: 0; background: linear-gradient(to right, #6c9ef7, #b47fe8); transition: width 0.3s; }
-.msg { font-size: 10px; color: rgba(255,255,255,0.3); font-family: monospace; margin-top: 6px; display: none; }
-.msg.on { display: flex; align-items: center; gap: 6px; }
-.msg-dot { width: 5px; height: 5px; border-radius: 50%; background: #6c9ef7; animation: pulse 1s infinite; }
-.result { margin-top: 12px; border-radius: 12px; overflow: hidden; display: none; }
-.result.on { display: block; }
-.score-area { padding: 14px; display: flex; align-items: center; justify-content: space-between; }
-.score-num { font-size: 42px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
-.badge { display: flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; }
-.badge-dot { width: 5px; height: 5px; border-radius: 50%; animation: pulse 2s infinite; }
-.statuses { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 5px; }
-.stat { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(0,0,0,0.3); }
-.stat-left { display: flex; align-items: center; gap: 6px; font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.07em; }
-.sdot { width: 4px; height: 4px; border-radius: 50%; }
-.stat-val { font-size: 11px; font-weight: 700; }
-.sources { display: flex; flex-wrap: wrap; gap: 3px; padding: 0 12px 12px; }
-.src { font-size: 9px; padding: 2px 7px; border-radius: 3px; background: rgba(224,92,75,0.1); color: #e05c4b; border: 1px solid rgba(224,92,75,0.2); }
-.cta { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(108,228,192,0.2); background: rgba(108,228,192,0.05); cursor: pointer; margin: 0 12px 12px; transition: all 0.2s; }
-.cta:hover { border-color: rgba(108,228,192,0.4); background: rgba(108,228,192,0.09); }
-.cta-l { display: flex; align-items: center; gap: 7px; }
-.cta-d { width: 5px; height: 5px; border-radius: 50%; background: #6ce4c0; box-shadow: 0 0 5px #6ce4c0; }
-.cta-t { font-size: 11px; color: rgba(255,255,255,0.5); }
-.cta-a { font-size: 11px; color: #6ce4c0; font-weight: 700; }
-.limit-bar { display: none; align-items: center; justify-content: space-between; padding: 8px 11px; border-radius: 7px; background: rgba(108,158,247,0.07); border: 1px solid rgba(108,158,247,0.2); margin-bottom: 10px; }
-.limit-bar.on { display: flex; }
-.limit-t { font-size: 11px; color: rgba(255,255,255,0.35); }
-.limit-lnk { font-size: 11px; font-weight: 700; color: #6c9ef7; text-decoration: none; }
-.subtabs { display: flex; gap: 3px; background: rgba(255,255,255,0.04); border-radius: 7px; padding: 3px; margin-bottom: 12px; }
-.stab { flex: 1; padding: 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.3); background: transparent; border: 1px solid transparent; border-radius: 5px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-.stab.on { color: #fff; background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); }
-.subpanel { display: none; }
-.subpanel.on { display: block; }
-.gen-out { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; padding: 12px; font-family: monospace; font-size: 12px; color: #fff; word-break: break-all; min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; position: relative; overflow: hidden; }
-.gen-out::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(to right, rgba(108,158,247,0.4), transparent); }
-.gen-ph { color: rgba(255,255,255,0.2); }
-.copy-btn { padding: 4px 9px; font-size: 10px; font-weight: 700; color: #6c9ef7; background: rgba(108,158,247,0.1); border: 1px solid rgba(108,158,247,0.25); border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.2s; display: none; }
-.str-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
-.str-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
-.str-lbl { font-size: 10px; color: rgba(255,255,255,0.25); margin-bottom: 10px; }
-.slider-wrap { margin-bottom: 10px; }
-.slider-top { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
-.slider-top span:last-child { color: #fff; font-weight: 700; }
-input[type=range] { width: 100%; accent-color: #6c9ef7; height: 3px; display: block; cursor: pointer; }
-.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
-.tog { padding: 8px 10px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.35); font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
-.tog.on { border-color: rgba(108,158,247,0.3); background: rgba(108,158,247,0.08); color: #fff; }
-.tog-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; transition: all 0.2s; }
-.tog.on .tog-dot { background: #6c9ef7; box-shadow: 0 0 5px #6c9ef7; }
-.health-score-box { padding: 14px; border-radius: 11px; text-align: center; margin-bottom: 10px; }
-.health-score-num { font-size: 38px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
-.health-lbl { font-size: 11px; font-weight: 700; }
-.issues { display: flex; flex-direction: column; gap: 5px; }
-.issue { display: flex; align-items: flex-start; gap: 7px; padding: 8px 10px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
-.issue-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-.issue-text { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.5; }
-.price-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px; }
-.price-type { font-size: 11px; color: rgba(255,255,255,0.4); }
-.price-val { font-size: 11px; font-weight: 700; }
-.market-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 5px; }
-.market-n { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 6px; }
-.mdot { width: 5px; height: 5px; border-radius: 50%; animation: pulse 2s infinite; }
-.mstat { font-size: 9px; padding: 2px 7px; border-radius: 3px; font-weight: 700; }
-.hist-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.hist-email { font-size: 11px; color: rgba(255,255,255,0.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; display: flex; align-items: center; gap: 6px; }
-.hdot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-.hist-r { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.hist-s { font-size: 10px; font-weight: 700; }
-.hist-d { font-size: 9px; color: rgba(255,255,255,0.18); }
-.empty { text-align: center; padding: 24px 0; color: rgba(255,255,255,0.2); font-size: 12px; }
-.footer { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; }
-.foot-btn { font-size: 10px; color: rgba(255,255,255,0.2); background: none; border: none; cursor: pointer; font-family: inherit; transition: color 0.2s; }
-.foot-btn:hover { color: rgba(255,255,255,0.5); }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-</style>
+  <meta charset="UTF-8" />
+  <title>ScanMyCreds</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 400px; min-height: 540px; background: #000; color: #f0f0f0; font-family: system-ui, sans-serif; font-size: 13px; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.07); }
+    .logo { font-size: 15px; font-weight: 700; color: #e05c4b; letter-spacing: -0.02em; }
+    .score-pill { padding: 3px 10px; border-radius: 20px; background: rgba(108,158,247,0.15); color: #6c9ef7; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
+    .open-btn { padding: 4px 10px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #666; font-size: 11px; cursor: pointer; }
+
+    .tabs { display: flex; border-bottom: 0.5px solid rgba(255,255,255,0.07); overflow-x: auto; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex-shrink: 0; padding: 9px 13px; font-size: 11px; color: #444; cursor: pointer; border: none; border-bottom: 2px solid transparent; background: none; white-space: nowrap; transition: color .15s; }
+    .tab.active { color: #f0f0f0; border-bottom-color: #e05c4b; }
+    .tab:hover:not(.active) { color: #888; }
+
+    .panel { display: none; padding: 16px; }
+    .panel.active { display: block; }
+
+    input[type="text"], input[type="email"], input[type="password"] {
+      width: 100%; background: #111; border: 0.5px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 9px 11px; color: #f0f0f0; font-size: 13px; outline: none;
+    }
+    input::placeholder { color: #333; }
+
+    .btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-blue { background: #6c9ef7; color: #fff; }
+    .btn-red  { background: #e05c4b; color: #fff; }
+    .btn-dark { background: #1a1a1a; color: #bbb; border: 0.5px solid rgba(255,255,255,0.1); }
+
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; }
+    .badge-critical { background: rgba(224,92,75,0.2);  color: #e05c4b; }
+    .badge-high     { background: rgba(196,139,32,0.2); color: #c48b20; }
+    .badge-medium   { background: rgba(108,158,247,0.2);color: #6c9ef7; }
+    .badge-low      { background: rgba(108,228,192,0.2);color: #6ce4c0; }
+    .badge-clean    { background: rgba(108,228,192,0.2);color: #6ce4c0; }
+
+    .breach-card { background: #111; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; border: 0.5px solid rgba(255,255,255,0.07); }
+    .breach-name { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+    .breach-meta { font-size: 11px; color: #666; margin-bottom: 6px; }
+    .ai-box { background: #0a0a0a; border-radius: 6px; padding: 10px; margin-top: 8px; border: 0.5px solid rgba(108,158,247,0.2); }
+    .ai-label { font-size: 10px; color: #6c9ef7; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.04em; }
+    .ai-step { display: flex; gap: 8px; margin-bottom: 5px; font-size: 11px; color: #ccc; line-height: 1.5; }
+    .ai-step-num { color: #6c9ef7; font-weight: 600; flex-shrink: 0; }
+    .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+    .tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; background: rgba(255,255,255,0.05); color: #666; }
+
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .stat-box { background: #111; border-radius: 8px; padding: 10px 12px; }
+    .stat-val { font-size: 20px; font-weight: 500; margin-bottom: 2px; }
+    .stat-label { font-size: 10px; color: #666; }
+
+    .strength-bar-wrap { background: #1a1a1a; border-radius: 4px; height: 5px; overflow: hidden; margin: 6px 0 10px; }
+    .strength-bar { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+    .issue { padding: 5px 9px; border-radius: 5px; font-size: 11px; margin-bottom: 4px; }
+    .issue-bad  { background: rgba(224,92,75,0.08);  color: #e05c4b; }
+    .issue-good { background: rgba(108,158,247,0.08); color: #6c9ef7; }
+
+    .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 13px; }
+    .divider { height: 0.5px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+    .small-label { font-size: 11px; color: #666; margin-bottom: 5px; }
+    .history-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.05); font-size: 12px; }
+    .chain-btn { padding: 5px 12px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #888; cursor: pointer; font-size: 12px; }
+    .chain-btn.active { background: #6c9ef7; color: #fff; border-color: transparent; }
+    .news-card { background: #111; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border: 0.5px solid rgba(255,255,255,0.06); }
+    .news-name { font-weight: 500; font-size: 12px; margin-bottom: 3px; }
+    .news-summary { font-size: 11px; color: #888; line-height: 1.5; margin-bottom: 5px; }
+  </style>
 </head>
 <body>
 
 <div class="header">
   <span class="logo">ScanMyCreds</span>
-  <div class="live"><span class="live-dot"></span><span id="ctr">Loading...</span></div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button class="score-pill" id="scoreChip">— XP</button>
+    <button class="open-btn" onclick="window.open('https://www.scanmycreds.com/app','_blank')">Open app ↗</button>
+  </div>
 </div>
 
 <div class="tabs">
-  <button class="tab on" id="t-scan">Scan</button>
-  <button class="tab" id="t-gen">Generator</button>
-  <button class="tab" id="t-health">Health</button>
-  <button class="tab" id="t-dark">Dark Web</button>
-  <button class="tab" id="t-hist">History</button>
+  <button class="tab active" onclick="showTab('scan',this)">Scan</button>
+  <button class="tab" onclick="showTab('password',this)">Password</button>
+  <button class="tab" onclick="showTab('score',this)">Score</button>
+  <button class="tab" onclick="showTab('crypto',this)">Crypto</button>
+  <button class="tab" onclick="showTab('news',this)">News</button>
+  <button class="tab" onclick="showTab('history',this)">History</button>
 </div>
 
-<!-- SCAN -->
-<div class="panel on" id="p-scan">
-  <div class="limit-bar" id="limitBar">
-    <span class="limit-t">Daily limit (5/day)</span>
-    <a class="limit-lnk" href="https://www.scanmycreds.com/pricing" target="_blank">Upgrade Pro</a>
+<!-- SCAN TAB -->
+<div id="tab-scan" class="panel active">
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="email" id="scanEmail" placeholder="email@example.com" />
+    <button class="btn btn-red" style="width:auto;padding:9px 14px;white-space:nowrap" onclick="runScan()">Scan</button>
   </div>
-  <p class="label">Check your credentials</p>
-  <input type="email" id="emailIn" placeholder="your@email.com" />
-  <div class="err" id="scanErr"></div>
-  <button class="btn" id="scanBtn">Scan now</button>
-  <div class="prog" id="scanProg"><div class="prog-fill" id="scanFill"></div></div>
-  <div class="msg" id="scanMsg"><span class="msg-dot"></span><span id="scanMsgTxt">Connecting...</span></div>
-  <div class="result" id="resultBox">
-    <div class="score-area" id="scoreArea"></div>
-    <div class="statuses" id="statsArea"></div>
-    <div class="sources" id="srcsArea"></div>
-    <div class="cta" id="ctaBtn">
-      <div class="cta-l"><span class="cta-d"></span><span class="cta-t" id="ctaTxt">View full report</span></div>
-      <span class="cta-a">Open app →</span>
-    </div>
-  </div>
+  <div id="scanStatus" style="font-size:12px;color:#666;margin-bottom:8px"></div>
+  <div id="scanResults"></div>
 </div>
 
-<!-- GENERATOR -->
-<div class="panel" id="p-gen">
-  <div class="subtabs">
-    <button class="stab on" id="st-pwd">Password</button>
-    <button class="stab" id="st-phrase">Passphrase</button>
+<!-- PASSWORD HEALTH TAB -->
+<div id="tab-password" class="panel">
+  <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6">Check if a password has appeared in breaches using k-anonymity — your full password is never sent.</p>
+  <div style="position:relative;margin-bottom:10px">
+    <input type="password" id="pwInput" placeholder="Enter password to check..." />
+    <button onclick="togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;cursor:pointer;font-size:11px" id="pwToggle">Show</button>
   </div>
-  <div class="subpanel on" id="sp-pwd">
-    <div class="gen-out" id="pwdOut"><span class="gen-ph" id="pwdTxt">Click generate</span><button class="copy-btn" id="pwdCopy">Copy</button></div>
-    <div class="str-bar"><div class="str-fill" id="strFill" style="width:0"></div></div>
-    <div class="str-lbl">Strength: <span id="strLbl">—</span></div>
-    <div class="slider-wrap">
-      <div class="slider-top"><span>Length</span><span id="lenVal">16</span></div>
-      <input type="range" min="8" max="64" value="16" id="lenSlider" />
-    </div>
-    <div class="toggles">
-      <button class="tog on" id="tUpper"><span class="tog-dot"></span>A-Z Upper</button>
-      <button class="tog on" id="tLower"><span class="tog-dot"></span>a-z Lower</button>
-      <button class="tog on" id="tNums"><span class="tog-dot"></span>0-9 Numbers</button>
-      <button class="tog on" id="tSyms"><span class="tog-dot"></span>!@# Symbols</button>
-    </div>
-    <button class="btn" id="genPwdBtn">Generate Password</button>
-  </div>
-  <div class="subpanel" id="sp-phrase">
-    <div class="gen-out" id="phraseOut"><span class="gen-ph" id="phraseTxt">Click generate</span><button class="copy-btn" id="phraseCopy">Copy</button></div>
-    <div class="slider-wrap">
-      <div class="slider-top"><span>Words</span><span id="wordVal">4</span></div>
-      <input type="range" min="3" max="8" value="4" id="wordSlider" />
-    </div>
-    <p style="font-size:11px;color:rgba(108,158,247,0.7);padding:8px 10px;background:rgba(108,158,247,0.06);border-radius:7px;border:1px solid rgba(108,158,247,0.15);line-height:1.5;margin-bottom:10px">Random words are easier to remember and just as secure.</p>
-    <button class="btn" id="genPhraseBtn">Generate Passphrase</button>
+  <button class="btn btn-blue" onclick="checkPw()" style="margin-bottom:14px">Check password</button>
+  <div id="pwResults"></div>
+</div>
+
+<!-- SCORE TAB -->
+<div id="tab-score" class="panel">
+  <div id="scoreResults">
+    <div class="empty">Sign in to see your security score</div>
   </div>
 </div>
 
-<!-- HEALTH -->
-<div class="panel" id="p-health">
-  <p class="label">Password health analyzer</p>
-  <div class="pwd-wrap">
-    <input type="password" id="healthIn" placeholder="Enter password to analyze" />
-    <button class="show-btn" id="healthToggle">show</button>
+<!-- CRYPTO TAB -->
+<div id="tab-crypto" class="panel">
+  <div style="display:flex;gap:6px;margin-bottom:12px" id="chainBtns">
+    <button class="chain-btn active" onclick="setChain('ETH',this)">ETH</button>
+    <button class="chain-btn" onclick="setChain('BTC',this)">BTC</button>
+    <button class="chain-btn" onclick="setChain('SOL',this)">SOL</button>
   </div>
-  <div id="healthResult" style="display:none;margin-top:10px">
-    <div class="health-score-box" id="healthBox">
-      <div class="health-score-num" id="healthNum">0</div>
-      <div class="health-lbl" id="healthLbl">—</div>
-    </div>
-    <div class="issues" id="issueList"></div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="text" id="walletAddr" placeholder="Wallet address..." style="font-family:monospace;font-size:12px" />
+    <button class="btn btn-blue" style="width:auto;padding:9px 14px;white-space:nowrap" onclick="scanWallet()">Scan</button>
   </div>
-  <div class="empty" id="healthEmpty">Type a password above to analyze it</div>
+  <div id="cryptoStatus" style="font-size:12px;color:#666;margin-bottom:8px"></div>
+  <div id="cryptoResults"></div>
 </div>
 
-<!-- DARK WEB -->
-<div class="panel" id="p-dark">
-  <p class="label">What your data sells for</p>
-  <div class="price-row"><span class="price-type">Email + Password</span><span class="price-val" style="color:#e05c4b">$0.10 - $2</span></div>
-  <div class="price-row"><span class="price-type">Full identity (SSN)</span><span class="price-val" style="color:#e05c4b">$10 - $50</span></div>
-  <div class="price-row"><span class="price-type">Credit card details</span><span class="price-val" style="color:#c48b20">$5 - $20</span></div>
-  <div class="price-row"><span class="price-type">Bank account access</span><span class="price-val" style="color:#c48b20">$40 - $200</span></div>
-  <div class="price-row"><span class="price-type">Email account access</span><span class="price-val" style="color:#6c9ef7">$1 - $5</span></div>
-  <div class="price-row"><span class="price-type">Social media account</span><span class="price-val" style="color:#b47fe8">$1 - $10</span></div>
-  <p class="label" style="margin-top:14px">Active markets</p>
-  <div class="market-row"><span class="market-n"><span class="mdot" style="background:#e05c4b;box-shadow:0 0 5px #e05c4b"></span>BreachForums</span><span class="mstat" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
-  <div class="market-row"><span class="market-n"><span class="mdot" style="background:#e05c4b;box-shadow:0 0 5px #e05c4b"></span>Telegram Leaks</span><span class="mstat" style="background:rgba(224,92,75,0.12);color:#e05c4b;border:1px solid rgba(224,92,75,0.25)">Active</span></div>
-  <div class="market-row"><span class="market-n"><span class="mdot" style="background:#c48b20;box-shadow:0 0 5px #c48b20"></span>Dark Web Pastes</span><span class="mstat" style="background:rgba(196,139,32,0.12);color:#c48b20;border:1px solid rgba(196,139,32,0.25)">Active</span></div>
-  <div class="market-row"><span class="market-n"><span class="mdot" style="background:#6c9ef7;box-shadow:0 0 5px #6c9ef7"></span>Credential Lists</span><span class="mstat" style="background:rgba(108,158,247,0.12);color:#6c9ef7;border:1px solid rgba(108,158,247,0.25)">Circulating</span></div>
-  <a href="https://www.scanmycreds.com/app/dark-web" target="_blank" style="display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border-radius:8px;border:1px solid rgba(108,228,192,0.15);background:rgba(108,228,192,0.04);text-decoration:none;margin-top:12px">
-    <span style="font-size:11px;color:rgba(255,255,255,0.4)">Full dark web exposure report</span>
-    <span style="font-size:11px;color:#6ce4c0;font-weight:700">Open →</span>
-  </a>
+<!-- NEWS TAB -->
+<div id="tab-news" class="panel">
+  <div id="newsStatus" style="font-size:12px;color:#666;margin-bottom:8px">Loading breach news...</div>
+  <div id="newsResults"></div>
 </div>
 
-<!-- HISTORY -->
-<div class="panel" id="p-hist">
-  <p class="label">Recent scans</p>
-  <div id="histList"></div>
-  <div class="empty" id="histEmpty" style="display:none">No scans yet</div>
-</div>
-
-<div class="footer">
-  <button class="foot-btn" id="openAppBtn">Open full app</button>
-  <button class="foot-btn" id="clearHistBtn">Clear history</button>
+<!-- HISTORY TAB -->
+<div id="tab-history" class="panel">
+  <div id="historyResults"><div class="empty">Loading history...</div></div>
 </div>
 
 <script src="popup.js"></script>
