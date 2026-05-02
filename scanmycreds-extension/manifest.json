@@ -2,21 +2,11 @@
   "manifest_version": 3,
   "name": "ScanMyCreds",
   "version": "2.0.0",
-  "description": "Breach detection, password health, crypto scanner & AI fix plans — right in your browser",
-  "permissions": ["storage", "activeTab", "scripting", "notifications", "alarms"],
+  "description": "Breach detection, password health, and password generator in your browser",
+  "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://www.scanmycreds.com/*",
     "https://api.pwnedpasswords.com/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
   ],
   "action": {
     "default_popup": "popup.html",

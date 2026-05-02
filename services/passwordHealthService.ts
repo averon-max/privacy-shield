@@ -26,26 +26,26 @@ export async function checkPasswordHealth(password: string): Promise<PasswordHea
       const [hash, count] = line.trim().split(":");
       if (hash === suffix) { timesFound = parseInt(count, 10); compromised = true; break; }
     }
-  } catch { /* fail open */ }
+  } catch {}
 
   const issues: string[] = [];
   const suggestions: string[] = [];
   let score = 0;
 
-  if (password.length >= 8)  score++; else issues.push("Too short — under 8 characters");
+  if (password.length >= 8)  score++; else issues.push("Too short");
   if (password.length >= 12) score++;
   if (password.length >= 16) score++;
-  if (/[A-Z]/.test(password))        score++; else issues.push("No uppercase letters");
-  if (/[a-z]/.test(password))        score++; else issues.push("No lowercase letters");
+  if (/[A-Z]/.test(password))        score++; else issues.push("No uppercase");
+  if (/[a-z]/.test(password))        score++; else issues.push("No lowercase");
   if (/[0-9]/.test(password))        score++; else issues.push("No numbers");
   if (/[^A-Za-z0-9]/.test(password)) score++; else issues.push("No special characters");
-  if (!/(.)\1{2,}/.test(password))   score++; else issues.push("Repeated characters detected");
-  if (!/^(password|123456|qwerty|abc123)/i.test(password)) score++; else issues.push("Common password pattern");
+  if (!/(.)\1{2,}/.test(password))   score++; else issues.push("Repeated characters");
+  if (!/^(password|123456|qwerty)/i.test(password)) score++; else issues.push("Common pattern");
 
   if (password.length < 12)           suggestions.push("Use at least 12 characters");
   if (!/[^A-Za-z0-9]/.test(password)) suggestions.push("Add symbols like @, #, $, !");
-  if (compromised)                     suggestions.push("This password is in breach databases — never use it anywhere");
-  if (suggestions.length === 0)        suggestions.push("Consider using a password manager");
+  if (compromised)                     suggestions.push("In breach databases — never reuse");
+  if (suggestions.length === 0)        suggestions.push("Use a password manager to store this");
 
   const strengths: PasswordHealthResult["strength"][] =
     ["very-weak","very-weak","weak","fair","fair","strong","strong","very-strong","very-strong","very-strong"];

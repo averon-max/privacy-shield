@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   await connectDB();
   const team = await Team.findOne({ ownerId: session.user.email }).lean();
   return NextResponse.json({ team });
@@ -17,28 +16,23 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { name, domain } = await req.json();
-  if (!name || !domain)
-    return NextResponse.json({ error: "Name and domain required" }, { status: 400 });
+  if (!name || !domain) return NextResponse.json({ error: "Name and domain required" }, { status: 400 });
   await connectDB();
   const existing = await Team.findOne({ ownerId: session.user.email });
-  if (existing)
-    return NextResponse.json({ error: "Team already exists" }, { status: 400 });
+  if (existing) return NextResponse.json({ error: "Team already exists" }, { status: 400 });
   const team = await Team.create({ name, domain, ownerId: session.user.email, members: [session.user.email] });
   return NextResponse.json({ team });
 }
 
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { memberEmail, action } = await req.json();
   await connectDB();
   const team = await Team.findOne({ ownerId: session.user.email });
-  if (!team)
-    return NextResponse.json({ error: "Team not found" }, { status: 404 });
+  if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
   if (action === "add") {
     if (team.members.length >= team.maxMembers)
       return NextResponse.json({ error: "Team is full" }, { status: 400 });

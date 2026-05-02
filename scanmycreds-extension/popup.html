@@ -1,149 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>ScanMyCreds</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { width: 400px; min-height: 540px; background: #000; color: #f0f0f0; font-family: system-ui, sans-serif; font-size: 13px; }
-
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.07); }
-    .logo { font-size: 15px; font-weight: 700; color: #e05c4b; letter-spacing: -0.02em; }
-    .score-pill { padding: 3px 10px; border-radius: 20px; background: rgba(108,158,247,0.15); color: #6c9ef7; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
-    .open-btn { padding: 4px 10px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #666; font-size: 11px; cursor: pointer; }
-
-    .tabs { display: flex; border-bottom: 0.5px solid rgba(255,255,255,0.07); overflow-x: auto; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { flex-shrink: 0; padding: 9px 13px; font-size: 11px; color: #444; cursor: pointer; border: none; border-bottom: 2px solid transparent; background: none; white-space: nowrap; transition: color .15s; }
-    .tab.active { color: #f0f0f0; border-bottom-color: #e05c4b; }
-    .tab:hover:not(.active) { color: #888; }
-
-    .panel { display: none; padding: 16px; }
-    .panel.active { display: block; }
-
-    input[type="text"], input[type="email"], input[type="password"] {
-      width: 100%; background: #111; border: 0.5px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 9px 11px; color: #f0f0f0; font-size: 13px; outline: none;
-    }
-    input::placeholder { color: #333; }
-
-    .btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-blue { background: #6c9ef7; color: #fff; }
-    .btn-red  { background: #e05c4b; color: #fff; }
-    .btn-dark { background: #1a1a1a; color: #bbb; border: 0.5px solid rgba(255,255,255,0.1); }
-
-    .badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600; }
-    .badge-critical { background: rgba(224,92,75,0.2);  color: #e05c4b; }
-    .badge-high     { background: rgba(196,139,32,0.2); color: #c48b20; }
-    .badge-medium   { background: rgba(108,158,247,0.2);color: #6c9ef7; }
-    .badge-low      { background: rgba(108,228,192,0.2);color: #6ce4c0; }
-    .badge-clean    { background: rgba(108,228,192,0.2);color: #6ce4c0; }
-
-    .breach-card { background: #111; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; border: 0.5px solid rgba(255,255,255,0.07); }
-    .breach-name { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
-    .breach-meta { font-size: 11px; color: #666; margin-bottom: 6px; }
-    .ai-box { background: #0a0a0a; border-radius: 6px; padding: 10px; margin-top: 8px; border: 0.5px solid rgba(108,158,247,0.2); }
-    .ai-label { font-size: 10px; color: #6c9ef7; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.04em; }
-    .ai-step { display: flex; gap: 8px; margin-bottom: 5px; font-size: 11px; color: #ccc; line-height: 1.5; }
-    .ai-step-num { color: #6c9ef7; font-weight: 600; flex-shrink: 0; }
-    .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
-    .tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; background: rgba(255,255,255,0.05); color: #666; }
-
-    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .stat-box { background: #111; border-radius: 8px; padding: 10px 12px; }
-    .stat-val { font-size: 20px; font-weight: 500; margin-bottom: 2px; }
-    .stat-label { font-size: 10px; color: #666; }
-
-    .strength-bar-wrap { background: #1a1a1a; border-radius: 4px; height: 5px; overflow: hidden; margin: 6px 0 10px; }
-    .strength-bar { height: 100%; border-radius: 4px; transition: width .4s ease; }
-
-    .issue { padding: 5px 9px; border-radius: 5px; font-size: 11px; margin-bottom: 4px; }
-    .issue-bad  { background: rgba(224,92,75,0.08);  color: #e05c4b; }
-    .issue-good { background: rgba(108,158,247,0.08); color: #6c9ef7; }
-
-    .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 13px; }
-    .divider { height: 0.5px; background: rgba(255,255,255,0.06); margin: 12px 0; }
-    .small-label { font-size: 11px; color: #666; margin-bottom: 5px; }
-    .history-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.05); font-size: 12px; }
-    .chain-btn { padding: 5px 12px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #888; cursor: pointer; font-size: 12px; }
-    .chain-btn.active { background: #6c9ef7; color: #fff; border-color: transparent; }
-    .news-card { background: #111; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border: 0.5px solid rgba(255,255,255,0.06); }
-    .news-name { font-weight: 500; font-size: 12px; margin-bottom: 3px; }
-    .news-summary { font-size: 11px; color: #888; line-height: 1.5; margin-bottom: 5px; }
-  </style>
+<meta charset="UTF-8" />
+<title>ScanMyCreds</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { width: 380px; min-height: 500px; background: #000; color: #f0f0f0; font-family: system-ui, sans-serif; font-size: 13px; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid rgba(255,255,255,0.07); }
+.logo { font-size: 13px; font-weight: 700; letter-spacing: 0.15em; color: #fff; }
+.open-btn { padding: 4px 10px; border-radius: 6px; border: 0.5px solid rgba(255,255,255,0.1); background: transparent; color: #888; font-size: 11px; cursor: pointer; }
+.tabs { display: flex; border-bottom: 0.5px solid rgba(255,255,255,0.07); overflow-x: auto; }
+.tab { flex: 1; padding: 10px 8px; font-size: 11px; color: #555; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; white-space: nowrap; min-width: 70px; }
+.tab.active { color: #fff; border-bottom-color: #e05c4b; }
+.panel { display: none; padding: 16px; }
+.panel.active { display: block; }
+input { width: 100%; background: #111; border: 0.5px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 9px 11px; color: #fff; font-size: 13px; outline: none; font-family: inherit; }
+.btn { width: 100%; padding: 9px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-blue { background: #6c9ef7; color: #fff; }
+.btn-red { background: #e05c4b; color: #fff; }
+.row { display: flex; gap: 8px; margin-bottom: 10px; }
+.card { background: #111; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; border: 0.5px solid rgba(255,255,255,0.07); }
+.card-title { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+.card-meta { font-size: 11px; color: #666; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; margin: 2px; background: rgba(224,92,75,0.15); color: #e05c4b; }
+.empty { text-align: center; padding: 30px 20px; color: #555; font-size: 12px; }
+.bar-wrap { background: #1a1a1a; border-radius: 4px; height: 5px; overflow: hidden; margin: 6px 0 10px; }
+.bar { height: 100%; transition: width .4s ease; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.stat { background: #1a1a1a; border-radius: 6px; padding: 8px 10px; }
+.stat-l { font-size: 10px; color: #666; }
+.stat-v { font-size: 13px; font-weight: 500; margin-top: 2px; }
+.issue { padding: 5px 9px; border-radius: 5px; font-size: 11px; margin-bottom: 3px; }
+.issue-bad { background: rgba(224,92,75,0.08); color: #e05c4b; }
+.issue-good { background: rgba(108,158,247,0.08); color: #6c9ef7; }
+.status { font-size: 12px; color: #666; margin-bottom: 8px; }
+.eye { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #555; cursor: pointer; font-size: 11px; }
+.pw-wrap { position: relative; flex: 1; }
+</style>
 </head>
 <body>
 
 <div class="header">
-  <span class="logo">ScanMyCreds</span>
-  <div style="display:flex;gap:6px;align-items:center">
-    <button class="score-pill" id="scoreChip">— XP</button>
-    <button class="open-btn" onclick="window.open('https://www.scanmycreds.com/app','_blank')">Open app ↗</button>
-  </div>
+  <span class="logo">SCANMYCREDS</span>
+  <button class="open-btn" id="openAppBtn">Open app ↗</button>
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('scan',this)">Scan</button>
-  <button class="tab" onclick="showTab('password',this)">Password</button>
-  <button class="tab" onclick="showTab('score',this)">Score</button>
-  <button class="tab" onclick="showTab('crypto',this)">Crypto</button>
-  <button class="tab" onclick="showTab('news',this)">News</button>
-  <button class="tab" onclick="showTab('history',this)">History</button>
+  <button class="tab active" data-tab="scan">Scan</button>
+  <button class="tab" data-tab="password">Password</button>
+  <button class="tab" data-tab="generator">Generator</button>
+  <button class="tab" data-tab="history">History</button>
 </div>
 
-<!-- SCAN TAB -->
 <div id="tab-scan" class="panel active">
-  <div style="display:flex;gap:8px;margin-bottom:12px">
+  <div class="row">
     <input type="email" id="scanEmail" placeholder="email@example.com" />
-    <button class="btn btn-red" style="width:auto;padding:9px 14px;white-space:nowrap" onclick="runScan()">Scan</button>
   </div>
-  <div id="scanStatus" style="font-size:12px;color:#666;margin-bottom:8px"></div>
-  <div id="scanResults"></div>
+  <button class="btn btn-red" id="scanBtn">Scan email</button>
+  <div class="status" id="scanStatus" style="margin-top:10px"></div>
+  <div id="scanResults" style="margin-top:10px"></div>
 </div>
 
-<!-- PASSWORD HEALTH TAB -->
 <div id="tab-password" class="panel">
-  <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6">Check if a password has appeared in breaches using k-anonymity — your full password is never sent.</p>
-  <div style="position:relative;margin-bottom:10px">
-    <input type="password" id="pwInput" placeholder="Enter password to check..." />
-    <button onclick="togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;cursor:pointer;font-size:11px" id="pwToggle">Show</button>
+  <p style="font-size:11px;color:#888;margin-bottom:10px;line-height:1.5">Check via k-anonymity. Password never leaves your device.</p>
+  <div class="row">
+    <div class="pw-wrap">
+      <input type="password" id="pwInput" placeholder="Enter password..." />
+      <button class="eye" id="pwToggle">Show</button>
+    </div>
   </div>
-  <button class="btn btn-blue" onclick="checkPw()" style="margin-bottom:14px">Check password</button>
-  <div id="pwResults"></div>
+  <button class="btn btn-blue" id="pwBtn">Check password</button>
+  <div id="pwResults" style="margin-top:14px"></div>
 </div>
 
-<!-- SCORE TAB -->
-<div id="tab-score" class="panel">
-  <div id="scoreResults">
-    <div class="empty">Sign in to see your security score</div>
+<div id="tab-generator" class="panel">
+  <input id="genResult" readonly placeholder="Click generate..." style="margin-bottom:10px;font-family:monospace" />
+  <div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:5px">
+      <span>Length</span><span id="genLenLabel">16</span>
+    </div>
+    <input type="range" min="8" max="64" value="16" id="genLen" style="width:100%" />
+  </div>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn btn-blue" id="genBtn">Generate</button>
+    <button class="btn" id="genCopy" style="background:transparent;color:#888;border:0.5px solid rgba(255,255,255,0.1)">Copy</button>
   </div>
 </div>
 
-<!-- CRYPTO TAB -->
-<div id="tab-crypto" class="panel">
-  <div style="display:flex;gap:6px;margin-bottom:12px" id="chainBtns">
-    <button class="chain-btn active" onclick="setChain('ETH',this)">ETH</button>
-    <button class="chain-btn" onclick="setChain('BTC',this)">BTC</button>
-    <button class="chain-btn" onclick="setChain('SOL',this)">SOL</button>
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:12px">
-    <input type="text" id="walletAddr" placeholder="Wallet address..." style="font-family:monospace;font-size:12px" />
-    <button class="btn btn-blue" style="width:auto;padding:9px 14px;white-space:nowrap" onclick="scanWallet()">Scan</button>
-  </div>
-  <div id="cryptoStatus" style="font-size:12px;color:#666;margin-bottom:8px"></div>
-  <div id="cryptoResults"></div>
-</div>
-
-<!-- NEWS TAB -->
-<div id="tab-news" class="panel">
-  <div id="newsStatus" style="font-size:12px;color:#666;margin-bottom:8px">Loading breach news...</div>
-  <div id="newsResults"></div>
-</div>
-
-<!-- HISTORY TAB -->
 <div id="tab-history" class="panel">
-  <div id="historyResults"><div class="empty">Loading history...</div></div>
+  <div id="historyResults"><div class="empty">Loading...</div></div>
 </div>
 
 <script src="popup.js"></script>
