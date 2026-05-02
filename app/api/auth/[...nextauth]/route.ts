@@ -68,13 +68,15 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
+      // First sign-in — capture id and email
       if (user) {
         token.id = user.id;
-        token.isPro = (user as any).isPro || false;
-        token.plan = (user as any).plan || "free";
+        token.email = user.email;
       }
-      if (account?.provider === "google" && token.email) {
+
+      // Always re-read isPro and plan from the DB so updates take effect immediately
+      if (token.email) {
         try {
           await connectDB();
           const dbUser = await User.findOne({ email: token.email }).lean() as any;
@@ -85,6 +87,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch {}
       }
+
       return token;
     },
     async session({ session, token }) {
