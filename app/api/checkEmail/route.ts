@@ -5,7 +5,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
 import User from "@/models/User";
+import UserScore, { getXPForAction, addXP, updateStreak } from "@/models/UserScore";
 import { checkPasswordExposure, checkEmailBreaches } from "@/services/checkEmailService";
+import { explainBreach } from "@/services/aiExplainer";
 
 export async function POST(req: Request) {
   try {
@@ -42,11 +44,9 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    // Check Pro status
     const user = await User.findOne({ email: session.user.email }).lean() as any;
     const isPro = user?.isPro || false;
 
-    // Gate: free users get 5 scans/day
     if (!isPro) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -84,7 +84,16 @@ export async function POST(req: Request) {
 
     const exposedDataTypes = Array.from(dataTypes);
     const breachCount = breachData?.breaches?.[0]?.length || 0;
-    const breachSources = breachData?.breaches?.[0] || [];
+    const breachSources: string[] = breachData?.breaches?.[0] || [];
+
+    // AI explanations — Pro gets all, free gets first 2
+    const breachLimit = isPro ? breachSources.length : Math.min(breachSources.length, 2);
+    const breachesWithAI = await Promise.all(
+      breachSources.slice(0, breachLimit).map(async (name: string) => {
+        const explanation = await explainBreach(name, exposedDataTypes);
+        return { name, explanation };
+      })
+    );
 
     await EmailCheck.create({
       userId: session.user.email,
@@ -92,6 +101,17 @@ export async function POST(req: Request) {
       breached,
       passwordExposed: passwordResult.exposed,
     });
+
+    // Award XP
+    let score = await UserScore.findOne({ userId: session.user.email });
+    if (!score) score = await UserScore.create({ userId: session.user.email });
+    addXP(score, getXPForAction("scan"));
+    updateStreak(score);
+    score.totalScans += 1;
+    if (score.totalScans === 1 && !score.badges.includes("first_scan")) {
+      score.badges.push("first_scan");
+    }
+    await score.save();
 
     return NextResponse.json({
       email,
@@ -102,6 +122,7 @@ export async function POST(req: Request) {
       exposedDataTypes,
       breachCount,
       breachSources,
+      breachesWithAI,
       isPro,
     });
 
