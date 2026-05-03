@@ -11,10 +11,10 @@ export async function explainBreach(
   breachName: string,
   dataClasses: string[]
 ): Promise<BreachExplanation> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY is not set in environment");
+    console.error("GEMINI_API_KEY is not set in environment");
     throw new Error("AI service not configured");
   }
 
@@ -46,31 +46,33 @@ Respond ONLY with valid JSON in this exact shape, no markdown, no code fences:
 }`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Anthropic API error:", response.status, errText);
-      throw new Error(`Anthropic API ${response.status}`);
+      console.error("Gemini API error:", response.status, errText);
+      throw new Error(`Gemini API ${response.status}`);
     }
 
     const data = await response.json();
-    const text: string = data.content?.[0]?.text || "";
+    const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!text) {
-      console.error("Empty Anthropic response", data);
+      console.error("Empty Gemini response", data);
       throw new Error("Empty AI response");
     }
 
