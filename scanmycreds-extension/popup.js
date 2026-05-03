@@ -12,14 +12,11 @@ document.querySelectorAll(".tab").forEach(btn => {
   });
 });
 
-// Open app
 $("openAppBtn").addEventListener("click", () => {
   chrome.tabs.create({ url: API + "/app" });
 });
 
-// ============================================================
 // SCAN
-// ============================================================
 $("scanBtn").addEventListener("click", scanEmail);
 $("scanEmail").addEventListener("keydown", e => { if (e.key === "Enter") scanEmail(); });
 
@@ -40,12 +37,11 @@ async function scanEmail() {
     const data = await res.json();
 
     saveHistory({
-      type: "email",
-      email,
-      breached: data.breached,
-      count: data.breachCount,
+      email: email,
+      breached: !!data.breached,
+      count: data.breachCount || 0,
       sources: data.breachSources || [],
-      when: Date.now()
+      when: Date.now(),
     });
     renderScan(data, email);
   } catch (err) {
@@ -88,24 +84,18 @@ function renderScan(data, email) {
       <button class="btn btn-ghost" id="viewFullBtn">View full report ↗</button>
     </div>
   `;
-  $("viewFullBtn").addEventListener("click", () => chrome.tabs.create({ url: API + "/app" }));
+  const v = $("viewFullBtn");
+  if (v) v.addEventListener("click", () => chrome.tabs.create({ url: API + "/app" }));
 }
 
-// ============================================================
 // PASSWORD HEALTH
-// ============================================================
 $("pwBtn").addEventListener("click", checkPassword);
 $("pwInput").addEventListener("keydown", e => { if (e.key === "Enter") checkPassword(); });
 
 $("pwToggle").addEventListener("click", () => {
   const inp = $("pwInput");
-  if (inp.type === "password") {
-    inp.type = "text";
-    $("pwToggle").textContent = "Hide";
-  } else {
-    inp.type = "password";
-    $("pwToggle").textContent = "Show";
-  }
+  if (inp.type === "password") { inp.type = "text"; $("pwToggle").textContent = "Hide"; }
+  else { inp.type = "password"; $("pwToggle").textContent = "Show"; }
 });
 
 async function checkPassword() {
@@ -187,9 +177,7 @@ async function checkPassword() {
   }
 }
 
-// ============================================================
 // GENERATOR
-// ============================================================
 $("genLen").addEventListener("input", e => { $("genLenLabel").textContent = e.target.value; });
 
 $("genBtn").addEventListener("click", () => {
@@ -216,12 +204,10 @@ $("genCopy").addEventListener("click", () => {
   setTimeout(() => { $("genCopy").textContent = "Copy"; }, 1500);
 });
 
-// ============================================================
 // HISTORY
-// ============================================================
 function saveHistory(item) {
   chrome.storage.local.get(["history"], data => {
-    const list = data.history || [];
+    const list = Array.isArray(data.history) ? data.history : [];
     list.unshift(item);
     chrome.storage.local.set({ history: list.slice(0, 20) });
   });
@@ -229,15 +215,18 @@ function saveHistory(item) {
 
 function loadHistory() {
   chrome.storage.local.get(["history"], data => {
-    const list = data.history || [];
-    if (list.length === 0) {
+    const list = Array.isArray(data.history) ? data.history : [];
+    const valid = list.filter(item => item && item.email);
+
+    if (valid.length === 0) {
       $("historyResults").innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No scans yet</div>';
       return;
     }
-    $("historyResults").innerHTML = list.map(item => {
-      const time = new Date(item.when).toLocaleString();
+
+    $("historyResults").innerHTML = valid.map(item => {
+      const time = new Date(item.when || Date.now()).toLocaleString();
       const status = item.breached
-        ? `<span style="color:#e05c4b">⚠ ${item.count} breach${item.count !== 1 ? "es" : ""}</span>`
+        ? `<span style="color:#e05c4b">⚠ ${item.count || 0} breach${(item.count || 0) !== 1 ? "es" : ""}</span>`
         : `<span style="color:#6ce4c0">✓ Clean</span>`;
       return `
         <div class="hist-row">

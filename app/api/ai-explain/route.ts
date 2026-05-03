@@ -22,15 +22,19 @@ export async function POST(req: NextRequest) {
   }
 
   const { breachName, dataClasses } = await req.json();
-  if (!breachName) {
+  if (!breachName || !breachName.trim()) {
     return NextResponse.json({ error: "Breach name required" }, { status: 400 });
   }
 
   try {
-    const explanation = await explainBreach(breachName, dataClasses || []);
+    const explanation = await explainBreach(breachName.trim(), dataClasses || []);
     return NextResponse.json({ explanation });
-  } catch (err) {
-    console.error("AI explain error:", err);
-    return NextResponse.json({ error: "AI service error" }, { status: 500 });
+  } catch (err: any) {
+    console.error("AI explain failed:", err);
+    return NextResponse.json({
+      error: err?.message?.includes("not configured")
+        ? "AI service is not configured. Contact support."
+        : "AI analysis failed. Please try again.",
+    }, { status: 500 });
   }
 }
