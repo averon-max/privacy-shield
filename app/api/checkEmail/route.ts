@@ -11,7 +11,6 @@ export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
 
-    // Get session and Pro status up front
     const session = await getServerSession(authOptions);
     let isPro = false;
     if (session?.user?.email) {
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
       isPro = user?.isPro || false;
     }
 
-    // Rate limit: free users 30/min, Pro users 200/min
     try {
       await rateLimit(ip, isPro);
     } catch {
@@ -30,21 +28,48 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password, extensionCheck } = body;
 
-    // Extension unauthenticated check — no DB save, no password check
+    // ─── EXTENSION CHECK ─────────────────────────────────────────────
     if (extensionCheck) {
+      if (!email || !email.includes("@")) {
+        return NextResponse.json({ breached: false, breachCount: 0, breachSources: [] });
+      }
+
       try {
-        const result = await checkEmailBreaches(email);
-        return NextResponse.json({
-          breached: result.breached,
-          breachCount: result.breachCount || 0,
-          breachSources: result.breachSources || [],
-        });
-      } catch {
+        await connectDB();
+        const cleanEmail = email.toLowerCase().trim();
+
+        // 1. Check MongoDB for any saved breach record from a previous scan
+        const recentRecord = await EmailCheck.findOne({
+          email: cleanEmail,
+          breached: true,
+          breachSources: { $exists: true, $ne: [] },
+        })
+          .sort({ createdAt: -1 })
+          .lean() as any;
+
+        if (recentRecord && recentRecord.breachSources?.length > 0) {
+          return NextResponse.json({
+            breached: true,
+            breachCount: recentRecord.breachCount || recentRecord.breachSources.length,
+            breachSources: recentRecord.breachSources,
+            cached: true,
+          });
+        }
+
+        // 2. Fall back to live API
+        const breachData = await checkEmailBreaches(email);
+        const breached = breachData !== null;
+        const breachCount = breachData?.breaches?.[0]?.length || 0;
+        const breachSources: string[] = breachData?.breaches?.[0] || [];
+
+        return NextResponse.json({ breached, breachCount, breachSources });
+      } catch (err) {
+        console.error("Extension check error:", err);
         return NextResponse.json({ breached: false, breachCount: 0, breachSources: [] });
       }
     }
 
-    // Authenticated checks below
+    // ─── AUTHENTICATED CHECK ─────────────────────────────────────────
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -55,7 +80,6 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    // Daily limit only for free users
     if (!isPro) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
