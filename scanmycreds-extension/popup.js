@@ -204,6 +204,72 @@ $("genCopy").addEventListener("click", () => {
   setTimeout(() => { $("genCopy").textContent = "Copy"; }, 1500);
 });
 
+// ALIAS GENERATOR
+chrome.storage.local.get(["aliasBaseEmail"], data => {
+  if (data.aliasBaseEmail) $("aliasBase").value = data.aliasBaseEmail;
+});
+
+$("aliasBase").addEventListener("change", () => {
+  chrome.storage.local.set({ aliasBaseEmail: $("aliasBase").value.trim() });
+});
+
+$("aliasBtn").addEventListener("click", generateAlias);
+$("aliasService").addEventListener("keydown", e => { if (e.key === "Enter") generateAlias(); });
+
+function generateAlias() {
+  const base = $("aliasBase").value.trim();
+  const service = $("aliasService").value.trim();
+
+  if (!base || !base.includes("@")) {
+    $("aliasResults").innerHTML = '<div class="card"><div class="status" style="color:#e05c4b">Enter a valid base email</div></div>';
+    return;
+  }
+  if (!service) {
+    $("aliasResults").innerHTML = '<div class="card"><div class="status" style="color:#e05c4b">Enter a service name</div></div>';
+    return;
+  }
+
+  chrome.storage.local.set({ aliasBaseEmail: base });
+
+  const [name, domain] = base.split("@");
+  const slug = service.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const alias = `${name}+${slug}@${domain}`;
+
+  saveAlias({ alias, service, when: Date.now() });
+
+  $("aliasResults").innerHTML = `
+    <div class="card">
+      <div class="card-accent" style="background:linear-gradient(to right, #b47fe8, transparent)"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);text-transform:uppercase">Generated for ${service}</span>
+        <span class="pill" style="background:rgba(180,127,232,0.12);color:#b47fe8;border:1px solid rgba(180,127,232,0.3)">
+          <span class="pill-dot" style="background:#b47fe8;box-shadow:0 0 4px #b47fe8"></span>NEW
+        </span>
+      </div>
+      <div class="alias-output" id="aliasOutput">${alias}</div>
+      <button class="btn btn-primary" id="aliasCopyBtn">Copy alias</button>
+      <p style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:10px;line-height:1.5">Mail still arrives in ${base}. If this alias gets breached later, you'll know exactly which company leaked your data.</p>
+    </div>
+  `;
+
+  const copyBtn = $("aliasCopyBtn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(alias);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => { copyBtn.textContent = "Copy alias"; }, 1500);
+    });
+  }
+}
+
+function saveAlias(item) {
+  chrome.storage.local.get(["aliases"], data => {
+    const list = Array.isArray(data.aliases) ? data.aliases : [];
+    list.unshift(item);
+    chrome.storage.local.set({ aliases: list.slice(0, 30) });
+  });
+}
+
 // HISTORY
 function saveHistory(item) {
   chrome.storage.local.get(["history"], data => {
@@ -214,34 +280,58 @@ function saveHistory(item) {
 }
 
 function loadHistory() {
-  chrome.storage.local.get(["history"], data => {
-    const list = Array.isArray(data.history) ? data.history : [];
-    const valid = list.filter(item => item && item.email);
+  chrome.storage.local.get(["history", "aliases"], data => {
+    const scans = Array.isArray(data.history) ? data.history : [];
+    const aliases = Array.isArray(data.aliases) ? data.aliases : [];
+    const validScans = scans.filter(item => item && item.email);
 
-    if (valid.length === 0) {
-      $("historyResults").innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No scans yet</div>';
-      return;
+    let html = "";
+
+    if (validScans.length > 0) {
+      html += '<div class="section-label" style="margin-top:4px">Recent scans</div>';
+      html += validScans.map(item => {
+        const time = new Date(item.when || Date.now()).toLocaleString();
+        const status = item.breached
+          ? `<span style="color:#e05c4b">⚠ ${item.count || 0} breach${(item.count || 0) !== 1 ? "es" : ""}</span>`
+          : `<span style="color:#6ce4c0">✓ Clean</span>`;
+        return `
+          <div class="hist-row">
+            <div class="hist-email">${item.email}</div>
+            <div class="hist-meta">
+              <span>${time}</span>
+              ${status}
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
-    $("historyResults").innerHTML = valid.map(item => {
-      const time = new Date(item.when || Date.now()).toLocaleString();
-      const status = item.breached
-        ? `<span style="color:#e05c4b">⚠ ${item.count || 0} breach${(item.count || 0) !== 1 ? "es" : ""}</span>`
-        : `<span style="color:#6ce4c0">✓ Clean</span>`;
-      return `
-        <div class="hist-row">
-          <div class="hist-email">${item.email}</div>
-          <div class="hist-meta">
-            <span>${time}</span>
-            ${status}
+    if (aliases.length > 0) {
+      html += '<div class="section-label" style="margin-top:14px">Recent aliases</div>';
+      html += aliases.slice(0, 10).map(item => {
+        const time = new Date(item.when || Date.now()).toLocaleString();
+        return `
+          <div class="hist-row">
+            <div class="hist-email" style="color:#b47fe8;font-family:monospace;font-size:10px">${item.alias}</div>
+            <div class="hist-meta">
+              <span>${item.service}</span>
+              <span>${time}</span>
+            </div>
           </div>
-        </div>
-      `;
-    }).join("") + `<button class="btn btn-ghost" id="clearHist" style="margin-top:8px">Clear history</button>`;
+        `;
+      }).join("");
+    }
 
-    const clr = $("clearHist");
-    if (clr) clr.addEventListener("click", () => {
-      chrome.storage.local.set({ history: [] }, loadHistory);
-    });
+    if (html === "") {
+      $("historyResults").innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No scans yet</div>';
+    } else {
+      html += `<button class="btn btn-ghost" id="clearHist" style="margin-top:12px">Clear all history</button>`;
+      $("historyResults").innerHTML = html;
+
+      const clr = $("clearHist");
+      if (clr) clr.addEventListener("click", () => {
+        chrome.storage.local.set({ history: [], aliases: [] }, loadHistory);
+      });
+    }
   });
 }

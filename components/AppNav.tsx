@@ -12,8 +12,12 @@ export default function AppNav() {
 
   const tabs = [
     { label: "Dashboard", href: "/app/dashboard" },
+    { label: "Briefing", href: "/app/briefing", pro: true, badge: "NEW" },
     { label: "Scanner", href: "/app" },
-    { label: "AI", href: "/app/ai", pro: true, badge: "NEW" },
+    { label: "AI", href: "/app/ai", pro: true },
+    { label: "Risk Check", href: "/app/risk-check", pro: true, badge: "NEW" },
+    { label: "Accounts", href: "/app/accounts", pro: true, badge: "NEW" },
+    { label: "Aliases", href: "/app/aliases", pro: true, badge: "NEW" },
     { label: "Phone", href: "/app/phone-scanner", comingSoon: true },
     { label: "Multi-Scan", href: "/app/multi-scan", pro: true },
     { label: "Dark Web", href: "/app/dark-web" },
@@ -55,7 +59,7 @@ export default function AppNav() {
           <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, overflowY: "auto" }}>
             {tabs.map(tab => (
               <Link key={tab.href} href={tab.href} onClick={() => setMenuOpen(false)}
-                style={{ fontSize: "22px", fontWeight: 700, color: isActive(tab.href) ? "#fff" : "rgba(255,255,255,0.4)", textDecoration: "none", padding: "12px 0", letterSpacing: "-0.02em", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                style={{ fontSize: "20px", fontWeight: 700, color: isActive(tab.href) ? "#fff" : "rgba(255,255,255,0.4)", textDecoration: "none", padding: "11px 0", letterSpacing: "-0.02em", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   {tab.label}
