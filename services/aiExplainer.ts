@@ -11,10 +11,10 @@ export async function explainBreach(
   breachName: string,
   dataClasses: string[]
 ): Promise<BreachExplanation> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    console.error("GEMINI_API_KEY is not set in environment");
+    console.error("GROQ_API_KEY is not set");
     throw new Error("AI service not configured");
   }
 
@@ -34,9 +34,9 @@ Research this specific breach. Consider:
 Respond ONLY with valid JSON in this exact shape, no markdown, no code fences:
 {
   "severity": "critical" | "high" | "medium" | "low",
-  "severityColor": "#e05c4b for critical, #c48b20 for high, #6c9ef7 for medium, #6ce4c0 for low",
-  "whatWasStolen": "1-2 sentences specific to this breach — include scale and date if known",
-  "whatAttackersDo": "1-2 sentences about real attacks tied to this specific breach's exposed data",
+  "severityColor": "use #e05c4b for critical, #c48b20 for high, #6c9ef7 for medium, #6ce4c0 for low",
+  "whatWasStolen": "1-2 sentences specific to this breach with scale and date if known",
+  "whatAttackersDo": "1-2 sentences about real attacks tied to this specific breach",
   "steps": [
     { "title": "4-5 word action title", "description": "1 sentence specific to this breach" },
     { "title": "4-5 word action title", "description": "1 sentence specific to this breach" },
@@ -46,33 +46,32 @@ Respond ONLY with valid JSON in this exact shape, no markdown, no code fences:
 }`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1000,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    );
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1000,
+        response_format: { type: "json_object" },
+      }),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Gemini API error:", response.status, errText);
-      throw new Error(`Gemini API ${response.status}`);
+      console.error("Groq API error:", response.status, errText);
+      throw new Error(`Groq API ${response.status}`);
     }
 
     const data = await response.json();
-    const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text: string = data.choices?.[0]?.message?.content || "";
 
     if (!text) {
-      console.error("Empty Gemini response", data);
+      console.error("Empty Groq response", data);
       throw new Error("Empty AI response");
     }
 
@@ -84,7 +83,6 @@ Respond ONLY with valid JSON in this exact shape, no markdown, no code fences:
     }
 
     return parsed;
-
   } catch (err) {
     console.error("explainBreach error:", err);
     throw err;
