@@ -1,102 +1,101 @@
+"use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Security Blog — Breach Guides & Tips",
-  description: "Learn about data breaches, k-anonymity, password security, and how to protect yourself online.",
-};
+export default function BlogIndex() {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
 
-const posts = [
-  { slug: "what-is-a-data-breach", title: "What is a data breach and why should you care?", excerpt: "A data breach happens when unauthorized people access protected information. Here's everything you need to know about what gets exposed and what it means for you.", date: "Apr 2026", readTime: "5 min", color: "#e05c4b", tag: "Explainer" },
-  { slug: "how-to-protect-your-email", title: "How to protect your email from being compromised", excerpt: "Your email is the skeleton key to every other account you own. Here's a practical guide to locking it down.", date: "Apr 2026", readTime: "7 min", color: "#6c9ef7", tag: "Guide" },
-  { slug: "what-is-k-anonymity", title: "What is k-anonymity and how does it protect your password?", excerpt: "The clever mathematical trick that lets you check if your password was leaked — without ever sending your password to anyone.", date: "Mar 2026", readTime: "4 min", color: "#b47fe8", tag: "Technical" },
-  { slug: "biggest-data-breaches", title: "The 10 biggest data breaches in history", excerpt: "From 3 billion Yahoo accounts to 500 million Marriott guests — a timeline of the worst credential disasters ever recorded.", date: "Mar 2026", readTime: "8 min", color: "#c48b20", tag: "Research" },
-  { slug: "strong-password-guide", title: "How to create a strong password that you'll actually remember", excerpt: "The common advice is wrong. Here's what security researchers actually recommend — and why passphrases beat random strings.", date: "Feb 2026", readTime: "6 min", color: "#6ce4c0", tag: "Guide" },
-  { slug: "two-factor-authentication", title: "Two-factor authentication: the one thing that stops most attacks", excerpt: "2FA blocks over 99% of automated account takeovers. Here's how to set it up on every account that matters.", date: "Feb 2026", readTime: "5 min", color: "#6c9ef7", tag: "Guide" },
-];
+  useEffect(() => {
+    fetch("/api/articles").then(r => r.json()).then(d => {
+      setArticles(d.articles || []);
+      setLoading(false);
+    });
+  }, []);
 
-export default function Blog() {
+  const categories = Array.from(new Set(articles.map(a => a.category)));
+  const filtered = filter === "all" ? articles : articles.filter(a => a.category === filter);
+
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .nav-signin { font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: none; padding: 7px 14px; border-radius: 7px; transition: all 0.2s; }
-        .nav-signin:hover { color: #fff; }
-        .featured-card { display: block; padding: 36px; border-radius: 18px; border: 1px solid ${posts[0].color}25; background: ${posts[0].color}06; text-decoration: none; position: relative; overflow: hidden; transition: all 0.2s; }
-        .featured-card:hover { border-color: ${posts[0].color}50 !important; background: ${posts[0].color}09 !important; transform: translateY(-2px); }
-        .post-card { display: block; padding: 24px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); text-decoration: none; transition: all 0.2s; position: relative; overflow: hidden; }
-        .post-card:hover { border-color: rgba(255,255,255,0.15) !important; background: rgba(255,255,255,0.05) !important; transform: translateY(-2px); }
-      `}</style>
 
-      <nav style={{ padding: "18px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <Link href="/login" className="nav-signin">Sign in</Link>
-          <Link href="/app" style={{ fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", padding: "7px 16px", borderRadius: "7px", boxShadow: "0 0 16px rgba(255,255,255,0.15)" }}>Launch App</Link>
-        </div>
+      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(0,0,0,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
+        <Link href="/app" style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>Launch App</Link>
       </nav>
 
-      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "72px 24px 96px" }}>
-        <div style={{ marginBottom: "64px" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>Security blog</p>
-          <h1 style={{ fontSize: "clamp(36px, 8vw, 72px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.9, marginBottom: "20px" }}>
-            Learn how to<br />
-            <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>stay protected.</span>
+      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "60px 24px 48px" }}>
+
+        <div style={{ marginBottom: "40px" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Research & guides</p>
+          <h1 style={{ fontSize: "clamp(40px, 9vw, 80px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.92 }}>
+            The Blog<span style={{ color: "rgba(255,255,255,0.3)" }}>.</span>
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "16px", lineHeight: 1.65, maxWidth: "480px" }}>
-            Practical security guides, breach analysis, and explainers from the ScanMyCreds team.
+          <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.4)", marginTop: "16px", maxWidth: "560px", lineHeight: 1.6 }}>
+            Breach analysis, security guides, and explainers. Written for normal humans.
           </p>
         </div>
 
-        {/* Featured post */}
-        <div style={{ marginBottom: "16px" }}>
-          <Link href={"/blog/" + posts[0].slug} className="featured-card">
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(to right, " + posts[0].color + ", transparent)" }} />
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-              <span style={{ fontSize: "10px", padding: "3px 10px", borderRadius: "5px", background: posts[0].color + "15", color: posts[0].color, border: "1px solid " + posts[0].color + "28", fontWeight: 700, letterSpacing: "0.08em" }}>{posts[0].tag}</span>
-              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em" }}>FEATURED</span>
-            </div>
-            <h2 style={{ fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", marginBottom: "12px", lineHeight: 1.2 }}>{posts[0].title}</h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.4)", lineHeight: 1.65, marginBottom: "20px", maxWidth: "560px" }}>{posts[0].excerpt}</p>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>{posts[0].date}</span>
-              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>·</span>
-              <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>{posts[0].readTime} read</span>
-              <span style={{ fontSize: "12px", color: posts[0].color, fontWeight: 600, marginLeft: "auto" }}>Read →</span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Rest of posts */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: "10px", marginBottom: "48px" }}>
-          {posts.slice(1).map(post => (
-            <Link key={post.slug} href={"/blog/" + post.slug} className="post-card">
-              <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "2px", background: post.color, opacity: 0.4 }} />
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: post.color + "12", color: post.color, border: "1px solid " + post.color + "25", fontWeight: 700, letterSpacing: "0.07em" }}>{post.tag}</span>
-              </div>
-              <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em", lineHeight: 1.35 }}>{post.title}</h2>
-              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", lineHeight: 1.6, marginBottom: "16px" }}>{post.excerpt.slice(0, 100)}...</p>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>{post.date}</span>
-                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>{post.readTime} read</span>
-                <span style={{ fontSize: "12px", color: post.color, fontWeight: 600, marginLeft: "auto" }}>Read →</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div style={{ padding: "32px", borderRadius: "16px", border: "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.04)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px", flexWrap: "wrap" }}>
-          <div>
-            <p style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "6px" }}>Check if you've been breached</p>
-            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.35)" }}>Free scan. No account needed. Results in 10 seconds.</p>
+        {categories.length > 0 && (
+          <div style={{ display: "flex", gap: "6px", marginBottom: "28px", flexWrap: "wrap" }}>
+            <button onClick={() => setFilter("all")} style={{ padding: "7px 14px", borderRadius: "8px", border: filter === "all" ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent", background: filter === "all" ? "rgba(255,255,255,0.08)" : "transparent", color: filter === "all" ? "#fff" : "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>All</button>
+            {categories.map(c => (
+              <button key={c} onClick={() => setFilter(c)} style={{ padding: "7px 14px", borderRadius: "8px", border: filter === c ? "1px solid rgba(255,255,255,0.15)" : "1px solid transparent", background: filter === c ? "rgba(255,255,255,0.08)" : "transparent", color: filter === c ? "#fff" : "rgba(255,255,255,0.4)", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{c}</button>
+            ))}
           </div>
-          <Link href="/app" style={{ padding: "12px 28px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 24px rgba(255,255,255,0.2)", whiteSpace: "nowrap", flexShrink: 0 }}>
-            Scan now →
-          </Link>
-        </div>
+        )}
+
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ height: "100px", borderRadius: "14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", animation: "pulse 1.5s infinite" }} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: "60px 28px", textAlign: "center", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "16px", background: "rgba(255,255,255,0.015)" }}>
+            <div style={{ fontSize: "32px", opacity: 0.2, marginBottom: "12px" }}>📝</div>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>No articles published yet — check back soon.</p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "10px" }}>
+            {filtered.map(a => (
+              <Link key={a._id} href={`/blog/${a.slug}`} style={{ display: "block", padding: "24px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", textDecoration: "none", height: "100%", position: "relative", overflow: "hidden", transition: "all 0.2s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = a.coverColor + "40"; e.currentTarget.style.background = a.coverColor + "06"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.background = "rgba(255,255,255,0.015)"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${a.coverColor}60, transparent)` }} />
+                <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: a.coverColor + "15", border: `1px solid ${a.coverColor}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", marginBottom: "18px" }}>
+                  {a.coverEmoji}
+                </div>
+                <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: a.coverColor, textTransform: "uppercase", fontWeight: 700, marginBottom: "8px", display: "block" }}>{a.category}</span>
+                <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em", lineHeight: 1.3 }}>{a.title}</h2>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: "14px" }}>{a.excerpt}</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
+                  <span>{a.readMinutes} min read</span>
+                  {a.publishedAt && <span>{new Date(a.publishedAt).toLocaleDateString()}</span>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
+
+      <footer style={{ padding: "28px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: "60px" }}>
+        <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 800, letterSpacing: "0.15em" }}>SCANMYCREDS</p>
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+            {[{ label: "Home", href: "/" }, { label: "Pricing", href: "/pricing" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
+              <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", textDecoration: "none" }}>{l.label}</Link>
+            ))}
+          </div>
+        </div>
+      </footer>
+
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      `}</style>
     </div>
   );
 }
