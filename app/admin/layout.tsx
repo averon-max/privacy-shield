@@ -1,11 +1,13 @@
 "use client";
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+function AdminInner({ children }: { children: React.ReactNode }) {
+  const { status } = useSession();
   const pathname = usePathname();
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
@@ -51,5 +53,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
       {children}
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SessionProvider>
+      <AdminInner>{children}</AdminInner>
+    </SessionProvider>
   );
 }
