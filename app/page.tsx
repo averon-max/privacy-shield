@@ -39,6 +39,135 @@ function CursorSpotlight() {
   );
 }
 
+function PixelRobot() {
+  const [pos, setPos] = useState({ x: 50, y: 60 });
+  const [target, setTarget] = useState({ x: 50, y: 60 });
+  const [facing, setFacing] = useState<"left" | "right">("right");
+  const [state, setState] = useState<"walk" | "idle" | "scan" | "alert">("idle");
+  const [message, setMessage] = useState("");
+  const [blinking, setBlinking] = useState(false);
+  const [walkFrame, setWalkFrame] = useState(0);
+
+  const messages = [
+    "scanning the void...",
+    "I see your data!",
+    "17B records and counting",
+    "stay safe out there",
+    "beep boop",
+    "found a leak nearby",
+    "k-anon checks pass",
+    "encrypting your scan",
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const action = Math.random();
+      if (action < 0.55) {
+        const newTarget = {
+          x: Math.random() * 80 + 10,
+          y: Math.random() * 50 + 30,
+        };
+        setTarget(newTarget);
+        setFacing(p => newTarget.x > pos.x ? "right" : "left");
+        setState("walk");
+      } else if (action < 0.8) {
+        setState("scan");
+        setTimeout(() => setState("idle"), 1200);
+      } else {
+        setState("alert");
+        setMessage(messages[Math.floor(Math.random() * messages.length)]);
+        setTimeout(() => { setMessage(""); setState("idle"); }, 2400);
+      }
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [pos.x]);
+
+  useEffect(() => {
+    if (state !== "walk") return;
+    const tick = setInterval(() => {
+      setPos(p => {
+        const dx = target.x - p.x;
+        const dy = target.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.5) {
+          setState("idle");
+          return p;
+        }
+        return { x: p.x + (dx / dist) * 0.4, y: p.y + (dy / dist) * 0.4 };
+      });
+      setWalkFrame(f => (f + 1) % 4);
+    }, 60);
+    return () => clearInterval(tick);
+  }, [state, target]);
+
+  useEffect(() => {
+    const blink = setInterval(() => {
+      setBlinking(true);
+      setTimeout(() => setBlinking(false), 150);
+    }, 3000 + Math.random() * 2000);
+    return () => clearInterval(blink);
+  }, []);
+
+  const eyeColor = state === "alert" ? "#e05c4b" : state === "scan" ? "#6ce4c0" : "#6c9ef7";
+  const bob = state === "walk" && walkFrame % 2 === 0 ? -2 : 0;
+
+  return (
+    <div style={{ position: "fixed", left: pos.x + "%", top: pos.y + "%", zIndex: 4, pointerEvents: "none", transition: "left 0.06s linear, top 0.06s linear", transform: "translate(-50%, -50%)" }}>
+      {message && (
+        <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: "10px", padding: "6px 12px", background: "rgba(0,0,0,0.92)", border: "1px solid rgba(108,158,247,0.35)", borderRadius: "8px", fontSize: "10px", color: "#6c9ef7", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace", boxShadow: "0 0 20px rgba(108,158,247,0.25)", animation: "popIn 0.3s ease" }}>
+          {message}
+        </div>
+      )}
+      <div style={{ transform: (facing === "left" ? "scaleX(-1) " : "") + "translateY(" + bob + "px)", transition: "transform 0.15s", filter: state === "alert" ? "drop-shadow(0 0 10px #e05c4b)" : state === "scan" ? "drop-shadow(0 0 10px #6ce4c0)" : "drop-shadow(0 0 8px rgba(108,158,247,0.5))" }}>
+        <svg width="40" height="48" viewBox="0 0 36 44" style={{ imageRendering: "pixelated" }}>
+          <rect x="14" y="2" width="2" height="3" fill="#6c9ef7" opacity="0.6">
+            <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" />
+          </rect>
+          <rect x="20" y="2" width="2" height="3" fill="#6c9ef7" opacity="0.6">
+            <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
+          </rect>
+          <rect x="10" y="6" width="16" height="14" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
+          <rect x="13" y="10" width="3" height={blinking ? "1" : "3"} fill={eyeColor} />
+          <rect x="20" y="10" width="3" height={blinking ? "1" : "3"} fill={eyeColor} />
+          <rect x="14" y="16" width="8" height="1" fill={eyeColor} opacity="0.6" />
+          <rect x="8" y="20" width="20" height="12" fill="#0f0f0f" stroke="#6c9ef7" strokeWidth="0.5" />
+          <rect x="11" y="23" width="14" height="1" fill={eyeColor} opacity="0.8" />
+          <rect x="11" y="26" width="10" height="1" fill={eyeColor} opacity="0.4" />
+          <rect x="11" y="28" width="12" height="1" fill={eyeColor} opacity="0.5" />
+          <rect x="6" y="22" width="2" height="6" fill="#6c9ef7" opacity="0.7" />
+          <rect x="28" y="22" width="2" height="6" fill="#6c9ef7" opacity="0.7" />
+          <rect x={state === "walk" && walkFrame < 2 ? "10" : "12"} y="32" width="4" height="8" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
+          <rect x={state === "walk" && walkFrame < 2 ? "22" : "20"} y="32" width="4" height="8" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
+          {state === "scan" && (
+            <circle cx="18" cy="13" r="2" fill="none" stroke="#6ce4c0" strokeWidth="0.8" opacity="0.7">
+              <animate attributeName="r" values="2;14;2" dur="1.2s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.9;0;0.9" dur="1.2s" repeatCount="indefinite" />
+            </circle>
+          )}
+          {state === "alert" && (
+            <text x="32" y="10" fontSize="10" fill="#e05c4b" fontWeight="bold">!</text>
+          )}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function DataStrip({ direction = "left", top, items, speed = 40 }: { direction?: "left" | "right"; top: string; items: string[]; speed?: number }) {
+  return (
+    <div style={{ position: "absolute", top, left: 0, right: 0, overflow: "hidden", pointerEvents: "none", height: "26px", zIndex: 1 }}>
+      <div style={{ display: "flex", gap: "14px", whiteSpace: "nowrap", animation: (direction === "left" ? "scrollLeft " : "scrollRight ") + speed + "s linear infinite", width: "fit-content" }}>
+        {[...items, ...items, ...items].map((item, i) => (
+          <span key={i} style={{ fontSize: "10px", color: "rgba(108,158,247,0.3)", fontFamily: "ui-monospace, monospace", padding: "3px 10px", border: "1px solid rgba(108,158,247,0.12)", borderRadius: "4px", background: "rgba(108,158,247,0.02)", flexShrink: 0 }}>
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -162,14 +291,21 @@ function LandingInner() {
     setScanning(false);
   };
 
+  const stripTop = ["user@gmail.com", "PWD-LEAKED", "555-XXX-XXXX", "4532-XXXX-XXXX", "SSN ###-##-####", "192.168.1.42", "DOB 01/01/1990", "passport X12345", "TRACE-IP", "0xDEADBEEF", "auth_token=...", "API-KEY=sk_..."];
+  const stripBottom = ["Adobe 153M", "LinkedIn 700M", "Yahoo 3B", "Equifax 147M", "MyFitnessPal 144M", "Dropbox 68M", "Canva 137M", "Twitter 200M", "T-Mobile 76M", "Facebook 533M", "AT&T 73M", "MOAB 26B"];
+
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
       <CursorSpotlight />
+      <PixelRobot />
       <NavInner />
 
       <section style={{ minHeight: "92vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 20px 60px", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.013) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.013) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none", animation: "gridPulse 8s ease-in-out infinite" }} />
         <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)", width: "140vw", height: "80vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.12) 0%, rgba(108,158,247,0.04) 35%, transparent 65%)", pointerEvents: "none", animation: "auroraShift 12s ease-in-out infinite" }} />
+
+        <DataStrip direction="left" top="14%" items={stripTop} speed={50} />
+        <DataStrip direction="right" top="82%" items={stripBottom} speed={45} />
 
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "100px", marginBottom: "28px", background: "rgba(224,92,75,0.06)", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(-8px)", transition: "all 0.6s ease" }}>
           <span style={{ width: "7px", height: "7px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 10px #e05c4b", animation: "pulse 2s infinite" }} />
@@ -333,6 +469,9 @@ function LandingInner() {
         @keyframes gradShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
         @keyframes auroraShift { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.1); opacity: 0.85; } }
         @keyframes gridPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes scrollLeft { from { transform: translateX(0); } to { transform: translateX(-33.33%); } }
+        @keyframes scrollRight { from { transform: translateX(-33.33%); } to { transform: translateX(0); } }
+        @keyframes popIn { from { opacity: 0; transform: translateX(-50%) translateY(4px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
       `}</style>
     </div>
   );
