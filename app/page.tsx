@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
@@ -26,7 +26,7 @@ function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: n
 function DriftingShards() {
   const shards = [
     { x: "8%", y: "18%", text: "user@gmail.com", color: "#6c9ef7", delay: 0, size: 12 },
-    { x: "82%", y: "22%", text: "•••••••••", color: "#e05c4b", delay: 1.5, size: 13 },
+    { x: "82%", y: "22%", text: "вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў", color: "#e05c4b", delay: 1.5, size: 13 },
     { x: "12%", y: "72%", text: "555-XXX-XXXX", color: "#c48b20", delay: 3, size: 11 },
     { x: "78%", y: "68%", text: "4532-XXXX-XXXX", color: "#e05c4b", delay: 4.5, size: 12 },
     { x: "5%", y: "45%", text: "SSN ###-##-####", color: "#b47fe8", delay: 2, size: 11 },
@@ -51,7 +51,7 @@ function DriftingShards() {
   );
 }
 
-// Pixel robot running across screen — proper sprite-style with leg animation
+// Pixel robot running across screen вЂ” proper sprite-style with leg animation
 function PixelRobot() {
   const px = (x: number, y: number, color: string, glow?: string) => (
     <span key={`${x}-${y}`} style={{
@@ -75,7 +75,7 @@ function PixelRobot() {
       {px(5, 0, "#e05c4b", "#e05c4b")}
       {px(5, 1, "#666")}
 
-      {/* Head — top row */}
+      {/* Head вЂ” top row */}
       {px(3, 2, "#888")}
       {px(4, 2, "#bbb")}
       {px(5, 2, "#bbb")}
@@ -101,7 +101,7 @@ function PixelRobot() {
       {px(5, 5, "#666")}
       {px(6, 5, "#555")}
 
-      {/* Body — top */}
+      {/* Body вЂ” top */}
       {px(2, 6, "#666")}
       {px(3, 6, "#999")}
       {px(4, 6, "#aaa")}
@@ -110,7 +110,7 @@ function PixelRobot() {
       {px(7, 6, "#999")}
       {px(8, 6, "#666")}
 
-      {/* Body — chest with red core */}
+      {/* Body вЂ” chest with red core */}
       {px(2, 7, "#666")}
       {px(3, 7, "#888")}
       {px(4, 7, "#999")}
@@ -119,7 +119,7 @@ function PixelRobot() {
       {px(7, 7, "#888")}
       {px(8, 7, "#666")}
 
-      {/* Body — bottom */}
+      {/* Body вЂ” bottom */}
       {px(2, 8, "#555")}
       {px(3, 8, "#777")}
       {px(4, 8, "#888")}
@@ -128,7 +128,7 @@ function PixelRobot() {
       {px(7, 8, "#777")}
       {px(8, 8, "#555")}
 
-      {/* Arms — bag-carrying right arm forward */}
+      {/* Arms вЂ” bag-carrying right arm forward */}
       <span className="arm-left" style={{ position: "absolute", left: "0px", top: "28px", width: "12px", height: "12px" }}>
         {px(0, 0, "#888")}
         {px(1, 0, "#999")}
@@ -149,7 +149,7 @@ function PixelRobot() {
         {px(1, 3, "#a67318")}
       </span>
 
-      {/* Legs — animated */}
+      {/* Legs вЂ” animated */}
       <span className="leg-left" style={{ position: "absolute", left: "12px", top: "36px", width: "12px", height: "20px" }}>
         {px(0, 0, "#666")}
         {px(1, 0, "#888")}
@@ -298,7 +298,7 @@ export default function Landing() {
         <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 300, display: "flex", flexDirection: "column", padding: "20px 24px", animation: "fadeIn 0.2s ease" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "48px" }}>
             <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>ScanMyCreds</Link>
-            <button onClick={() => setMenuOpen(false)} style={{ width: "40px", height: "40px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#fff", fontSize: "20px", cursor: "pointer" }}>×</button>
+            <button onClick={() => setMenuOpen(false)} style={{ width: "40px", height: "40px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#fff", fontSize: "20px", cursor: "pointer" }}>Г—</button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", gap: "4px" }}>
             {[...navLinks, { label: "Sign In", href: "/login" }].map((n, i) => (
@@ -307,7 +307,7 @@ export default function Landing() {
               >{n.label}</Link>
             ))}
           </div>
-          <Link href="/app" onClick={() => setMenuOpen(false)} style={{ display: "block", textAlign: "center", padding: "17px", fontSize: "16px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", marginTop: "24px", boxShadow: "0 0 40px rgba(255,255,255,0.3)" }}>Launch App →</Link>
+          <Link href="/launch" onClick={() => setMenuOpen(false)} style={{ display: "block", textAlign: "center", padding: "17px", fontSize: "16px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", marginTop: "24px", boxShadow: "0 0 40px rgba(255,255,255,0.3)" }}>Launch App в†’</Link>
         </div>
       )}
 
@@ -324,11 +324,11 @@ export default function Landing() {
             <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
             <Link href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>Sign In</Link>
           </div>
-          <Link href="/app" style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px rgba(255,255,255,0.22)", transition: "all 0.2s" }}
+          <Link href="/launch" style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px rgba(255,255,255,0.22)", transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 44px rgba(255,255,255,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.22)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >Launch App</Link>
-          <button className="mobile-menu-btn" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", width: "38px", height: "38px", borderRadius: "9px", cursor: "pointer", fontSize: "18px", alignItems: "center", justifyContent: "center", marginLeft: "4px" }}>☰</button>
+          <button className="mobile-menu-btn" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", width: "38px", height: "38px", borderRadius: "9px", cursor: "pointer", fontSize: "18px", alignItems: "center", justifyContent: "center", marginLeft: "4px" }}>в°</button>
         </div>
       </nav>
 
@@ -342,7 +342,7 @@ export default function Landing() {
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "100px", marginBottom: "28px", background: "rgba(224,92,75,0.06)", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(12px)", transition: "all 0.5s ease" }}>
           <span style={{ width: "7px", height: "7px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 10px #e05c4b", animation: "pulse 2s infinite" }} />
           <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", fontVariantNumeric: "tabular-nums" }}>
-            {mounted && counter !== null ? counter.toLocaleString() : "—"} credentials scanned
+            {mounted && counter !== null ? counter.toLocaleString() : "вЂ”"} credentials scanned
           </span>
         </div>
 
@@ -355,12 +355,12 @@ export default function Landing() {
         </div>
 
         <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "clamp(15px, 3vw, 18px)", lineHeight: 1.65, maxWidth: "440px", marginBottom: "36px", textAlign: "center", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transition: "all 0.6s ease 0.2s" }}>
-          17 billion credentials circulating on the dark web right now. Check if yours is one of them — free, in 10 seconds.
+          17 billion credentials circulating on the dark web right now. Check if yours is one of them вЂ” free, in 10 seconds.
         </p>
 
         <div style={{ width: "100%", maxWidth: "520px", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transition: "all 0.6s ease 0.3s" }}>
           <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "22px", padding: "22px", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", boxShadow: "0 0 80px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.07)" }}>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>Free instant scan — no account needed</p>
+            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>Free instant scan вЂ” no account needed</p>
             <input type="email" placeholder="your@email.com" value={email}
               onChange={e => { setEmail(e.target.value); setResult(null); }}
               onKeyDown={e => e.key === "Enter" && runScan()}
@@ -370,7 +370,7 @@ export default function Landing() {
             />
             <button onClick={runScan} disabled={scanning || !email.includes("@")}
               style={{ width: "100%", padding: "16px", fontSize: "15px", fontWeight: 700, color: "#000", background: (scanning || !email.includes("@")) ? "rgba(255,255,255,0.5)" : "#fff", border: "none", borderRadius: "12px", cursor: (scanning || !email.includes("@")) ? "not-allowed" : "pointer", boxShadow: (scanning || !email.includes("@")) ? "none" : "0 0 40px rgba(255,255,255,0.35)", transition: "all 0.2s" }}
-            >{scanning ? "Scanning..." : "Check now — it's free →"}</button>
+            >{scanning ? "Scanning..." : "Check now вЂ” it's free в†’"}</button>
 
             {scanning && (
               <div style={{ marginTop: "12px" }}>
@@ -389,7 +389,7 @@ export default function Landing() {
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: result.breached ? "#e05c4b" : "#6ce4c0", boxShadow: "0 0 10px " + (result.breached ? "#e05c4b" : "#6ce4c0"), animation: "pulse 2s infinite", flexShrink: 0 }} />
                   <p style={{ color: result.breached ? "#e05c4b" : "#6ce4c0", fontSize: "15px", fontWeight: 700 }}>
-                    {result.breached ? "⚠ Found in " + result.breachCount + " breach" + (result.breachCount !== 1 ? "es" : "") : "✓ No known breaches found"}
+                    {result.breached ? "вљ  Found in " + result.breachCount + " breach" + (result.breachCount !== 1 ? "es" : "") : "вњ“ No known breaches found"}
                   </p>
                 </div>
                 {result.breached && result.breachSources.length > 0 && (
@@ -403,16 +403,16 @@ export default function Landing() {
                   </div>
                 )}
                 <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "12px", marginBottom: "14px", lineHeight: 1.6 }}>
-                  {result.breached ? "Sign in for the full report — see exactly what data was exposed and how to fix it." : "Great news! Sign in for continuous monitoring so you're alerted the moment this changes."}
+                  {result.breached ? "Sign in for the full report вЂ” see exactly what data was exposed and how to fix it." : "Great news! Sign in for continuous monitoring so you're alerted the moment this changes."}
                 </p>
-                <Link href="/app" style={{ display: "block", textAlign: "center", padding: "12px", fontSize: "13px", fontWeight: 700, color: result.breached ? "#fff" : "#000", background: result.breached ? "rgba(224,92,75,0.2)" : "#fff", textDecoration: "none", borderRadius: "10px", border: result.breached ? "1px solid rgba(224,92,75,0.4)" : "none", boxShadow: result.breached ? "none" : "0 0 24px rgba(255,255,255,0.2)" }}>
-                  {result.breached ? "See full breach report →" : "Set up monitoring →"}
+                <Link href="/launch" style={{ display: "block", textAlign: "center", padding: "12px", fontSize: "13px", fontWeight: 700, color: result.breached ? "#fff" : "#000", background: result.breached ? "rgba(224,92,75,0.2)" : "#fff", textDecoration: "none", borderRadius: "10px", border: result.breached ? "1px solid rgba(224,92,75,0.4)" : "none", boxShadow: result.breached ? "none" : "0 0 24px rgba(255,255,255,0.2)" }}>
+                  {result.breached ? "See full breach report в†’" : "Set up monitoring в†’"}
                 </Link>
               </div>
             )}
 
             <p style={{ color: "rgba(255,255,255,0.07)", fontSize: "10px", marginTop: "12px", textAlign: "center" }}>
-              k-Anonymity · Zero plain-text transmission · No data stored
+              k-Anonymity В· Zero plain-text transmission В· No data stored
             </p>
           </div>
         </div>
@@ -441,12 +441,12 @@ export default function Landing() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
             {[
-              { icon: "🔐", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
-              { icon: "💳", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
-              { icon: "🚫", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
-              { icon: "👤", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
-              { icon: "🔄", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
-              { icon: "🌐", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
+              { icon: "рџ”ђ", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
+              { icon: "рџ’і", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
+              { icon: "рџљ«", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
+              { icon: "рџ‘¤", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
+              { icon: "рџ”„", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
+              { icon: "рџЊђ", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
             ].map((t, i) => (
               <Section key={i} delay={i * 0.05}>
                 <div style={{ padding: "20px", border: `1px solid ${t.color}22`, borderRadius: "14px", background: `${t.color}06`, position: "relative", overflow: "hidden", height: "100%" }}>
@@ -476,11 +476,11 @@ export default function Landing() {
               <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.75, marginBottom: "24px" }}>
                 <p>ScanMyCreds isn't backed by VCs or run by a marketing department. It's an independent product built by people who got tired of breach checkers that scare you and password managers that leave you on your own when leaks happen.</p>
                 <p>Every email to <a href="mailto:support@scanmycreds.com" style={{ color: "#6c9ef7", textDecoration: "underline" }}>support@scanmycreds.com</a> is read by a real person. Most are answered within 24 hours.</p>
-                <p>If you ever feel something's wrong with the product, the pricing, or the response — tell us. We listen.</p>
+                <p>If you ever feel something's wrong with the product, the pricing, or the response вЂ” tell us. We listen.</p>
               </div>
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <Link href="/about" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", borderRadius: "9px" }}>Read our story →</Link>
+                <Link href="/about" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", borderRadius: "9px" }}>Read our story в†’</Link>
                 <Link href="/security" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.6)", background: "transparent", border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none", borderRadius: "9px" }}>Security details</Link>
               </div>
             </div>
@@ -585,7 +585,7 @@ export default function Landing() {
                   <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>From the blog</p>
                   <h2 style={{ fontSize: "clamp(32px, 7vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92 }}>Latest research<span style={{ color: "rgba(255,255,255,0.3)" }}>.</span></h2>
                 </div>
-                <Link href="/blog" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none", padding: "10px 18px", borderRadius: "9px", border: "1px solid rgba(255,255,255,0.1)" }}>View all →</Link>
+                <Link href="/blog" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none", padding: "10px 18px", borderRadius: "9px", border: "1px solid rgba(255,255,255,0.1)" }}>View all в†’</Link>
               </div>
             </Section>
 
@@ -671,8 +671,8 @@ export default function Landing() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
             {[
               { name: "Free", price: "$0", sub: "No card. Forever.", color: "#6ce4c0", features: ["5 scans/day", "Email breach check", "Password k-anonymity", "Security score", "Password generator"], href: "/app", isOutline: true },
-              { name: "Pro", price: "$4.99", sub: "/month · cancel anytime", color: "#6c9ef7", features: ["Unlimited scans", "AI breach intelligence", "Daily security briefing", "Email alias generator", "Account inventory"], href: "/pricing", badge: "Popular" },
-              { name: "Family", price: "$9.99", sub: "/month · 5 members", color: "#b47fe8", features: ["Everything in Pro", "5 family members", "Family dashboard", "Parental alerts", "One billing"], href: "/pricing", badge: "Best value" },
+              { name: "Pro", price: "$4.99", sub: "/month В· cancel anytime", color: "#6c9ef7", features: ["Unlimited scans", "AI breach intelligence", "Daily security briefing", "Email alias generator", "Account inventory"], href: "/pricing", badge: "Popular" },
+              { name: "Family", price: "$9.99", sub: "/month В· 5 members", color: "#b47fe8", features: ["Everything in Pro", "5 family members", "Family dashboard", "Parental alerts", "One billing"], href: "/pricing", badge: "Best value" },
             ].map((plan, i) => (
               <Section key={i} delay={i * 0.1}>
                 <div style={{ padding: "28px", borderRadius: "16px", border: "1px solid " + ((plan as any).isOutline ? "rgba(255,255,255,0.08)" : plan.color + "22"), background: (plan as any).isOutline ? "rgba(255,255,255,0.01)" : plan.color + "06", position: "relative", overflow: "hidden", height: "100%" }}>
@@ -689,7 +689,7 @@ export default function Landing() {
                       </div>
                     ))}
                   </div>
-                  <Link href={plan.href} style={{ display: "block", textAlign: "center", padding: "13px", fontSize: "13px", fontWeight: 700, color: (plan as any).isOutline ? "rgba(255,255,255,0.6)" : "#000", background: (plan as any).isOutline ? "transparent" : "#fff", border: (plan as any).isOutline ? "1px solid rgba(255,255,255,0.12)" : "none", textDecoration: "none", borderRadius: "10px", boxShadow: (plan as any).isOutline ? "none" : "0 0 30px " + plan.color + "35" }}>{(plan as any).isOutline ? "Start free" : "Get " + plan.name + " →"}</Link>
+                  <Link href={plan.href} style={{ display: "block", textAlign: "center", padding: "13px", fontSize: "13px", fontWeight: 700, color: (plan as any).isOutline ? "rgba(255,255,255,0.6)" : "#000", background: (plan as any).isOutline ? "transparent" : "#fff", border: (plan as any).isOutline ? "1px solid rgba(255,255,255,0.12)" : "none", textDecoration: "none", borderRadius: "10px", boxShadow: (plan as any).isOutline ? "none" : "0 0 30px " + plan.color + "35" }}>{(plan as any).isOutline ? "Start free" : "Get " + plan.name + " в†’"}</Link>
                 </div>
               </Section>
             ))}
@@ -708,7 +708,7 @@ export default function Landing() {
             </h2>
             <p style={{ color: "rgba(255,255,255,0.25)", fontSize: "17px", marginBottom: "44px", lineHeight: 1.6 }}>Free. 10 seconds. No sign up required to start.</p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/app" style={{ padding: "18px 56px", fontSize: "17px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", boxShadow: "0 0 60px rgba(255,255,255,0.4)" }}>Scan my credentials →</Link>
+              <Link href="/launch" style={{ padding: "18px 56px", fontSize: "17px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", boxShadow: "0 0 60px rgba(255,255,255,0.4)" }}>Scan my credentials в†’</Link>
               <Link href="/pricing" style={{ padding: "18px 32px", fontSize: "17px", fontWeight: 700, color: "rgba(255,255,255,0.45)", background: "transparent", textDecoration: "none", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" }}>See pricing</Link>
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function Landing() {
         <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <div>
             <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 800, letterSpacing: "0.15em", marginBottom: "4px" }}>SCANMYCREDS</p>
-            <p style={{ color: "rgba(255,255,255,0.1)", fontSize: "11px" }}>© 2026 · k-Anonymity · Zero data retention</p>
+            <p style={{ color: "rgba(255,255,255,0.1)", fontSize: "11px" }}>В© 2026 В· k-Anonymity В· Zero data retention</p>
           </div>
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             {[{ label: "How It Works", href: "/how-it-works" }, { label: "Features", href: "/features" }, { label: "Pricing", href: "/pricing" }, { label: "Blog", href: "/blog" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
