@@ -3,58 +3,74 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession, SessionProvider } from "next-auth/react";
 
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setInView(true); }, { threshold });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, inView] as const;
-}
+function CursorSpotlight() {
+  const [pos, setPos] = useState({ x: -500, y: -500 });
+  const [visible, setVisible] = useState(false);
 
-function Section({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const [ref, inView] = useInView();
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      setPos({ x: e.clientX, y: e.clientY });
+      setVisible(true);
+    };
+    const leave = () => setVisible(false);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseleave", leave);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseleave", leave);
+    };
+  }, []);
+
   return (
-    <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? "translateY(0)" : "translateY(32px)", transition: `opacity 0.7s ease `s, transform 0.7s ease `s` }}>
-      {children}
-    </div>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 50,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.3s",
+        background: "radial-gradient(600px circle at " + pos.x + "px " + pos.y + "px, rgba(108,158,247,0.06), transparent 40%)",
+      }}
+    />
   );
 }
 
-function DriftingShards() {
-  const shards = [
-    { x: "8%", y: "18%", text: "user@gmail.com", color: "#6c9ef7", delay: 0 },
-    { x: "82%", y: "22%", text: "PWD-LEAK", color: "#e05c4b", delay: 1.5 },
-    { x: "12%", y: "72%", text: "555-XXX-XXXX", color: "#c48b20", delay: 3 },
-    { x: "78%", y: "68%", text: "4532-XXXX-XXXX", color: "#e05c4b", delay: 4.5 },
-    { x: "5%", y: "45%", text: "SSN ###-##-####", color: "#b47fe8", delay: 2 },
-    { x: "85%", y: "48%", text: "192.168.1.X", color: "#6c9ef7", delay: 6 },
-    { x: "20%", y: "88%", text: "DOB 01/01/1990", color: "#b47fe8", delay: 5 },
-    { x: "70%", y: "85%", text: "passport X12345", color: "#b47fe8", delay: 3.5 },
-  ];
+function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setInView(true);
+      },
+      { threshold: 0.15 }
+    );
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <>
-      {shards.map((s, i) => (
-        <div key={i} style={{
-          position: "absolute", left: s.x, top: s.y, fontSize: "11px",
-          color: s.color, fontFamily: "ui-monospace, monospace",
-          padding: "5px 11px", borderRadius: "6px",
-          background: `10`, border: `1px solid 25`,
-          backdropFilter: "blur(8px)", whiteSpace: "nowrap",
-          animation: `drift 14s ease-in-out s infinite`,
-          opacity: 0, pointerEvents: "none", zIndex: 1,
-        }}>{s.text}</div>
-      ))}
-    </>
+    <div
+      ref={ref}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? "translateY(0)" : "translateY(24px)",
+        transition: "opacity 0.7s ease " + delay + "s, transform 0.7s ease " + delay + "s",
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
 function NavInner() {
   const { data: session, status } = useSession();
   const [scrollY, setScrollY] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const isAuth = status === "authenticated" && session?.user?.email;
   const ctaHref = isAuth ? "/app/dashboard" : "/launch";
   const ctaLabel = isAuth ? "Dashboard" : "Launch App";
@@ -65,70 +81,48 @@ function NavInner() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [menuOpen]);
-
   const navLinks = [
     { label: "How It Works", href: "/how-it-works" },
     { label: "Features", href: "/features" },
     { label: "Pricing", href: "/pricing" },
     { label: "Blog", href: "/blog" },
-    { label: "About", href: "/about" },
   ];
 
   return (
-    <>
-      {menuOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "#000", zIndex: 300, display: "flex", flexDirection: "column", padding: "20px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "48px" }}>
-            <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>ScanMyCreds</Link>
-            <button onClick={() => setMenuOpen(false)} style={{ width: "40px", height: "40px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", color: "#fff", fontSize: "20px", cursor: "pointer" }}>x</button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", gap: "4px" }}>
-            {navLinks.map(n => (
-              <Link key={n.label} href={n.href} onClick={() => setMenuOpen(false)} style={{ fontSize: "clamp(28px, 8vw, 44px)", fontWeight: 900, color: "rgba(255,255,255,0.6)", textDecoration: "none", padding: "10px 0", letterSpacing: "-0.04em", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>{n.label}</Link>
-            ))}
-            {isAuth ? (
-              <Link href="/app/account" onClick={() => setMenuOpen(false)} style={{ fontSize: "clamp(28px, 8vw, 44px)", fontWeight: 900, color: "rgba(255,255,255,0.6)", textDecoration: "none", padding: "10px 0", letterSpacing: "-0.04em", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>Account</Link>
-            ) : (
-              <Link href="/login" onClick={() => setMenuOpen(false)} style={{ fontSize: "clamp(28px, 8vw, 44px)", fontWeight: 900, color: "rgba(255,255,255,0.6)", textDecoration: "none", padding: "10px 0", letterSpacing: "-0.04em", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>Sign In</Link>
-            )}
-          </div>
-          <Link href={ctaHref} onClick={() => setMenuOpen(false)} style={{ display: "block", textAlign: "center", padding: "17px", fontSize: "16px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", marginTop: "24px", boxShadow: "0 0 40px rgba(255,255,255,0.3)" }}>{ctaLabel}</Link>
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", background: scrollY > 40 ? "rgba(0,0,0,0.96)" : "transparent", backdropFilter: scrollY > 40 ? "blur(20px)" : "none", borderBottom: scrollY > 40 ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent", transition: "all 0.3s" }}>
+      <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
+      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          {navLinks.map(n => (
+            <Link key={n.label} href={n.href} style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
+            >{n.label}</Link>
+          ))}
+          <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+          {isAuth ? (
+            <Link href="/app/account" style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px", transition: "all 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; e.currentTarget.style.background = "transparent"; }}
+            >
+              <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff", fontWeight: 700 }}>{session?.user?.email?.[0]?.toUpperCase()}</span>
+              Account
+            </Link>
+          ) : (
+            <Link href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>Sign In</Link>
+          )}
         </div>
-      )}
-
-      <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", background: `rgba(0,0,0,)`, backdropFilter: scrollY > 40 ? "blur(20px)" : "none", borderBottom: `1px solid rgba(255,255,255,)`, transition: "all 0.3s" }}>
-        <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            {navLinks.map(n => (
-              <Link key={n.label} href={n.href} style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>{n.label}</Link>
-            ))}
-            <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
-            {isAuth ? (
-              <Link href="/app/account" style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>
-                <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff", fontWeight: 700 }}>{session?.user?.email?.[0]?.toUpperCase()}</span>
-                Account
-              </Link>
-            ) : (
-              <Link href="/login" style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>Sign In</Link>
-            )}
-          </div>
-          <Link href={ctaHref} style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px rgba(255,255,255,0.22)" }}>{ctaLabel}</Link>
-          <button className="mobile-menu-btn" onClick={() => setMenuOpen(true)} style={{ display: "none", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", width: "38px", height: "38px", borderRadius: "9px", cursor: "pointer", fontSize: "18px", alignItems: "center", justifyContent: "center", marginLeft: "4px" }}>=</button>
-        </div>
-      </nav>
+        <Link href={ctaHref} style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px rgba(255,255,255,0.22)", transition: "all 0.25s" }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.5)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.22)"; e.currentTarget.style.transform = "translateY(0)"; }}
+        >{ctaLabel}</Link>
+      </div>
       <style>{`
-        .mobile-menu-btn { display: none !important; }
         @media (max-width: 640px) {
           .desktop-nav { display: none !important; }
-          .mobile-menu-btn { display: flex !important; }
         }
       `}</style>
-    </>
+    </nav>
   );
 }
 
@@ -136,15 +130,14 @@ function LandingInner() {
   const [email, setEmail] = useState("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<null | { breached: boolean; breachCount: number; breachSources: string[] }>(null);
-  const [scanProgress, setScanProgress] = useState(0);
   const [counter, setCounter] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [articles, setArticles] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     fetch("/api/stats").then(r => r.json()).then(d => setCounter(d.count || 14823491)).catch(() => setCounter(14823491));
-    fetch("/api/articles?limit=4").then(r => r.json()).then(d => setArticles(d.articles || [])).catch(() => {});
+    fetch("/api/articles?limit=3").then(r => r.json()).then(d => setArticles(d.articles || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -155,61 +148,64 @@ function LandingInner() {
 
   const runScan = async () => {
     if (!email.includes("@")) return;
-    setScanning(true); setResult(null); setScanProgress(0);
-    const progTimer = setInterval(() => setScanProgress(p => Math.min(p + Math.random() * 15, 90)), 300);
+    setScanning(true); setResult(null);
     try {
       const res = await fetch("/api/checkEmail", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: "", extensionCheck: true }),
       });
       const data = await res.json();
-      clearInterval(progTimer); setScanProgress(100);
-      setTimeout(() => { setResult({ breached: data.breached || false, breachCount: data.breachCount || 0, breachSources: data.breachSources || [] }); setScanning(false); }, 300);
+      setResult({ breached: data.breached || false, breachCount: data.breachCount || 0, breachSources: data.breachSources || [] });
     } catch {
-      clearInterval(progTimer);
-      setResult({ breached: false, breachCount: 0, breachSources: [] }); setScanning(false);
+      setResult({ breached: false, breachCount: 0, breachSources: [] });
     }
+    setScanning(false);
   };
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
+      <CursorSpotlight />
       <NavInner />
 
-      <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 20px 100px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.013) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.013) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)", width: "140vw", height: "80vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.12) 0%, rgba(108,158,247,0.04) 35%, transparent 65%)", pointerEvents: "none" }} />
+      <section style={{ minHeight: "92vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 20px 60px", position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.013) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.013) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none", animation: "gridPulse 8s ease-in-out infinite" }} />
+        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)", width: "140vw", height: "80vh", background: "radial-gradient(ellipse, rgba(224,92,75,0.12) 0%, rgba(108,158,247,0.04) 35%, transparent 65%)", pointerEvents: "none", animation: "auroraShift 12s ease-in-out infinite" }} />
 
-        <DriftingShards />
-
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "100px", marginBottom: "28px", background: "rgba(224,92,75,0.06)", zIndex: 2, opacity: mounted ? 1 : 0, transition: "all 0.5s ease" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "100px", marginBottom: "28px", background: "rgba(224,92,75,0.06)", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(-8px)", transition: "all 0.6s ease" }}>
           <span style={{ width: "7px", height: "7px", background: "#e05c4b", borderRadius: "50%", boxShadow: "0 0 10px #e05c4b", animation: "pulse 2s infinite" }} />
-          <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)" }}>{mounted && counter !== null ? counter.toLocaleString() : "—"} credentials scanned</span>
+          <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)" }}>{counter !== null ? counter.toLocaleString() : "—"} credentials scanned</span>
         </div>
 
-        <div style={{ textAlign: "center", position: "relative", zIndex: 2, marginBottom: "28px" }}>
-          <h1 style={{ fontSize: "clamp(56px, 15vw, 128px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.86 }}>
+        <div style={{ textAlign: "center", position: "relative", zIndex: 2, marginBottom: "28px", opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(20px)", transition: "all 0.8s ease 0.1s" }}>
+          <h1 style={{ fontSize: "clamp(56px, 14vw, 120px)", fontWeight: 900, letterSpacing: "-0.05em", lineHeight: 0.86 }}>
             <span style={{ display: "block" }}>Your data</span>
             <span style={{ display: "block" }}>is already</span>
-            <span style={{ display: "block", background: "linear-gradient(135deg, #e05c4b 0%, #b47fe8 50%, #6c9ef7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>for sale.</span>
+            <span style={{ display: "block", background: "linear-gradient(135deg, #e05c4b 0%, #b47fe8 50%, #6c9ef7 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundSize: "200% 200%", animation: "gradShift 6s ease infinite" }}>for sale.</span>
           </h1>
         </div>
 
-        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "clamp(15px, 3vw, 18px)", lineHeight: 1.65, maxWidth: "440px", marginBottom: "36px", textAlign: "center", position: "relative", zIndex: 2 }}>
-          17 billion credentials circulating on the dark web right now. Check if yours is one of them — free, in 10 seconds.
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "16px", lineHeight: 1.65, maxWidth: "420px", marginBottom: "32px", textAlign: "center", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(16px)", transition: "all 0.8s ease 0.25s" }}>
+          17 billion credentials are circulating on the dark web right now. Check yours in 10 seconds — free.
         </p>
 
-        <div style={{ width: "100%", maxWidth: "520px", position: "relative", zIndex: 2 }}>
-          <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "22px", padding: "22px", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)" }}>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "14px" }}>Free instant scan — no account needed</p>
+        <div style={{ width: "100%", maxWidth: "480px", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(16px)", transition: "all 0.8s ease 0.4s" }}>
+          <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "20px", padding: "20px", background: "rgba(0,0,0,0.7)", backdropFilter: "blur(20px)", boxShadow: "0 0 80px rgba(108,158,247,0.05)" }}>
             <input type="email" placeholder="your@email.com" value={email}
               onChange={e => { setEmail(e.target.value); setResult(null); }}
               onKeyDown={e => e.key === "Enter" && runScan()}
-              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", padding: "15px 18px", outline: "none", borderRadius: "12px", marginBottom: "8px", boxSizing: "border-box" }} />
-            <button onClick={runScan} disabled={scanning || !email.includes("@")} style={{ width: "100%", padding: "16px", fontSize: "15px", fontWeight: 700, color: "#000", background: scanning || !email.includes("@") ? "rgba(255,255,255,0.5)" : "#fff", border: "none", borderRadius: "12px", cursor: scanning || !email.includes("@") ? "not-allowed" : "pointer", boxShadow: scanning || !email.includes("@") ? "none" : "0 0 40px rgba(255,255,255,0.35)" }}>{scanning ? "Scanning..." : "Check now — it's free"}</button>
+              style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", padding: "15px 18px", outline: "none", borderRadius: "12px", marginBottom: "8px", boxSizing: "border-box", fontFamily: "inherit", transition: "all 0.2s" }}
+              onFocus={e => { e.currentTarget.style.borderColor = "rgba(108,158,247,0.4)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+              onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+            />
+            <button onClick={runScan} disabled={scanning || !email.includes("@")} style={{ width: "100%", padding: "15px", fontSize: "15px", fontWeight: 700, color: "#000", background: scanning || !email.includes("@") ? "rgba(255,255,255,0.5)" : "#fff", border: "none", borderRadius: "12px", cursor: scanning || !email.includes("@") ? "not-allowed" : "pointer", boxShadow: scanning || !email.includes("@") ? "none" : "0 0 40px rgba(255,255,255,0.35)", fontFamily: "inherit", transition: "all 0.25s" }}
+              onMouseEnter={e => { if (!scanning && email.includes("@")) { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; } }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = scanning || !email.includes("@") ? "none" : "0 0 40px rgba(255,255,255,0.35)"; e.currentTarget.style.transform = "translateY(0)"; }}
+            >{scanning ? "Scanning..." : "Check now — free"}</button>
+            <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", textAlign: "center", marginTop: "10px" }}>k-Anonymity. No data stored. No account needed.</p>
 
             {result && (
-              <div style={{ marginTop: "14px", padding: "18px", borderRadius: "14px", border: "1px solid " + (result.breached ? "rgba(224,92,75,0.35)" : "rgba(108,228,192,0.25)"), background: result.breached ? "rgba(224,92,75,0.07)" : "rgba(108,228,192,0.06)" }}>
-                <p style={{ color: result.breached ? "#e05c4b" : "#6ce4c0", fontSize: "15px", fontWeight: 700, marginBottom: "10px" }}>
+              <div style={{ marginTop: "14px", padding: "16px", borderRadius: "12px", border: "1px solid " + (result.breached ? "rgba(224,92,75,0.35)" : "rgba(108,228,192,0.25)"), background: result.breached ? "rgba(224,92,75,0.07)" : "rgba(108,228,192,0.06)", animation: "slideUp 0.4s ease" }}>
+                <p style={{ color: result.breached ? "#e05c4b" : "#6ce4c0", fontSize: "14px", fontWeight: 700, marginBottom: "10px" }}>
                   {result.breached ? "Found in " + result.breachCount + " breach" + (result.breachCount !== 1 ? "es" : "") : "No known breaches found"}
                 </p>
                 {result.breached && result.breachSources.length > 0 && (
@@ -219,120 +215,112 @@ function LandingInner() {
                     ))}
                   </div>
                 )}
-                <Link href="/launch" style={{ display: "block", textAlign: "center", padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>
-                  See full report
+                <Link href="/launch" style={{ display: "block", textAlign: "center", padding: "11px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>
+                  See full report →
                 </Link>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "32px", marginTop: "40px", flexWrap: "wrap", justifyContent: "center", zIndex: 2 }}>
-          {[{ val: "600+", label: "breach databases" }, { val: "17B+", label: "records indexed" }, { val: "k-Anon", label: "password privacy" }].map(s => (
+        <div style={{ display: "flex", alignItems: "center", gap: "32px", marginTop: "36px", flexWrap: "wrap", justifyContent: "center", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.6s" }}>
+          {[{ val: "600+", label: "breach sources" }, { val: "17B+", label: "records indexed" }, { val: "10s", label: "average scan time" }].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "22px", fontWeight: 800, color: "#fff" }}>{s.val}</p>
-              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>{s.label}</p>
+              <p style={{ fontSize: "20px", fontWeight: 800, color: "#fff" }}>{s.val}</p>
+              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{s.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section style={{ padding: "0 20px 96px" }}>
-        <div style={{ maxWidth: "920px", margin: "0 auto" }}>
-          <Section>
-            <div style={{ marginBottom: "32px" }}>
-              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Why trust us</p>
-              <h2 style={{ fontSize: "clamp(32px, 7vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92 }}>Built right.<br /><span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>Verified by you.</span></h2>
-            </div>
-          </Section>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
-            {[
-              { icon: "Lock", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
-              { icon: "Card", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
-              { icon: "Shield", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
-              { icon: "Person", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
-              { icon: "Cycle", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
-              { icon: "Open", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
-            ].map((t, i) => (
-              <Section key={i} delay={i * 0.05}>
-                <div style={{ padding: "20px", border: `1px solid 22`, borderRadius: "14px", background: `06`, position: "relative", overflow: "hidden", height: "100%" }}>
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, 60, transparent)` }} />
-                  <p style={{ fontSize: "9px", letterSpacing: "0.2em", color: t.color, textTransform: "uppercase", fontWeight: 700, marginBottom: "10px" }}>{t.icon}</p>
-                  <p style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "6px", letterSpacing: "-0.01em" }}>{t.title}</p>
-                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{t.desc}</p>
-                </div>
-              </Section>
-            ))}
+      <section style={{ padding: "60px 20px", maxWidth: "920px", margin: "0 auto" }}>
+        <FadeIn>
+          <div style={{ marginBottom: "32px" }}>
+            <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Why ScanMyCreds</p>
+            <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "8px" }}>Built right.</h2>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "15px" }}>Real protection. No fear-based marketing. No data sold.</p>
           </div>
-        </div>
-      </section>
+        </FadeIn>
 
-      <section style={{ padding: "0 20px 96px" }}>
-        <div style={{ maxWidth: "780px", margin: "0 auto" }}>
-          <Section>
-            <div style={{ padding: "40px 32px", borderRadius: "20px", border: "1px solid rgba(108,158,247,0.2)", background: "linear-gradient(135deg, rgba(108,158,247,0.06), rgba(180,127,232,0.04))", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(108,158,247,0.6), transparent)" }} />
-              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "#6c9ef7", textTransform: "uppercase", marginBottom: "16px", fontWeight: 700 }}>From the founder</p>
-              <h2 style={{ fontSize: "clamp(24px, 5vw, 36px)", fontWeight: 800, color: "#fff", marginBottom: "20px", letterSpacing: "-0.03em", lineHeight: 1.2 }}>"I built this because nobody else got it right."</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.75, marginBottom: "24px" }}>
-                <p>ScanMyCreds isn't backed by VCs or run by a marketing department. It's an independent product built by people who got tired of breach checkers that scare you and password managers that leave you on your own when leaks happen.</p>
-                <p>Every email to <a href="mailto:support@scanmycreds.com" style={{ color: "#6c9ef7", textDecoration: "underline" }}>support@scanmycreds.com</a> is read by a real person. Most are answered within 24 hours.</p>
-                <p>If you ever feel something is wrong with the product, the pricing, or the response — tell us. We listen.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+          {[
+            { title: "k-Anonymity", desc: "Your password never leaves your device.", color: "#6c9ef7" },
+            { title: "Stripe billing", desc: "PCI-DSS Level 1. We never see your card.", color: "#b47fe8" },
+            { title: "No data sold", desc: "Subscription-funded. Period.", color: "#6ce4c0" },
+            { title: "Real humans", desc: "Email support@scanmycreds.com — 24h reply.", color: "#c48b20" },
+            { title: "Cancel anytime", desc: "30-day refund. No phone calls.", color: "#e05c4b" },
+            { title: "Open methodology", desc: "Public sources only. No lock-in.", color: "#b47fe8" },
+          ].map((t, i) => (
+            <FadeIn key={t.title} delay={i * 0.05}>
+              <div style={{ padding: "18px", border: "1px solid " + t.color + "22", borderRadius: "12px", background: t.color + "06", height: "100%", transition: "all 0.3s", cursor: "default" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = t.color + "55"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.background = t.color + "0d"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = t.color + "22"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.background = t.color + "06"; }}
+              >
+                <p style={{ fontSize: "14px", fontWeight: 700, color: t.color, marginBottom: "6px" }}>{t.title}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{t.desc}</p>
               </div>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <Link href="/about" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", borderRadius: "9px" }}>Read our story</Link>
-                <Link href="/security" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.6)", background: "transparent", border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none", borderRadius: "9px" }}>Security details</Link>
-              </div>
-            </div>
-          </Section>
+            </FadeIn>
+          ))}
         </div>
       </section>
 
       {articles.length > 0 && (
-        <section style={{ padding: "0 20px 96px" }}>
-          <div style={{ maxWidth: "920px", margin: "0 auto" }}>
-            <Section>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-                <div>
-                  <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>From the blog</p>
-                  <h2 style={{ fontSize: "clamp(32px, 7vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92 }}>Latest research<span style={{ color: "rgba(255,255,255,0.3)" }}>.</span></h2>
-                </div>
-                <Link href="/blog" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none", padding: "10px 18px", borderRadius: "9px", border: "1px solid rgba(255,255,255,0.1)" }}>View all</Link>
+        <section style={{ padding: "60px 20px", maxWidth: "920px", margin: "0 auto" }}>
+          <FadeIn>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "10px" }}>From the blog</p>
+                <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1 }}>Latest research.</h2>
               </div>
-            </Section>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
-              {articles.slice(0, 4).map((a, i) => (
-                <Section key={a._id} delay={i * 0.08}>
-                  <Link href={`/blog/`} style={{ display: "block", padding: "22px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", textDecoration: "none", height: "100%" }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: a.coverColor + "15", border: `1px solid 30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", marginBottom: "16px" }}>{a.coverEmoji}</div>
-                    <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: a.coverColor, textTransform: "uppercase", fontWeight: 700, marginBottom: "8px", display: "block" }}>{a.category}</span>
-                    <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em", lineHeight: 1.3 }}>{a.title}</h3>
-                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: "12px" }}>{a.excerpt}</p>
-                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>{a.readMinutes} min read</p>
-                  </Link>
-                </Section>
-              ))}
+              <Link href="/blog" style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", textDecoration: "none", padding: "9px 16px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", transition: "all 0.2s" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+              >View all →</Link>
             </div>
+          </FadeIn>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "10px" }}>
+            {articles.slice(0, 3).map((a, i) => (
+              <FadeIn key={a._id} delay={i * 0.08}>
+                <Link href={"/blog/" + a.slug} style={{ display: "block", padding: "20px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.015)", textDecoration: "none", height: "100%", transition: "all 0.3s" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = a.coverColor + "44"; e.currentTarget.style.background = a.coverColor + "06"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.background = "rgba(255,255,255,0.015)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                >
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: a.coverColor + "15", border: "1px solid " + a.coverColor + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", marginBottom: "14px" }}>{a.coverEmoji}</div>
+                  <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: a.coverColor, textTransform: "uppercase", fontWeight: 700, marginBottom: "8px", display: "block" }}>{a.category}</span>
+                  <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em", lineHeight: 1.3 }}>{a.title}</h3>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", lineHeight: 1.55, marginBottom: "10px" }}>{a.excerpt}</p>
+                  <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)" }}>{a.readMinutes} min read</p>
+                </Link>
+              </FadeIn>
+            ))}
           </div>
         </section>
       )}
 
-      <section style={{ padding: "96px 20px 120px", borderTop: "1px solid rgba(255,255,255,0.06)", textAlign: "center" }}>
-        <h2 style={{ fontSize: "clamp(48px, 13vw, 112px)", fontWeight: 900, letterSpacing: "-0.05em", marginBottom: "20px", lineHeight: 0.86 }}>Find out<br /><span style={{ background: "linear-gradient(135deg, #e05c4b, #b47fe8, #6c9ef7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>right now.</span></h2>
-        <p style={{ color: "rgba(255,255,255,0.25)", fontSize: "17px", marginBottom: "44px" }}>Free. 10 seconds. No sign up required to start.</p>
-        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/launch" style={{ padding: "18px 56px", fontSize: "17px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", boxShadow: "0 0 60px rgba(255,255,255,0.4)" }}>Scan my credentials</Link>
-          <Link href="/pricing" style={{ padding: "18px 32px", fontSize: "17px", fontWeight: 700, color: "rgba(255,255,255,0.45)", background: "transparent", textDecoration: "none", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.12)" }}>See pricing</Link>
-        </div>
+      <section style={{ padding: "80px 20px 100px", borderTop: "1px solid rgba(255,255,255,0.06)", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "120%", height: "200%", background: "radial-gradient(ellipse at center, rgba(108,158,247,0.05), transparent 60%)", pointerEvents: "none" }} />
+        <FadeIn>
+          <h2 style={{ fontSize: "clamp(40px, 10vw, 96px)", fontWeight: 900, letterSpacing: "-0.05em", marginBottom: "16px", lineHeight: 0.92, position: "relative" }}>
+            <span style={{ display: "block" }}>Find out</span>
+            <span style={{ display: "block", background: "linear-gradient(135deg, #e05c4b, #b47fe8, #6c9ef7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundSize: "200% 200%", animation: "gradShift 6s ease infinite" }}>right now.</span>
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "15px", marginBottom: "32px", position: "relative" }}>Free. 10 seconds. No signup.</p>
+          <Link href="/launch" style={{ display: "inline-block", padding: "16px 44px", fontSize: "15px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "12px", boxShadow: "0 0 60px rgba(255,255,255,0.4)", position: "relative", transition: "all 0.25s" }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 100px rgba(255,255,255,0.7)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.4)"; e.currentTarget.style.transform = "translateY(0)"; }}
+          >Scan my credentials →</Link>
+        </FadeIn>
       </section>
 
-      <footer style={{ padding: "28px 28px 32px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 800, letterSpacing: "0.15em" }}>SCANMYCREDS</p>
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {[{ label: "How It Works", href: "/how-it-works" }, { label: "Features", href: "/features" }, { label: "Pricing", href: "/pricing" }, { label: "Blog", href: "/blog" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
-              <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.15)", fontSize: "12px", textDecoration: "none" }}>{l.label}</Link>
+      <footer style={{ padding: "24px 28px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "11px", fontWeight: 800, letterSpacing: "0.15em" }}>SCANMYCREDS</p>
+          <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
+            {[{ label: "How It Works", href: "/how-it-works" }, { label: "Features", href: "/features" }, { label: "Pricing", href: "/pricing" }, { label: "Blog", href: "/blog" }, { label: "About", href: "/about" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
+              <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.15)", fontSize: "11px", textDecoration: "none", transition: "color 0.2s" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.15)"; }}
+              >{l.label}</Link>
             ))}
           </div>
         </div>
@@ -341,12 +329,10 @@ function LandingInner() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes drift {
-          0%   { opacity: 0; transform: translate(0,0); }
-          15%  { opacity: 0.85; }
-          85%  { opacity: 0.85; }
-          100% { opacity: 0; transform: translate(40px, -60px); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes gradShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        @keyframes auroraShift { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.1); opacity: 0.85; } }
+        @keyframes gridPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
       `}</style>
     </div>
   );

@@ -1,178 +1,119 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
-import AppNav from "@/components/AppNav";
+import PageShell from "@/components/PageShell";
+import Card from "@/components/Card";
 
-type WatchedEmail = { _id: string; email: string; lastBreachCount: number; lastChecked: string | null; alertsEnabled: boolean; createdAt: string; };
+interface WatchEntry { email: string; lastChecked?: number; breached?: boolean | null; breachCount?: number; breachSources?: string[]; addedAt?: number; }
 
 export default function Watchlist() {
-  const { data: session, status } = useSession();
-  const [watched, setWatched] = useState<WatchedEmail[]>([]);
-  const [limit, setLimit] = useState<number | null>(3);
-  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
+  const [emails, setEmails] = useState<WatchEntry[]>([]);
   const [newEmail, setNewEmail] = useState("");
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [scanning, setScanning] = useState<string | null>(null);
   const isPro = (session?.user as any)?.isPro || false;
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetch("/api/watchlist").then(r => r.json()).then(d => {
-        setWatched(d.watched || []);
-        setLimit(d.limit);
-        setLoading(false);
-      }).catch(() => setLoading(false));
-    }
-  }, [status]);
+  useEffect(() => { load(); }, []);
 
-  const addEmail = async () => {
-    if (!newEmail || !newEmail.includes("@")) return setError("Enter a valid email");
-    setAdding(true); setError(""); setSuccess("");
-    const res = await fetch("/api/watchlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: newEmail }) });
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/watchlist");
     const data = await res.json();
-    if (!res.ok) { setError(data.error); setAdding(false); return; }
-    setWatched(prev => [data.watched, ...prev]);
-    setNewEmail(""); setSuccess("Email added to watchlist"); setAdding(false);
-    setTimeout(() => setSuccess(""), 3000);
-  };
-
-  const removeEmail = async (email: string) => {
-    await fetch("/api/watchlist", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-    setWatched(prev => prev.filter(w => w.email !== email));
-  };
-
-  if (status === "loading") return null;
-
-  if (status === "unauthenticated") {
-    return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-        <Link href="/login" style={{ padding: "13px 36px", fontSize: "14px", fontWeight: 600, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px" }}>Sign in →</Link>
-      </div>
-    );
+    setEmails(data.emails || []);
+    setLoading(false);
   }
 
-  const limitReached = !isPro && limit !== null && watched.length >= limit;
-  const pct = isPro ? 100 : limit ? Math.min((watched.length / limit) * 100, 100) : 0;
-  const limitColor = isPro ? "#6ce4c0" : limitReached ? "#e05c4b" : limit && watched.length >= limit - 1 ? "#c48b20" : "#6ce4c0";
+  async function add() {
+    if (!newEmail.includes("@")) return;
+    setAdding(true);
+    const res = await fetch("/api/watchlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: newEmail }) });
+    const data = await res.json();
+    if (data.error) alert(data.error);
+    else { setNewEmail(""); load(); }
+    setAdding(false);
+  }
+
+  async function remove(email: string) {
+    await fetch("/api/watchlist", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+    load();
+  }
+
+  async function scan(email: string) {
+    setScanning(email);
+    const res = await fetch("/api/checkEmail", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password: "", extensionCheck: true }) });
+    const data = await res.json();
+    await fetch("/api/watchlist", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, lastChecked: Date.now(), breached: data.breached || false, breachCount: data.breachCount || 0, breachSources: data.breachSources || [] }) });
+    setScanning(null);
+    load();
+  }
+
+  function getStatus(e: WatchEntry) {
+    if (e.lastChecked === undefined || e.breached === undefined || e.breached === null) return { label: "Unscanned", color: "rgba(255,255,255,0.4)", bg: "rgba(255,255,255,0.04)", border: "rgba(255,255,255,0.08)" };
+    if (e.breached) return { label: "Breached (" + (e.breachCount || 0) + ")", color: "#e05c4b", bg: "rgba(224,92,75,0.08)", border: "rgba(224,92,75,0.25)" };
+    return { label: "Clean", color: "#6ce4c0", bg: "rgba(108,228,192,0.08)", border: "rgba(108,228,192,0.25)" };
+  }
+
+  function timeAgo(ts?: number) {
+    if (!ts) return "Never scanned";
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "Just now";
+    if (m < 60) return m + "m ago";
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + "h ago";
+    return Math.floor(h / 24) + "d ago";
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <AppNav />
-      <div style={{ maxWidth: "640px", margin: "0 auto", padding: "32px 16px 48px" }}>
-
-        <div style={{ marginBottom: "32px" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "6px" }}>Breach monitoring</p>
-          <h1 style={{ fontSize: "clamp(24px, 5vw, 38px)", fontWeight: 800, letterSpacing: "-0.04em", color: "#fff", lineHeight: 1.1 }}>Watchlist</h1>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", marginTop: "8px", lineHeight: 1.6 }}>Add emails to monitor. Get alerted instantly when a new breach is detected.</p>
+    <PageShell eyebrow="Breach monitoring" title="Watchlist" subtitle="Add emails to monitor. Scan anytime. Get alerted instantly when a new breach is detected.">
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>Monitored emails</span>
+          <span style={{ fontSize: "13px", fontWeight: 700, color: "#6ce4c0" }}>{emails.length} <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 400, fontSize: "11px" }}>· {isPro ? "unlimited" : "max 3 (free)"}</span></span>
         </div>
+      </Card>
 
-        <div style={{ marginBottom: "16px", padding: "18px 20px", borderRadius: "16px", border: `1px solid ${limitColor}20`, background: `${limitColor}05`, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${limitColor}50, transparent)` }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>Monitored emails</span>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: limitColor, textShadow: `0 0 12px ${limitColor}` }}>
-              {watched.length}
-              {!isPro && limit !== null && (
-                <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.2)" }}> / {limit}</span>
-              )}
-              {isPro && (
-                <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.2)" }}> · unlimited</span>
-              )}
-            </span>
-          </div>
-          {!isPro && (
-            <div style={{ height: "4px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: limitColor, borderRadius: "4px", boxShadow: `0 0 8px ${limitColor}`, transition: "width 0.6s ease" }} />
-            </div>
-          )}
-          {limitReached && (
-            <p style={{ fontSize: "11px", color: "#c48b20", marginTop: "8px" }}>
-              Limit reached · <Link href="/pricing" style={{ color: "#6c9ef7", textDecoration: "none" }}>Upgrade to Pro for unlimited →</Link>
-            </p>
-          )}
+      <Card>
+        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Add email to monitor</p>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && add()} placeholder="email@example.com" style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+          <button onClick={add} disabled={adding || !newEmail.includes("@")} style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#000", background: adding || !newEmail.includes("@") ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: adding || !newEmail.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{adding ? "..." : "Add →"}</button>
         </div>
+        {!isPro && emails.length >= 3 && <p style={{ marginTop: "10px", fontSize: "11px", color: "#c48b20" }}>Free tier limit reached. <a href="/pricing" style={{ color: "#6c9ef7", textDecoration: "underline" }}>Upgrade to Pro</a> for unlimited.</p>}
+      </Card>
 
-        {!limitReached && (
-          <div style={{ marginBottom: "16px", padding: "20px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(255,255,255,0.08), transparent)" }} />
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Add email to monitor</p>
-            {error && <p style={{ fontSize: "12px", color: "#e05c4b", marginBottom: "10px", padding: "9px 12px", borderRadius: "8px", background: "rgba(224,92,75,0.08)", border: "1px solid rgba(224,92,75,0.2)" }}>⚠ {error}</p>}
-            {success && <p style={{ fontSize: "12px", color: "#6ce4c0", marginBottom: "10px", padding: "9px 12px", borderRadius: "8px", background: "rgba(108,228,192,0.08)", border: "1px solid rgba(108,228,192,0.2)" }}>✓ {success}</p>}
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input type="email" placeholder="email@example.com" value={newEmail}
-                onChange={e => { setNewEmail(e.target.value); setError(""); }}
-                onKeyDown={e => e.key === "Enter" && addEmail()}
-                style={{ flex: 1, padding: "12px 14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#fff", fontSize: "14px", borderRadius: "10px", outline: "none", transition: "all 0.2s" }}
-                onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-              />
-              <button onClick={addEmail} disabled={adding} style={{ padding: "12px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "10px", cursor: adding ? "not-allowed" : "pointer", opacity: adding ? 0.6 : 1, boxShadow: "0 0 20px rgba(255,255,255,0.2)", whiteSpace: "nowrap", transition: "all 0.2s" }}>
-                {adding ? "..." : "Add →"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {[1,2].map(i => <div key={i} style={{ height: "72px", borderRadius: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }} />)}
-          </div>
-        ) : watched.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <div style={{ fontSize: "32px", marginBottom: "14px", opacity: 0.2 }}>👁</div>
-            <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "13px" }}>No emails being monitored</p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {watched.map(w => (
-              <div key={w._id} style={{ padding: "16px 18px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)", position: "relative", overflow: "hidden", transition: "all 0.2s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
-              >
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(108,228,192,0.3), transparent)" }} />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
-                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 6px #6ce4c0", flexShrink: 0, animation: "pulse 2s infinite" }} />
-                      <p style={{ fontSize: "14px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.email}</p>
-                    </div>
-                    <div style={{ display: "flex", gap: "12px", paddingLeft: "14px" }}>
-                      <span style={{ fontSize: "11px", color: w.lastBreachCount > 0 ? "#e05c4b" : "rgba(255,255,255,0.25)", fontWeight: w.lastBreachCount > 0 ? 600 : 400 }}>
-                        {w.lastBreachCount > 0 ? `⚠ ${w.lastBreachCount} breaches` : "✓ Clean"}
-                      </span>
-                      <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)" }}>
-                        {w.lastChecked ? `Checked ${new Date(w.lastChecked).toLocaleDateString()}` : "Not checked yet"}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                    <Link href="/app" style={{ padding: "6px 12px", fontSize: "11px", fontWeight: 600, color: "#6c9ef7", background: "rgba(108,158,247,0.08)", border: "1px solid rgba(108,158,247,0.2)", borderRadius: "7px", textDecoration: "none" }}>Scan</Link>
-                    <button onClick={() => removeEmail(w.email)} style={{ padding: "6px 12px", fontSize: "11px", fontWeight: 600, color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.15)", borderRadius: "7px", cursor: "pointer" }}>Remove</button>
-                  </div>
+      {loading ? <Card><p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textAlign: "center" }}>Loading...</p></Card> : emails.length === 0 ? <Card><p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textAlign: "center" }}>No emails monitored yet. Add one above.</p></Card> : emails.map(e => {
+        const status = getStatus(e);
+        return (
+          <Card key={e.email}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: status.color, boxShadow: "0 0 6px " + status.color }} />
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.email}</p>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: status.bg, color: status.color, border: "1px solid " + status.border, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{status.label}</span>
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>{timeAgo(e.lastChecked)}</span>
+                </div>
+                {e.breached && e.breachSources && e.breachSources.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "8px" }}>
+                    {e.breachSources.slice(0, 5).map(s => <span key={s} style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(224,92,75,0.1)", color: "#e05c4b" }}>{s}</span>)}
+                    {e.breachSources.length > 5 && <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>+{e.breachSources.length - 5}</span>}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ marginTop: "24px", padding: "18px 20px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px" }}>How it works</p>
-          {[
-            { color: "#6c9ef7", text: "Emails are checked against breach databases every 24 hours" },
-            { color: "#b47fe8", text: "You get an instant email alert if a new breach is detected" },
-            { color: "#6ce4c0", text: isPro ? "Pro: unlimited monitored emails" : "Free: monitor up to 3 emails · Pro: unlimited" },
-          ].map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", marginBottom: i < 2 ? "10px" : "0" }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: item.color, boxShadow: `0 0 5px ${item.color}`, flexShrink: 0, marginTop: "5px" }} />
-              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>{item.text}</p>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={() => scan(e.email)} disabled={scanning === e.email} style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 600, color: "#6c9ef7", background: "rgba(108,158,247,0.06)", border: "1px solid rgba(108,158,247,0.25)", borderRadius: "8px", cursor: scanning === e.email ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{scanning === e.email ? "..." : "Scan"}</button>
+                <button onClick={() => remove(e.email)} style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 600, color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.25)", borderRadius: "8px", cursor: "pointer", fontFamily: "inherit" }}>Remove</button>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } input::placeholder{color:rgba(255,255,255,0.2);} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
-    </div>
+          </Card>
+        );
+      })}
+    </PageShell>
   );
 }
