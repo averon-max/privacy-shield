@@ -1,11 +1,7 @@
+"use client";
 import Link from "next/link";
 import PublicNav from "@/components/PublicNav";
 import PublicFooter from "@/components/PublicFooter";
-
-export const metadata = {
-  title: "How It Works — ScanMyCreds",
-  description: "How ScanMyCreds checks 600+ breach databases in 10 seconds.",
-};
 
 export default function HowItWorks() {
   return (

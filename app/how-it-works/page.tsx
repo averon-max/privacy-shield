@@ -1,11 +1,7 @@
+"use client";
 import Link from "next/link";
 import PublicNav from "@/components/PublicNav";
 import PublicFooter from "@/components/PublicFooter";
-
-export const metadata = {
-  title: "Terms of Service — ScanMyCreds",
-  description: "The terms that apply when you use ScanMyCreds.",
-};
 
 export default function Terms() {
   return (

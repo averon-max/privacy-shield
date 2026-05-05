@@ -1,11 +1,7 @@
+"use client";
 import Link from "next/link";
 import PublicNav from "@/components/PublicNav";
 import PublicFooter from "@/components/PublicFooter";
-
-export const metadata = {
-  title: "Security — ScanMyCreds",
-  description: "How we protect your data: k-Anonymity, encryption, and zero data retention.",
-};
 
 export default function Security() {
   return (

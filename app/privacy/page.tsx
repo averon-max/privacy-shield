@@ -1,11 +1,7 @@
+"use client";
 import Link from "next/link";
 import PublicNav from "@/components/PublicNav";
 import PublicFooter from "@/components/PublicFooter";
-
-export const metadata = {
-  title: "Privacy Policy — ScanMyCreds",
-  description: "Our privacy policy: what we collect, what we don't, and how we protect your data.",
-};
 
 export default function Privacy() {
   return (
