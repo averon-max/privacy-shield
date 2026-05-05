@@ -100,7 +100,7 @@ export default function FamilyPage() {
     borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit",
   };
 
-  if (loading) return <PageShell title="Family"><Card><div style={{ height: "120px" }} /></Card></PageShell>;
+  if (loading) return <PageShell eyebrow="Family hub" title="Family"><Card><div style={{ height: "120px" }} /></Card></PageShell>;
 
   const familyAvgScore = family?.members?.length
     ? Math.round(family.members.reduce((s: number, m: any) => s + (m.score || 0), 0) / family.members.length)
