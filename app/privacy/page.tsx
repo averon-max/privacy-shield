@@ -1,78 +1,47 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import PublicNav from "@/components/PublicNav";
+import PublicFooter from "@/components/PublicFooter";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "ScanMyCreds privacy policy. We never store your passwords. k-Anonymity protects all credential checks.",
-  alternates: { canonical: "https://www.scanmycreds.com/privacy" },
+export const metadata = {
+  title: "Privacy Policy — ScanMyCreds",
+  description: "Our privacy policy: what we collect, what we don't, and how we protect your data.",
 };
 
 export default function Privacy() {
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <nav style={{ padding: "18px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontSize: "12px", letterSpacing: "0.2em", fontWeight: 800, color: "rgba(255,255,255,0.4)", textDecoration: "none", textTransform: "uppercase" }}>ScanMyCreds</Link>
-        <Link href="/" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>← Back</Link>
-      </nav>
+      <PublicNav />
 
-      <div style={{ maxWidth: "680px", margin: "0 auto", padding: "64px 24px 80px" }}>
-        <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.18)", textTransform: "uppercase", marginBottom: "12px" }}>Legal</p>
-        <h1 style={{ fontSize: "clamp(32px, 6vw, 52px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "8px" }}>Privacy Policy</h1>
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.25)", marginBottom: "48px" }}>Last updated: April 2026</p>
+      <section style={{ padding: "140px 24px 60px", maxWidth: "720px", margin: "0 auto" }}>
+        <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "20px" }}>Privacy policy</p>
+        <h1 style={{ fontSize: "clamp(36px, 7vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "16px" }}>Privacy Policy</h1>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", marginBottom: "36px" }}>Plain-language version. Last updated: 2026.</p>
+
+        <div style={{ padding: "24px 28px", border: "1px solid rgba(108,228,192,0.25)", background: "rgba(108,228,192,0.04)", borderRadius: "14px", marginBottom: "32px" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#6ce4c0", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>The short version</p>
+          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.7)", lineHeight: 1.7 }}>We collect the absolute minimum needed to run the service: your email, your scan history, and what you choose to add to watchlists or accounts. We do not sell your data. We do not show ads. We do not track you across other sites. Your password is never stored or transmitted in plain text.</p>
+        </div>
 
         {[
-          {
-            title: "What we collect",
-            body: "We collect your email address when you create an account. We collect scan results (which email was scanned, whether it was breached, whether the password was exposed) to build your scan history. We collect standard server logs (IP addresses, timestamps) for security and rate limiting. We do not collect your plain-text password — ever.",
-          },
-          {
-            title: "What we never do",
-            body: "We never store your plain-text password. Password checks use the k-anonymity model: your password is hashed locally in your browser using SHA-1, and only the first 5 characters of that hash are sent to the Have I Been Pwned API. The full hash and original password never leave your device. We never sell your data. We never share your email with third parties except as required to deliver the service (e.g., sending breach alert emails via Resend).",
-          },
-          {
-            title: "How k-anonymity works",
-            body: "When you check a password, we compute SHA1(password) locally, take the first 5 hex characters, and send those to the HIBP Pwned Passwords API. The API returns all hash suffixes that begin with those 5 characters. We then check locally if your full hash is in that list. Your password never leaves your device in any identifiable form.",
-          },
-          {
-            title: "Breach scan data",
-            body: "When you scan an email, we call the XposedOrNot API with your email address to check for breaches. We store the result (email scanned, breached yes/no, breach count) in our database associated with your account. This powers your scan history and dashboard. You can delete your scan history at any time from the History page.",
-          },
-          {
-            title: "Cookies and sessions",
-            body: "We use HTTP-only cookies to maintain your login session via NextAuth. We use localStorage to cache the live scan counter on the landing page. We do not use advertising cookies or third-party tracking.",
-          },
-          {
-            title: "Payments",
-            body: "Payments are processed by Stripe. We never see or store your card details. We store your Stripe customer ID and subscription status to manage your Pro access. Stripe's privacy policy applies to payment data.",
-          },
-          {
-            title: "Data retention",
-            body: "We retain your account data as long as your account exists. You can request deletion of your account and all associated data by emailing privacy@scanmycreds.com. We will process deletion requests within 30 days.",
-          },
-          {
-            title: "Your rights",
-            body: "You have the right to access, correct, or delete your personal data. You can export your scan history as CSV from the History page. For account deletion or data export requests, contact privacy@scanmycreds.com.",
-          },
-          {
-            title: "Contact",
-            body: "For privacy questions or data requests, email privacy@scanmycreds.com.",
-          },
-        ].map((section, i) => (
-          <div key={i} style={{ marginBottom: "36px" }}>
-            <h2 style={{ fontSize: "17px", fontWeight: 700, color: "#fff", marginBottom: "10px", letterSpacing: "-0.01em" }}>{section.title}</h2>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.45)", lineHeight: 1.75 }}>{section.body}</p>
+          { t: "1. What we collect", c: "When you sign up, we collect your email address (via Google OAuth or direct entry). When you scan an email, we store the email and breach result. When you check a password, we use k-Anonymity — only the first 5 characters of a SHA-1 hash leave your browser. We never collect or store the password itself. We collect basic usage data (page views, button clicks) for product improvement. No third-party trackers, no Facebook pixels, no data brokers." },
+          { t: "2. What we don't collect", c: "We don't collect your real name unless you provide it. We don't collect your phone number. We don't collect your location beyond country-level (from IP, for fraud prevention). We don't read your emails, browse your accounts, or scrape any third-party services on your behalf." },
+          { t: "3. How we use your data", c: "We use your email to authenticate you, send breach alerts you've subscribed to, and contact you about important account changes (like billing). We use scan history to power features you've enabled (watchlist, briefings, alerts). We never use your data to train AI models, build profiles for advertisers, or share with anyone outside the service." },
+          { t: "4. Who we share with", c: "Stripe — for payment processing. They receive your email and billing details (we never see your card number). Resend — for email delivery. They process your email to deliver our messages. MongoDB Atlas — our database provider, holds encrypted data at rest. Google — if you sign in with Google OAuth. That's the entire list. We do not share with advertisers, data brokers, or analytics companies that monetize personal data." },
+          { t: "5. Cookies", c: "We use one essential cookie for authentication (your session token). We don't use tracking cookies, ad cookies, or third-party marketing cookies. If we add analytics in the future, it will be a privacy-first tool like Plausible (no cookies, no fingerprinting)." },
+          { t: "6. Your rights (GDPR, CCPA, and friends)", c: "You can request a copy of all data we have on you, or ask us to delete your account, by emailing privacy@scanmycreds.com. We will respond within 30 days. You can delete your account yourself at any time from settings — this immediately removes all your data from our active systems and triggers a 30-day backup deletion." },
+          { t: "7. Data retention", c: "We keep your account data while your account is active. When you delete your account, your data is removed from active systems immediately and from backups within 30 days. Breach scan logs older than 12 months are auto-purged." },
+          { t: "8. Children's privacy", c: "ScanMyCreds is not intended for children under 13. If you're a parent and believe your child has signed up, email us at privacy@scanmycreds.com and we'll delete the account immediately." },
+          { t: "9. Changes to this policy", c: "If we make material changes, we'll email you and post a notice at the top of this page at least 14 days before the change takes effect. We'll never quietly degrade your privacy." },
+          { t: "10. Contact", c: "Questions, complaints, or requests: privacy@scanmycreds.com. We respond within 30 days, usually within 24 hours." },
+        ].map((s, i) => (
+          <div key={i} style={{ marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#fff", marginBottom: "10px", letterSpacing: "-0.02em" }}>{s.t}</h2>
+            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.75 }}>{s.c}</p>
           </div>
         ))}
+      </section>
 
-        <div style={{ padding: "20px 24px", borderRadius: "12px", border: "1px solid rgba(108,228,192,0.15)", background: "rgba(108,228,192,0.04)", marginTop: "48px" }}>
-          <p style={{ fontSize: "13px", fontWeight: 700, color: "#6ce4c0", marginBottom: "6px" }}>The short version</p>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.65 }}>
-            Your password never leaves your device. We don't sell your data. You can delete everything. That's the whole deal.
-          </p>
-        </div>
-      </div>
-
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
+      <PublicFooter />
     </div>
   );
 }

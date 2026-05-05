@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import PublicNav from "@/components/PublicNav";
+import PublicFooter from "@/components/PublicFooter";
 
 export default function BlogIndex() {
   const [articles, setArticles] = useState<any[]>([]);
@@ -19,13 +21,9 @@ export default function BlogIndex() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <PublicNav />
 
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(0,0,0,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
-        <Link href="/app" style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>Launch App</Link>
-      </nav>
-
-      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "60px 24px 48px" }}>
+      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "140px 24px 48px" }}>
 
         <div style={{ marginBottom: "40px" }}>
           <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Research & guides</p>
@@ -71,26 +69,14 @@ export default function BlogIndex() {
                 <span style={{ fontSize: "9px", letterSpacing: "0.15em", color: a.coverColor, textTransform: "uppercase", fontWeight: 700, marginBottom: "8px", display: "block" }}>{a.category}</span>
                 <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em", lineHeight: 1.3 }}>{a.title}</h2>
                 <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", lineHeight: 1.6, marginBottom: "14px" }}>{a.excerpt}</p>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>
-                  <span>{a.readMinutes} min read</span>
-                  {a.publishedAt && <span>{new Date(a.publishedAt).toLocaleDateString()}</span>}
-                </div>
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)" }}>{a.readMinutes} min read</p>
               </Link>
             ))}
           </div>
         )}
       </div>
 
-      <footer style={{ padding: "28px", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: "60px" }}>
-        <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 800, letterSpacing: "0.15em" }}>SCANMYCREDS</p>
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {[{ label: "Home", href: "/" }, { label: "Pricing", href: "/pricing" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
-              <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", textDecoration: "none" }}>{l.label}</Link>
-            ))}
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
 
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }

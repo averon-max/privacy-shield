@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
+import PublicNav from "@/components/PublicNav";
+import PublicFooter from "@/components/PublicFooter";
 
 export default function BlogPost() {
   const params = useParams();
@@ -23,35 +25,30 @@ export default function BlogPost() {
     });
   }, [slug]);
 
-  if (loading) {
-    return <div style={{ minHeight: "100vh", background: "#000" }} />;
-  }
+  if (loading) return <div style={{ minHeight: "100vh", background: "#000" }} />;
 
   if (notFound || !article) {
     return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', system-ui, sans-serif", padding: "20px" }}>
-        <div style={{ textAlign: "center", maxWidth: "440px" }}>
-          <p style={{ color: "#666", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>404</p>
-          <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#fff", marginBottom: "12px", letterSpacing: "-0.03em" }}>Article not found</h1>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px", marginBottom: "28px" }}>This post doesn't exist or hasn't been published yet.</p>
-          <Link href="/blog" style={{ display: "inline-block", padding: "13px 30px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>Back to blog →</Link>
+      <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+        <PublicNav />
+        <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ textAlign: "center", maxWidth: "440px" }}>
+            <p style={{ color: "#666", fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>404</p>
+            <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#fff", marginBottom: "12px", letterSpacing: "-0.03em" }}>Article not found</h1>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "14px", marginBottom: "28px" }}>This post doesn't exist or hasn't been published yet.</p>
+            <Link href="/blog" style={{ display: "inline-block", padding: "13px 30px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>Back to blog →</Link>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     );
   }
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <PublicNav />
 
-      <nav style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(0,0,0,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.2em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link href="/blog" style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textDecoration: "none" }}>← All articles</Link>
-          <Link href="/app" style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>Launch App</Link>
-        </div>
-      </nav>
-
-      <article style={{ maxWidth: "720px", margin: "0 auto", padding: "60px 24px 80px" }}>
+      <article style={{ maxWidth: "720px", margin: "0 auto", padding: "140px 24px 80px" }}>
 
         <div style={{ marginBottom: "40px", textAlign: "center" }}>
           <div style={{ width: "64px", height: "64px", borderRadius: "16px", background: article.coverColor + "15", border: `1px solid ${article.coverColor}30`, margin: "0 auto 24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "30px", boxShadow: `0 0 60px ${article.coverColor}30` }}>
@@ -64,8 +61,6 @@ export default function BlogPost() {
           )}
           <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "20px", fontSize: "12px", color: "rgba(255,255,255,0.25)" }}>
             <span>{article.readMinutes} min read</span>
-            <span>·</span>
-            {article.publishedAt && <span>{new Date(article.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>}
             <span>·</span>
             <span>{(article.views || 0).toLocaleString()} views</span>
           </div>
@@ -90,17 +85,7 @@ export default function BlogPost() {
         </div>
       </article>
 
-      <footer style={{ padding: "28px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ maxWidth: "920px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-          <p style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", fontWeight: 800, letterSpacing: "0.15em" }}>SCANMYCREDS</p>
-          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            {[{ label: "Home", href: "/" }, { label: "Pricing", href: "/pricing" }, { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }].map(l => (
-              <Link key={l.label} href={l.href} style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", textDecoration: "none" }}>{l.label}</Link>
-            ))}
-          </div>
-        </div>
-      </footer>
-
+      <PublicFooter />
       <style>{`* { box-sizing: border-box; margin: 0; padding: 0; }`}</style>
     </div>
   );

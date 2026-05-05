@@ -426,7 +426,67 @@ export default function Landing() {
           ))}
         </div>
       </section>
+{/* TRUST SIGNALS */}
+      <section style={{ padding: "0 20px 96px" }}>
+        <div style={{ maxWidth: "920px", margin: "0 auto" }}>
+          <Section>
+            <div style={{ marginBottom: "32px" }}>
+              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Why trust us</p>
+              <h2 style={{ fontSize: "clamp(32px, 7vw, 56px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.92 }}>
+                Built right.<br />
+                <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>Verified by you.</span>
+              </h2>
+            </div>
+          </Section>
 
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+            {[
+              { icon: "🔐", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
+              { icon: "💳", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
+              { icon: "🚫", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
+              { icon: "👤", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
+              { icon: "🔄", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
+              { icon: "🌐", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
+            ].map((t, i) => (
+              <Section key={i} delay={i * 0.05}>
+                <div style={{ padding: "20px", border: `1px solid ${t.color}22`, borderRadius: "14px", background: `${t.color}06`, position: "relative", overflow: "hidden", height: "100%" }}>
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: `linear-gradient(to right, ${t.color}60, transparent)` }} />
+                  <div style={{ fontSize: "22px", marginBottom: "10px" }}>{t.icon}</div>
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", marginBottom: "6px", letterSpacing: "-0.01em" }}>{t.title}</p>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{t.desc}</p>
+                </div>
+              </Section>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOUNDER */}
+      <section style={{ padding: "0 20px 96px" }}>
+        <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+          <Section>
+            <div style={{ padding: "40px 32px", borderRadius: "20px", border: "1px solid rgba(108,158,247,0.2)", background: "linear-gradient(135deg, rgba(108,158,247,0.06), rgba(180,127,232,0.04))", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, rgba(108,158,247,0.6), transparent)" }} />
+
+              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "#6c9ef7", textTransform: "uppercase", marginBottom: "16px", fontWeight: 700 }}>From the founder</p>
+              <h2 style={{ fontSize: "clamp(24px, 5vw, 36px)", fontWeight: 800, color: "#fff", marginBottom: "20px", letterSpacing: "-0.03em", lineHeight: 1.2 }}>
+                "I built this because nobody else got it right."
+              </h2>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.75, marginBottom: "24px" }}>
+                <p>ScanMyCreds isn't backed by VCs or run by a marketing department. It's an independent product built by people who got tired of breach checkers that scare you and password managers that leave you on your own when leaks happen.</p>
+                <p>Every email to <a href="mailto:support@scanmycreds.com" style={{ color: "#6c9ef7", textDecoration: "underline" }}>support@scanmycreds.com</a> is read by a real person. Most are answered within 24 hours.</p>
+                <p>If you ever feel something's wrong with the product, the pricing, or the response — tell us. We listen.</p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <Link href="/about" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", borderRadius: "9px" }}>Read our story →</Link>
+                <Link href="/security" style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.6)", background: "transparent", border: "1px solid rgba(255,255,255,0.08)", textDecoration: "none", borderRadius: "9px" }}>Security details</Link>
+              </div>
+            </div>
+          </Section>
+        </div>
+      </section>
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", background: "rgba(255,255,255,0.015)", position: "relative" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to right, #000, transparent)", zIndex: 2, pointerEvents: "none" }} />
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: "80px", background: "linear-gradient(to left, #000, transparent)", zIndex: 2, pointerEvents: "none" }} />
