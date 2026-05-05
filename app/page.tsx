@@ -441,12 +441,12 @@ export default function Landing() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
             {[
-              { icon: "рџ”ђ", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
-              { icon: "рџ’і", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
-              { icon: "рџљ«", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
-              { icon: "рџ‘¤", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
-              { icon: "рџ”„", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
-              { icon: "рџЊђ", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
+              { icon: "PLACEHOLDER", title: "k-Anonymity", desc: "Your password never leaves your device. Industry-standard hashing.", color: "#6c9ef7" },
+              { icon: "PLACEHOLDER", title: "Stripe billing", desc: "PCI-DSS Level 1 compliant. We never see your card.", color: "#b47fe8" },
+              { icon: "PLACEHOLDER", title: "No data sold", desc: "Subscription-funded. Your data is never shared with third parties.", color: "#6ce4c0" },
+              { icon: "PLACEHOLDER", title: "Real humans", desc: "Real founder. Real support. Reply to any email.", color: "#c48b20" },
+              { icon: "PLACEHOLDER", title: "Cancel anytime", desc: "30-day refund. No phone calls. No retention loops.", color: "#e05c4b" },
+              { icon: "PLACEHOLDER", title: "Open methodology", desc: "We aggregate public sources. No proprietary lock-in.", color: "#b47fe8" },
             ].map((t, i) => (
               <Section key={i} delay={i * 0.05}>
                 <div style={{ padding: "20px", border: `1px solid ${t.color}22`, borderRadius: "14px", background: `${t.color}06`, position: "relative", overflow: "hidden", height: "100%" }}>
