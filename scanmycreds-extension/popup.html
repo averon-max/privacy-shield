@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>ScanMyCreds</title>
+<title>ScanMyCreds Pro</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     width: 380px;
-    min-height: 480px;
+    min-height: 500px;
     background: #000;
     color: #fff;
     font-family: 'DM Sans', system-ui, sans-serif;
@@ -20,7 +20,6 @@
     justify-content: space-between;
     padding: 14px 18px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.96);
   }
   .logo {
     font-size: 11px;
@@ -28,6 +27,17 @@
     font-weight: 700;
     text-transform: uppercase;
     color: rgba(255,255,255,0.7);
+  }
+  .pro-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+    background: linear-gradient(90deg,rgba(108,158,247,0.15),rgba(180,127,232,0.15));
+    color: #6c9ef7;
+    border: 1px solid rgba(108,158,247,0.3);
+    border-radius: 4px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-left: 6px;
   }
   .open-btn {
     padding: 5px 11px;
@@ -40,6 +50,96 @@
     font-family: inherit;
   }
   .open-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+
+  .auth-gate {
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .auth-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg,rgba(108,158,247,0.15),rgba(180,127,232,0.15));
+    border: 1px solid rgba(108,158,247,0.3);
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 0 40px rgba(108,158,247,0.25);
+  }
+  .auth-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: #6c9ef7;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .auth-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .auth-desc {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 22px;
+    line-height: 1.6;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .perks {
+    text-align: left;
+    margin: 0 auto 22px;
+    max-width: 260px;
+  }
+  .perk {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+  }
+  .perk-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #6c9ef7;
+    box-shadow: 0 0 4px #6c9ef7;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .upgrade-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #fff;
+    color: #000;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 0 30px rgba(255,255,255,0.25);
+    margin-bottom: 8px;
+  }
+  .ghost-btn {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.6);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
 
   .tabs {
     display: flex;
@@ -90,7 +190,6 @@
     font-size: 13px;
     outline: none;
     font-family: inherit;
-    transition: all 0.2s;
   }
   input::placeholder { color: rgba(255,255,255,0.2); }
   input:focus {
@@ -107,21 +206,18 @@
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.2s;
   }
   .btn-primary {
     background: #fff;
     color: #000;
     box-shadow: 0 0 16px rgba(255,255,255,0.15);
   }
-  .btn-primary:hover { box-shadow: 0 0 24px rgba(255,255,255,0.25); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-ghost {
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.6);
     border: 1px solid rgba(255,255,255,0.08);
   }
-  .btn-ghost:hover { background: rgba(255,255,255,0.08); color: #fff; }
 
   .card {
     padding: 14px 16px;
@@ -142,7 +238,6 @@
     border-radius: 100px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.05em;
   }
   .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
 
@@ -211,20 +306,8 @@
     margin-bottom: 6px;
     font-size: 11px;
   }
-  .hist-email {
-    color: #fff;
-    font-weight: 600;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .hist-meta {
-    display: flex;
-    justify-content: space-between;
-    color: rgba(255,255,255,0.3);
-    font-size: 10px;
-  }
+  .hist-email { color: #fff; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hist-meta { display: flex; justify-content: space-between; color: rgba(255,255,255,0.3); font-size: 10px; }
 
   .input-row { display: flex; gap: 6px; margin-bottom: 8px; }
   .pw-wrap { position: relative; flex: 1; }
@@ -250,9 +333,7 @@
     font-size: 11px;
     font-weight: 600;
     font-family: inherit;
-    white-space: nowrap;
   }
-  .copy-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
 
   .checkbox-grid {
     display: grid;
@@ -270,12 +351,7 @@
   }
   .checkbox-grid input { accent-color: #6c9ef7; }
 
-  .issue {
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    margin-bottom: 4px;
-  }
+  .issue { padding: 6px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 4px; }
   .issue-bad { background: rgba(224,92,75,0.08); color: #e05c4b; border: 1px solid rgba(224,92,75,0.15); }
   .issue-info { background: rgba(108,158,247,0.08); color: #6c9ef7; border: 1px solid rgba(108,158,247,0.15); }
 
@@ -292,78 +368,145 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .site-status {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .site-status.danger {
+    background: rgba(224,92,75,0.08);
+    border: 1px solid rgba(224,92,75,0.25);
+  }
+  .site-status.safe {
+    background: rgba(108,228,192,0.06);
+    border: 1px solid rgba(108,228,192,0.2);
+  }
+
+  .quick-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    text-decoration: none;
+    color: #fff;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .quick-action:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <span class="logo">SCANMYCREDS</span>
-  <button class="open-btn" id="openAppBtn">Open app ↗</button>
+<!-- Auth gate (shown when user is not Pro) -->
+<div id="authGate" class="auth-gate" style="display:none">
+  <div class="auth-icon">🔐</div>
+  <p class="auth-eyebrow">PRO FEATURE</p>
+  <h2 class="auth-title">Extension is Pro-only</h2>
+  <p class="auth-desc">The ScanMyCreds Chrome extension is exclusive to Pro and Family subscribers.</p>
+  <div class="perks">
+    <div class="perk"><span class="perk-dot"></span><span>Real-time breach alerts on dangerous sites</span></div>
+    <div class="perk"><span class="perk-dot"></span><span>Unlimited email & password scans</span></div>
+    <div class="perk"><span class="perk-dot"></span><span>Email alias generator</span></div>
+    <div class="perk"><span class="perk-dot"></span><span>Quick add to watchlist</span></div>
+    <div class="perk"><span class="perk-dot"></span><span>Cross-device scan history</span></div>
+  </div>
+  <button class="upgrade-btn" id="upgradeBtn">Upgrade to Pro — $4.99/mo</button>
+  <button class="ghost-btn" id="loginBtn">Sign in to ScanMyCreds</button>
 </div>
 
-<div class="tabs">
-  <button class="tab active" data-tab="scan">Scan</button>
-  <button class="tab" data-tab="password">Password</button>
-  <button class="tab" data-tab="generator">Generator</button>
-  <button class="tab" data-tab="alias">Alias</button>
-  <button class="tab" data-tab="history">History</button>
-</div>
+<!-- Main app (shown when user is Pro) -->
+<div id="mainApp" style="display:none">
+  <div class="header">
+    <span class="logo">SCANMYCREDS<span class="pro-badge" id="planBadge">PRO</span></span>
+    <button class="open-btn" id="openAppBtn">Open app ↗</button>
+  </div>
 
-<div id="tab-scan" class="panel active">
-  <div class="section-label">Email scan</div>
-  <input type="email" id="scanEmail" placeholder="email@example.com" />
-  <div style="height:10px"></div>
-  <button class="btn btn-primary" id="scanBtn">Scan email</button>
-  <div id="scanResults"></div>
-</div>
+  <div class="tabs">
+    <button class="tab active" data-tab="site">This Site</button>
+    <button class="tab" data-tab="scan">Scan</button>
+    <button class="tab" data-tab="password">Password</button>
+    <button class="tab" data-tab="alias">Alias</button>
+    <button class="tab" data-tab="generator">Gen</button>
+    <button class="tab" data-tab="history">History</button>
+  </div>
 
-<div id="tab-password" class="panel">
-  <div class="section-label">Password health</div>
-  <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;line-height:1.5">k-anonymity check. Your password never leaves your device.</p>
-  <div class="input-row">
-    <div class="pw-wrap">
-      <input type="password" id="pwInput" placeholder="Enter password to check..." />
-      <button class="pw-toggle" id="pwToggle">Show</button>
+  <div id="tab-site" class="panel active">
+    <div class="section-label">Current site analysis</div>
+    <div id="siteResults"><div class="status">Analyzing site...</div></div>
+  </div>
+
+  <div id="tab-scan" class="panel">
+    <div class="section-label">Email scan</div>
+    <input type="email" id="scanEmail" placeholder="email@example.com" />
+    <div style="height:10px"></div>
+    <button class="btn btn-primary" id="scanBtn">Scan email</button>
+    <div id="scanResults"></div>
+  </div>
+
+  <div id="tab-password" class="panel">
+    <div class="section-label">Password health</div>
+    <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;line-height:1.5">k-anonymity check. Your password never leaves your device.</p>
+    <div class="input-row">
+      <div class="pw-wrap">
+        <input type="password" id="pwInput" placeholder="Enter password to check..." />
+        <button class="pw-toggle" id="pwToggle">Show</button>
+      </div>
     </div>
+    <button class="btn btn-primary" id="pwBtn">Check password</button>
+    <div id="pwResults"></div>
   </div>
-  <button class="btn btn-primary" id="pwBtn">Check password</button>
-  <div id="pwResults"></div>
+
+  <div id="tab-alias" class="panel">
+    <div class="section-label">Email alias generator</div>
+    <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;line-height:1.5">Unique alias per service. When breached, you'll know who leaked.</p>
+    <input type="email" id="aliasBase" placeholder="Your email (you@gmail.com)" />
+    <div style="height:8px"></div>
+    <input type="text" id="aliasService" placeholder="Service name (Amazon, Netflix...)" />
+    <div style="height:10px"></div>
+    <button class="btn btn-primary" id="aliasBtn">Generate alias</button>
+    <div id="aliasResults"></div>
+  </div>
+
+  <div id="tab-generator" class="panel">
+    <div class="section-label">Password generator</div>
+    <div class="input-row">
+      <input type="text" id="genResult" readonly placeholder="Click generate..." style="font-family:monospace;font-size:12px" />
+      <button class="copy-btn" id="genCopy">Copy</button>
+    </div>
+    <div class="range-row">
+      <span class="range-label">Length</span>
+      <span class="range-value" id="genLenLabel">16</span>
+    </div>
+    <input type="range" id="genLen" min="8" max="64" value="16" />
+    <div class="checkbox-grid">
+      <label><input type="checkbox" id="optUpper" checked /> Uppercase</label>
+      <label><input type="checkbox" id="optLower" checked /> Lowercase</label>
+      <label><input type="checkbox" id="optNum" checked /> Numbers</label>
+      <label><input type="checkbox" id="optSym" checked /> Symbols</label>
+    </div>
+    <button class="btn btn-primary" id="genBtn">Generate password</button>
+  </div>
+
+  <div id="tab-history" class="panel">
+    <div class="section-label">Recent scans</div>
+    <div id="historyResults"><div class="empty"><div class="empty-icon">▣</div>No scans yet</div></div>
+  </div>
 </div>
 
-<div id="tab-generator" class="panel">
-  <div class="section-label">Password generator</div>
-  <div class="input-row">
-    <input type="text" id="genResult" readonly placeholder="Click generate..." style="font-family:monospace;font-size:12px" />
-    <button class="copy-btn" id="genCopy">Copy</button>
-  </div>
-  <div class="range-row">
-    <span class="range-label">Length</span>
-    <span class="range-value" id="genLenLabel">16</span>
-  </div>
-  <input type="range" id="genLen" min="8" max="64" value="16" />
-  <div class="checkbox-grid">
-    <label><input type="checkbox" id="optUpper" checked /> Uppercase</label>
-    <label><input type="checkbox" id="optLower" checked /> Lowercase</label>
-    <label><input type="checkbox" id="optNum" checked /> Numbers</label>
-    <label><input type="checkbox" id="optSym" checked /> Symbols</label>
-  </div>
-  <button class="btn btn-primary" id="genBtn">Generate password</button>
-</div>
-
-<div id="tab-alias" class="panel">
-  <div class="section-label">Email alias generator</div>
-  <p style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:12px;line-height:1.5">Generate a unique alias for any site. Track which company leaks your data.</p>
-  <input type="email" id="aliasBase" placeholder="Your email (you@gmail.com)" />
-  <div style="height:8px"></div>
-  <input type="text" id="aliasService" placeholder="Service name (Amazon, Netflix...)" />
-  <div style="height:10px"></div>
-  <button class="btn btn-primary" id="aliasBtn">Generate alias</button>
-  <div id="aliasResults"></div>
-</div>
-
-<div id="tab-history" class="panel">
-  <div class="section-label">Recent scans</div>
-  <div id="historyResults"><div class="empty"><div class="empty-icon">📋</div>No scans yet</div></div>
+<!-- Loading state -->
+<div id="loading" style="display:flex;align-items:center;justify-content:center;min-height:400px;color:rgba(255,255,255,0.4);font-size:12px">
+  Checking subscription...
 </div>
 
 <script src="popup.js"></script>
