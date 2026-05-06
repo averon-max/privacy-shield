@@ -30,10 +30,16 @@ export async function GET() {
   const passwordsExposed = uniqueResults.filter(c => (c.exposedDataTypes || []).includes("Passwords") || c.passwordExposed).length;
   const cleanScans = uniqueResults.filter(c => !c.breached).length;
 
-  let score = 100;
+  // Score only makes sense if you've actually scanned something
+let score: number;
+if (totalScans === 0) {
+  score = 100; // No scans yet — assume safe until proven otherwise
+} else {
+  score = 100;
   score -= breachesFound * 5;
   score -= passwordsExposed * 8;
   score = Math.max(0, Math.min(100, score));
+}
 
   // Get watchlist count from User document if it has a watchlist field
   let watchlistCount = 0;

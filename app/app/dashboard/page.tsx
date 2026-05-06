@@ -174,10 +174,11 @@ function DashboardContent() {
   const passwordsExposed = stats?.passwordsExposed ?? 0;
   const cleanScans = stats?.cleanScans ?? 0;
 
-  const threat = score >= 80 ? { label: "Excellent", color: "#6ce4c0", desc: "Your accounts are well-protected." } :
-                 score >= 60 ? { label: "Good", color: "#6c9ef7", desc: "Some exposure, but manageable." } :
-                 score >= 40 ? { label: "At Risk", color: "#c48b20", desc: "Action required to protect accounts." } :
-                 { label: "Critical", color: "#e05c4b", desc: "Critical exposure. Immediate action required." };
+  const threat = totalScans === 0 ? { label: "Unknown", color: "rgba(255,255,255,0.3)", desc: "Run your first scan to see your security score." } :
+               score >= 80 ? { label: "Excellent", color: "#6ce4c0", desc: "Your accounts are well-protected." } :
+               score >= 60 ? { label: "Good", color: "#6c9ef7", desc: "Some exposure, but manageable." } :
+               score >= 40 ? { label: "At Risk", color: "#c48b20", desc: "Action required to protect accounts." } :
+               { label: "Critical", color: "#e05c4b", desc: "Critical exposure. Immediate action required." };
 
   // Smart "next action" recommendation
   let nextAction = null;
