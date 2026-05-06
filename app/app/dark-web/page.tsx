@@ -32,9 +32,11 @@ export default function DarkWeb() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/dark-web");
-    const d = await res.json();
-    setData(d.entries || []);
+    try {
+      const res = await fetch("/api/dark-web");
+      const d = await res.json();
+      setData(d.entries || []);
+    } catch { setData([]); }
     setLoading(false);
   }
 
@@ -44,7 +46,6 @@ export default function DarkWeb() {
   const exposureLevel = allBreached.length === 0 ? "None" : allBreached.length < 3 ? "Low" : allBreached.length < 8 ? "Medium" : "High";
   const exposureColor = exposureLevel === "None" ? "#6ce4c0" : exposureLevel === "Low" ? "#6c9ef7" : exposureLevel === "Medium" ? "#c48b20" : "#e05c4b";
 
-  // Estimated value of leaked data on dark web
   const estimatedValue = allExposedTypes.reduce((sum, type) => {
     const info = DATA_TYPE_INFO[type];
     if (!info) return sum;
@@ -64,7 +65,7 @@ export default function DarkWeb() {
               <p style={{ fontSize: "14px", color: "#fff", fontWeight: 700, marginBottom: "4px" }}>Get continuous dark web monitoring</p>
               <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>Hourly scans + instant alerts when your data appears on new dark web markets</p>
             </div>
-            <Link href="/pricing" style={{ padding: "11px 22px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>Upgrade →</Link>
+            <Link href="/pricing" style={{ padding: "11px 22px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px" }}>Upgrade</Link>
           </div>
         </Card>
       )}
@@ -89,27 +90,29 @@ export default function DarkWeb() {
         </Card>
       ) : (
         <>
-          <Card>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Categories stolen</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {allExposedTypes.map(type => {
-                const info = DATA_TYPE_INFO[type];
-                if (!info) return null;
-                return (
-                  <div key={type} style={{ padding: "12px", borderRadius: "10px", background: info.color + "06", border: "1px solid " + info.color + "20", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-                    <div>
-                      <p style={{ fontSize: "13px", fontWeight: 700, color: info.color, marginBottom: "3px" }}>{type}</p>
-                      <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>Risk: {info.risk}</p>
+          {allExposedTypes.length > 0 && (
+            <Card>
+              <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Categories stolen</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {allExposedTypes.map(type => {
+                  const info = DATA_TYPE_INFO[type];
+                  if (!info) return null;
+                  return (
+                    <div key={type} style={{ padding: "12px", borderRadius: "10px", background: info.color + "06", border: "1px solid " + info.color + "20", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                      <div>
+                        <p style={{ fontSize: "13px", fontWeight: 700, color: info.color, marginBottom: "3px" }}>{type}</p>
+                        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>Risk: {info.risk}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Dark web price</p>
+                        <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{info.price}</p>
+                      </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Dark web price</p>
-                      <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{info.price}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           <Card>
             <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Where your data appeared</p>

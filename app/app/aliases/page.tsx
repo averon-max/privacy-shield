@@ -17,7 +17,7 @@ export default function AliasesPage() {
   useEffect(() => {
     if (!isPro || !session?.user?.email) { setLoading(false); return; }
     setBaseEmail(session.user.email);
-    fetch("/api/aliases").then(r => r.json()).then(d => { setAliases(d.aliases || []); setLoading(false); });
+    fetch("/api/aliases").then(r => r.json()).then(d => { setAliases(d.aliases || []); setLoading(false); }).catch(() => setLoading(false));
   }, [isPro, session]);
 
   if (status === "loading") return null;
@@ -67,7 +67,7 @@ export default function AliasesPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
           <input type="email" value={baseEmail} onChange={e => setBaseEmail(e.target.value)} placeholder="your@email.com" style={inputStyle} />
           <input type="text" value={service} onChange={e => setService(e.target.value)} placeholder="Service name (Amazon, Netflix, etc.)" style={inputStyle} />
-          <button onClick={generate} disabled={!baseEmail.includes("@") || !service.trim()} style={{ padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: !baseEmail.includes("@") || !service.trim() ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: !baseEmail.includes("@") || !service.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Generate alias →</button>
+          <button onClick={generate} disabled={!baseEmail.includes("@") || !service.trim()} style={{ padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: !baseEmail.includes("@") || !service.trim() ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: !baseEmail.includes("@") || !service.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Generate alias</button>
         </div>
       </Card>
 

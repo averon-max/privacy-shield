@@ -20,9 +20,13 @@ export default function Watchlist() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/watchlist");
-    const data = await res.json();
-    setEmails(data.emails || []);
+    try {
+      const res = await fetch("/api/watchlist");
+      const data = await res.json();
+      setEmails(data.emails || []);
+    } catch {
+      setEmails([]);
+    }
     setLoading(false);
   }
 
@@ -80,7 +84,7 @@ export default function Watchlist() {
         <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Add email to monitor</p>
         <div style={{ display: "flex", gap: "8px" }}>
           <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && add()} placeholder="email@example.com" style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
-          <button onClick={add} disabled={adding || !newEmail.includes("@")} style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#000", background: adding || !newEmail.includes("@") ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: adding || !newEmail.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{adding ? "..." : "Add →"}</button>
+          <button onClick={add} disabled={adding || !newEmail.includes("@")} style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#000", background: adding || !newEmail.includes("@") ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: adding || !newEmail.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{adding ? "..." : "Add"}</button>
         </div>
         {!isPro && emails.length >= 3 && <p style={{ marginTop: "10px", fontSize: "11px", color: "#c48b20" }}>Free tier limit reached. <a href="/pricing" style={{ color: "#6c9ef7", textDecoration: "underline" }}>Upgrade to Pro</a> for unlimited.</p>}
       </Card>
@@ -99,12 +103,6 @@ export default function Watchlist() {
                   <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: status.bg, color: status.color, border: "1px solid " + status.border, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>{status.label}</span>
                   <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>{timeAgo(e.lastChecked)}</span>
                 </div>
-                {e.breached && e.breachSources && e.breachSources.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "8px" }}>
-                    {e.breachSources.slice(0, 5).map(s => <span key={s} style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(224,92,75,0.1)", color: "#e05c4b" }}>{s}</span>)}
-                    {e.breachSources.length > 5 && <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)" }}>+{e.breachSources.length - 5}</span>}
-                  </div>
-                )}
               </div>
               <div style={{ display: "flex", gap: "6px" }}>
                 <button onClick={() => scan(e.email)} disabled={scanning === e.email} style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 600, color: "#6c9ef7", background: "rgba(108,158,247,0.06)", border: "1px solid rgba(108,158,247,0.25)", borderRadius: "8px", cursor: scanning === e.email ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{scanning === e.email ? "..." : "Scan"}</button>

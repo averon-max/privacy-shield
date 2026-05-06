@@ -1,90 +1,84 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import PageShell from "@/components/PageShell";
 import Card from "@/components/Card";
 import UpgradeGate from "@/components/UpgradeGate";
 
-export default function AliasesPage() {
+export default function RiskCheckPage() {
   const { data: session, status } = useSession();
-  const [baseEmail, setBaseEmail] = useState("");
-  const [service, setService] = useState("");
-  const [aliases, setAliases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [domain, setDomain] = useState("");
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const isPro = (session?.user as any)?.isPro || false;
-
-  useEffect(() => {
-    if (!isPro || !session?.user?.email) { setLoading(false); return; }
-    setBaseEmail(session.user.email);
-    fetch("/api/aliases").then(r => r.json()).then(d => { setAliases(d.aliases || []); setLoading(false); });
-  }, [isPro, session]);
 
   if (status === "loading") return null;
 
   if (!isPro) {
     return (
-      <PageShell eyebrow="Email aliases" title="Trace which company leaked your data" subtitle="Generate a unique alias for every site you sign up for">
+      <PageShell eyebrow="Risk check" title="Score any company before signing up" subtitle="Find out if a service is safe before giving them your data">
         <UpgradeGate
-          feature="Email alias generator"
-          description="Create a unique email alias for every service. When a breach hits, you'll know exactly which company leaked your data — because the breached alias only exists on that one site."
+          feature="Risk score check"
+          description="Before you sign up for any new service, check their breach history. Get an instant security score (A-F) based on past breaches, data handling practices, and security incidents."
           perks={[
-            "Unlimited aliases for every service you use",
-            "Trace breaches back to the exact company",
-            "Aliases work with Gmail, Outlook, ProtonMail",
-            "Copy-paste ready, never expires",
+            "Instant A-F security grade for any company",
+            "Full breach history with dates and impact",
+            "Recommendation: sign up, be cautious, or avoid",
+            "Updated daily with latest breach data",
           ]}
-          color="#b47fe8"
+          color="#c48b20"
           plan="pro"
         />
       </PageShell>
     );
   }
 
-  async function generate() {
-    if (!baseEmail.includes("@") || !service.trim()) return;
-    const [name, domain] = baseEmail.split("@");
-    const slug = service.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const alias = name + "+" + slug + "@" + domain;
-    await fetch("/api/aliases", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ alias, service }) });
-    setService("");
-    fetch("/api/aliases").then(r => r.json()).then(d => setAliases(d.aliases || []));
+  async function check() {
+    if (!domain.trim()) return;
+    setLoading(true);
+    const res = await fetch("/api/risk-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: domain.toLowerCase().trim() }),
+    });
+    const data = await res.json();
+    setResult(data);
+    setLoading(false);
   }
 
-  function copy(text: string) {
-    navigator.clipboard.writeText(text);
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit",
-  };
+  const gradeColor = result?.grade === "A" ? "#6ce4c0" : result?.grade === "B" ? "#6c9ef7" : result?.grade === "C" ? "#c48b20" : result?.grade === "D" ? "#e05c4b" : "#e05c4b";
 
   return (
-    <PageShell eyebrow="Email aliases" title="Alias generator" subtitle="Generate a unique email alias for every service. Trace breaches back to the source.">
-      <Card accent="#b47fe8">
-        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Generate alias</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
-          <input type="email" value={baseEmail} onChange={e => setBaseEmail(e.target.value)} placeholder="your@email.com" style={inputStyle} />
-          <input type="text" value={service} onChange={e => setService(e.target.value)} placeholder="Service name (Amazon, Netflix, etc.)" style={inputStyle} />
-          <button onClick={generate} disabled={!baseEmail.includes("@") || !service.trim()} style={{ padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: !baseEmail.includes("@") || !service.trim() ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: !baseEmail.includes("@") || !service.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Generate alias →</button>
+    <PageShell eyebrow="Risk check" title="Check before you sign up" subtitle="Score any company by domain — see their breach history before giving them your data">
+      <Card accent="#c48b20">
+        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Check a domain</p>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input type="text" value={domain} onChange={e => setDomain(e.target.value)} onKeyDown={e => e.key === "Enter" && check()} placeholder="example.com" style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+          <button onClick={check} disabled={loading || !domain.trim()} style={{ padding: "11px 22px", fontSize: "13px", fontWeight: 700, color: "#000", background: loading || !domain.trim() ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: loading || !domain.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{loading ? "..." : "Check"}</button>
         </div>
       </Card>
 
-      {loading ? null : aliases.length === 0 ? <Card><p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textAlign: "center" }}>No aliases yet. Generate your first one above.</p></Card> : (
-        <Card>
-          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>Your aliases ({aliases.length})</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {aliases.map((a, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", gap: "10px" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "13px", color: "#b47fe8", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.alias}</p>
-                  <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", marginTop: "2px" }}>for {a.service}</p>
-                </div>
-                <button onClick={() => copy(a.alias)} style={{ padding: "6px 12px", fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "7px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Copy</button>
-              </div>
-            ))}
+      {result && !result.error && (
+        <Card accent={gradeColor}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px" }}>
+            <div style={{ width: "80px", height: "80px", borderRadius: "16px", background: gradeColor + "15", border: "2px solid " + gradeColor + "40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "36px", fontWeight: 800, color: gradeColor, flexShrink: 0 }}>{result.grade}</div>
+            <div>
+              <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "4px" }}>{result.domain}</p>
+              <p style={{ fontSize: "20px", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{result.recommendation || "Unknown"}</p>
+            </div>
           </div>
+          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", lineHeight: 1.7, marginBottom: result.breaches?.length ? "16px" : 0 }}>{result.summary}</p>
+          {result.breaches && result.breaches.length > 0 && (
+            <div>
+              <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "8px" }}>Breach history ({result.breaches.length})</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+                {result.breaches.map((b: any, i: number) => (
+                  <span key={i} style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "5px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)" }}>{b.name || b}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </PageShell>
