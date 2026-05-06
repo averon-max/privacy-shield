@@ -39,117 +39,67 @@ function CursorSpotlight() {
   );
 }
 
-function PixelRobot() {
-  const [pos, setPos] = useState({ x: 50, y: 60 });
-  const [target, setTarget] = useState({ x: 50, y: 60 });
-  const [facing, setFacing] = useState<"left" | "right">("right");
-  const [state, setState] = useState<"walk" | "idle" | "scan" | "alert">("idle");
-  const [message, setMessage] = useState("");
-  const [blinking, setBlinking] = useState(false);
-  const [walkFrame, setWalkFrame] = useState(0);
+function LiveTerminal() {
+  const [lines, setLines] = useState<{ text: string; color: string; time: string }[]>([]);
+  const [minimized, setMinimized] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
-  const messages = [
-    "scanning the void...",
-    "I see your data!",
-    "17B records and counting",
-    "stay safe out there",
-    "beep boop",
-    "found a leak nearby",
-    "k-anon checks pass",
-    "encrypting your scan",
+  const events = [
+    { text: "scan complete: user@gmail.com → 14 breaches", color: "#e05c4b" },
+    { text: "k-anon hash verified", color: "#6ce4c0" },
+    { text: "new leak detected: collection_2026_04", color: "#c48b20" },
+    { text: "monitoring 47,392 watchlist emails", color: "#6c9ef7" },
+    { text: "scan complete: clean@example.com → 0 breaches", color: "#6ce4c0" },
+    { text: "tor exit node fingerprint: 7f3a...e91", color: "#b47fe8" },
+    { text: "breach indexed: AT&T 73M records", color: "#e05c4b" },
+    { text: "password hash: SHA-1 prefix 5BAA6", color: "#6c9ef7" },
+    { text: "alert dispatched to 142 users", color: "#c48b20" },
+    { text: "dark web crawler: 8 forums monitored", color: "#b47fe8" },
+    { text: "scan complete: test@yahoo.com → 22 breaches", color: "#e05c4b" },
+    { text: "MOAB cross-reference: 26B records", color: "#e05c4b" },
+    { text: "encrypted relay established", color: "#6ce4c0" },
+    { text: "credential stuffing pattern detected", color: "#c48b20" },
+    { text: "watchlist sync: 10ms latency", color: "#6c9ef7" },
   ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const action = Math.random();
-      if (action < 0.55) {
-        const newTarget = {
-          x: Math.random() * 80 + 10,
-          y: Math.random() * 50 + 30,
-        };
-        setTarget(newTarget);
-        setFacing(p => newTarget.x > pos.x ? "right" : "left");
-        setState("walk");
-      } else if (action < 0.8) {
-        setState("scan");
-        setTimeout(() => setState("idle"), 1200);
-      } else {
-        setState("alert");
-        setMessage(messages[Math.floor(Math.random() * messages.length)]);
-        setTimeout(() => { setMessage(""); setState("idle"); }, 2400);
-      }
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [pos.x]);
-
-  useEffect(() => {
-    if (state !== "walk") return;
     const tick = setInterval(() => {
-      setPos(p => {
-        const dx = target.x - p.x;
-        const dy = target.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 0.5) {
-          setState("idle");
-          return p;
-        }
-        return { x: p.x + (dx / dist) * 0.4, y: p.y + (dy / dist) * 0.4 };
-      });
-      setWalkFrame(f => (f + 1) % 4);
-    }, 60);
+      const ev = events[Math.floor(Math.random() * events.length)];
+      const now = new Date();
+      const time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") + ":" + String(now.getSeconds()).padStart(2, "0");
+      setLines(l => [...l.slice(-7), { text: ev.text, color: ev.color, time }]);
+    }, 1800);
     return () => clearInterval(tick);
-  }, [state, target]);
-
-  useEffect(() => {
-    const blink = setInterval(() => {
-      setBlinking(true);
-      setTimeout(() => setBlinking(false), 150);
-    }, 3000 + Math.random() * 2000);
-    return () => clearInterval(blink);
   }, []);
 
-  const eyeColor = state === "alert" ? "#e05c4b" : state === "scan" ? "#6ce4c0" : "#6c9ef7";
-  const bob = state === "walk" && walkFrame % 2 === 0 ? -2 : 0;
+  if (hidden) return null;
 
   return (
-    <div style={{ position: "fixed", left: pos.x + "%", top: pos.y + "%", zIndex: 4, pointerEvents: "none", transition: "left 0.06s linear, top 0.06s linear", transform: "translate(-50%, -50%)" }}>
-      {message && (
-        <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: "10px", padding: "6px 12px", background: "rgba(0,0,0,0.92)", border: "1px solid rgba(108,158,247,0.35)", borderRadius: "8px", fontSize: "10px", color: "#6c9ef7", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace", boxShadow: "0 0 20px rgba(108,158,247,0.25)", animation: "popIn 0.3s ease" }}>
-          {message}
+    <div style={{ position: "fixed", bottom: "20px", right: "20px", width: minimized ? "180px" : "340px", maxWidth: "calc(100vw - 40px)", background: "rgba(0,0,0,0.92)", border: "1px solid rgba(108,158,247,0.25)", borderRadius: "10px", boxShadow: "0 0 40px rgba(108,158,247,0.15), 0 8px 32px rgba(0,0,0,0.8)", backdropFilter: "blur(20px)", zIndex: 60, fontFamily: "ui-monospace, 'SF Mono', Consolas, monospace", overflow: "hidden", transition: "width 0.3s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: minimized ? "none" : "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.04)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 6px #6ce4c0", animation: "pulse 2s infinite" }} />
+          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em", fontWeight: 700 }}>LIVE FEED</span>
+        </div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          <button onClick={() => setMinimized(!minimized)} style={{ width: "18px", height: "18px", borderRadius: "4px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "10px", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>{minimized ? "+" : "−"}</button>
+          <button onClick={() => setHidden(true)} style={{ width: "18px", height: "18px", borderRadius: "4px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "10px", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>x</button>
+        </div>
+      </div>
+      {!minimized && (
+        <div style={{ padding: "10px 12px", height: "180px", overflow: "hidden", fontSize: "10px", lineHeight: 1.6, position: "relative" }}>
+          {lines.map((line, i) => (
+            <div key={i} style={{ display: "flex", gap: "8px", animation: "slideInRight 0.3s ease", opacity: 0.4 + (i / lines.length) * 0.6 }}>
+              <span style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }}>{line.time}</span>
+              <span style={{ color: line.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line.text}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+            <span style={{ color: "rgba(255,255,255,0.3)" }}>{new Date().toLocaleTimeString().slice(0, 8)}</span>
+            <span style={{ color: "#6ce4c0" }}>$ <span style={{ animation: "blink 1s infinite" }}>_</span></span>
+          </div>
         </div>
       )}
-      <div style={{ transform: (facing === "left" ? "scaleX(-1) " : "") + "translateY(" + bob + "px)", transition: "transform 0.15s", filter: state === "alert" ? "drop-shadow(0 0 10px #e05c4b)" : state === "scan" ? "drop-shadow(0 0 10px #6ce4c0)" : "drop-shadow(0 0 8px rgba(108,158,247,0.5))" }}>
-        <svg width="40" height="48" viewBox="0 0 36 44" style={{ imageRendering: "pixelated" }}>
-          <rect x="14" y="2" width="2" height="3" fill="#6c9ef7" opacity="0.6">
-            <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" />
-          </rect>
-          <rect x="20" y="2" width="2" height="3" fill="#6c9ef7" opacity="0.6">
-            <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
-          </rect>
-          <rect x="10" y="6" width="16" height="14" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
-          <rect x="13" y="10" width="3" height={blinking ? "1" : "3"} fill={eyeColor} />
-          <rect x="20" y="10" width="3" height={blinking ? "1" : "3"} fill={eyeColor} />
-          <rect x="14" y="16" width="8" height="1" fill={eyeColor} opacity="0.6" />
-          <rect x="8" y="20" width="20" height="12" fill="#0f0f0f" stroke="#6c9ef7" strokeWidth="0.5" />
-          <rect x="11" y="23" width="14" height="1" fill={eyeColor} opacity="0.8" />
-          <rect x="11" y="26" width="10" height="1" fill={eyeColor} opacity="0.4" />
-          <rect x="11" y="28" width="12" height="1" fill={eyeColor} opacity="0.5" />
-          <rect x="6" y="22" width="2" height="6" fill="#6c9ef7" opacity="0.7" />
-          <rect x="28" y="22" width="2" height="6" fill="#6c9ef7" opacity="0.7" />
-          <rect x={state === "walk" && walkFrame < 2 ? "10" : "12"} y="32" width="4" height="8" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
-          <rect x={state === "walk" && walkFrame < 2 ? "22" : "20"} y="32" width="4" height="8" fill="#1a1a1a" stroke="#6c9ef7" strokeWidth="0.5" />
-          {state === "scan" && (
-            <circle cx="18" cy="13" r="2" fill="none" stroke="#6ce4c0" strokeWidth="0.8" opacity="0.7">
-              <animate attributeName="r" values="2;14;2" dur="1.2s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.9;0;0.9" dur="1.2s" repeatCount="indefinite" />
-            </circle>
-          )}
-          {state === "alert" && (
-            <text x="32" y="10" fontSize="10" fill="#e05c4b" fontWeight="bold">!</text>
-          )}
-        </svg>
-      </div>
     </div>
   );
 }
@@ -297,7 +247,7 @@ function LandingInner() {
   return (
     <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
       <CursorSpotlight />
-      <PixelRobot />
+      <LiveTerminal />
       <NavInner />
 
       <section style={{ minHeight: "92vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 20px 60px", position: "relative" }}>
@@ -472,7 +422,70 @@ function LandingInner() {
         @keyframes scrollLeft { from { transform: translateX(0); } to { transform: translateX(-33.33%); } }
         @keyframes scrollRight { from { transform: translateX(-33.33%); } to { transform: translateX(0); } }
         @keyframes popIn { from { opacity: 0; transform: translateX(-50%) translateY(4px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-      `}</style>
+      function LiveTerminal() {
+  const [lines, setLines] = useState<{ text: string; color: string; time: string }[]>([]);
+  const [minimized, setMinimized] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  const events = [
+    { text: "scan complete: user@gmail.com → 14 breaches", color: "#e05c4b" },
+    { text: "k-anon hash verified", color: "#6ce4c0" },
+    { text: "new leak detected: collection_2026_04", color: "#c48b20" },
+    { text: "monitoring 47,392 watchlist emails", color: "#6c9ef7" },
+    { text: "scan complete: clean@example.com → 0 breaches", color: "#6ce4c0" },
+    { text: "tor exit node fingerprint: 7f3a...e91", color: "#b47fe8" },
+    { text: "breach indexed: AT&T 73M records", color: "#e05c4b" },
+    { text: "password hash: SHA-1 prefix 5BAA6", color: "#6c9ef7" },
+    { text: "alert dispatched to 142 users", color: "#c48b20" },
+    { text: "dark web crawler: 8 forums monitored", color: "#b47fe8" },
+    { text: "scan complete: test@yahoo.com → 22 breaches", color: "#e05c4b" },
+    { text: "MOAB cross-reference: 26B records", color: "#e05c4b" },
+    { text: "encrypted relay established", color: "#6ce4c0" },
+    { text: "credential stuffing pattern detected", color: "#c48b20" },
+    { text: "watchlist sync: 10ms latency", color: "#6c9ef7" },
+  ];
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const ev = events[Math.floor(Math.random() * events.length)];
+      const now = new Date();
+      const time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0") + ":" + String(now.getSeconds()).padStart(2, "0");
+      setLines(l => [...l.slice(-7), { text: ev.text, color: ev.color, time }]);
+    }, 1800);
+    return () => clearInterval(tick);
+  }, []);
+
+  if (hidden) return null;
+
+  return (
+    <div style={{ position: "fixed", bottom: "20px", right: "20px", width: minimized ? "180px" : "340px", maxWidth: "calc(100vw - 40px)", background: "rgba(0,0,0,0.92)", border: "1px solid rgba(108,158,247,0.25)", borderRadius: "10px", boxShadow: "0 0 40px rgba(108,158,247,0.15), 0 8px 32px rgba(0,0,0,0.8)", backdropFilter: "blur(20px)", zIndex: 60, fontFamily: "ui-monospace, 'SF Mono', Consolas, monospace", overflow: "hidden", transition: "width 0.3s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: minimized ? "none" : "1px solid rgba(108,158,247,0.15)", background: "rgba(108,158,247,0.04)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 6px #6ce4c0", animation: "pulse 2s infinite" }} />
+          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.1em", fontWeight: 700 }}>LIVE FEED</span>
+        </div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          <button onClick={() => setMinimized(!minimized)} style={{ width: "18px", height: "18px", borderRadius: "4px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "10px", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>{minimized ? "+" : "−"}</button>
+          <button onClick={() => setHidden(true)} style={{ width: "18px", height: "18px", borderRadius: "4px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", fontSize: "10px", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>x</button>
+        </div>
+      </div>
+      {!minimized && (
+        <div style={{ padding: "10px 12px", height: "180px", overflow: "hidden", fontSize: "10px", lineHeight: 1.6, position: "relative" }}>
+          {lines.map((line, i) => (
+            <div key={i} style={{ display: "flex", gap: "8px", animation: "slideInRight 0.3s ease", opacity: 0.4 + (i / lines.length) * 0.6 }}>
+              <span style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }}>{line.time}</span>
+              <span style={{ color: line.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{line.text}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+            <span style={{ color: "rgba(255,255,255,0.3)" }}>{new Date().toLocaleTimeString().slice(0, 8)}</span>
+            <span style={{ color: "#6ce4c0" }}>$ <span style={{ animation: "blink 1s infinite" }}>_</span></span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}`}</style>
     </div>
   );
 }
