@@ -1,148 +1,130 @@
-import { rateLimit } from "@/lib/rateLimit";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
 import User from "@/models/User";
-import { checkPasswordExposure, checkEmailBreaches } from "@/services/checkEmailService";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function POST(req: Request) {
+export const dynamic = "force-dynamic";
+
+const SCAN_LIMIT_FREE = 5;
+
+interface BreachInfo { name: string; domain?: string; date?: string; logo?: string; xposed_data?: string; references?: string; }
+
+export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-
-    const session = await getServerSession(authOptions);
-    let isPro = false;
-    if (session?.user?.email) {
-      await connectDB();
-      const user = await User.findOne({ email: session.user.email }).lean() as any;
-      isPro = user?.isPro || false;
-    }
-
-    try {
-      await rateLimit(ip, isPro);
-    } catch {
-      return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
-    }
-
-    const body = await req.json();
-    const { email, password, extensionCheck } = body;
-
-    // ─── EXTENSION CHECK ─────────────────────────────────────────────
-    if (extensionCheck) {
-      if (!email || !email.includes("@")) {
-        return NextResponse.json({ breached: false, breachCount: 0, breachSources: [] });
-      }
-
-      try {
-        await connectDB();
-        const cleanEmail = email.toLowerCase().trim();
-
-        // 1. Check MongoDB for any saved breach record from a previous scan
-        const recentRecord = await EmailCheck.findOne({
-          email: cleanEmail,
-          breached: true,
-          breachSources: { $exists: true, $ne: [] },
-        })
-          .sort({ createdAt: -1 })
-          .lean() as any;
-
-        if (recentRecord && recentRecord.breachSources?.length > 0) {
-          return NextResponse.json({
-            breached: true,
-            breachCount: recentRecord.breachCount || recentRecord.breachSources.length,
-            breachSources: recentRecord.breachSources,
-            cached: true,
-          });
-        }
-
-        // 2. Fall back to live API
-        const breachData = await checkEmailBreaches(email);
-        const breached = breachData !== null;
-        const breachCount = breachData?.breaches?.[0]?.length || 0;
-        const breachSources: string[] = breachData?.breaches?.[0] || [];
-
-        return NextResponse.json({ breached, breachCount, breachSources });
-      } catch (err) {
-        console.error("Extension check error:", err);
-        return NextResponse.json({ breached: false, breachCount: 0, breachSources: [] });
-      }
-    }
-
-    // ─── AUTHENTICATED CHECK ─────────────────────────────────────────
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
+    const { email, password = "", extensionCheck = false } = await req.json();
     if (!email || !email.includes("@")) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
+    const session = await getServerSession(authOptions);
+    const userEmail = session?.user?.email;
+
     await connectDB();
 
-    if (!isPro) {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+    let isPro = false;
+    if (userEmail) {
+      const user = await User.findOne({ email: userEmail }).lean() as any;
+      isPro = user?.isPro || false;
+    }
+
+    // Enforce 5 scans/day for free users (signed in)
+    if (userEmail && !isPro) {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
       const todayCount = await EmailCheck.countDocuments({
-        userId: session.user.email,
-        createdAt: { $gte: todayStart },
+        userId: userEmail,
+        $or: [
+          { checkedAt: { $gte: startOfDay } },
+          { createdAt: { $gte: startOfDay } },
+        ],
       });
-      if (todayCount >= 5) {
+
+      if (todayCount >= SCAN_LIMIT_FREE) {
         return NextResponse.json({
-          error: "You've used all 5 free scans for today. Upgrade to Pro for unlimited scans.",
-          limitReached: true,
-          upgradeUrl: "/pricing",
+          error: "scan_limit",
+          message: "Free tier limit: " + SCAN_LIMIT_FREE + " scans per day. Upgrade to Pro for unlimited scans.",
+          limit: SCAN_LIMIT_FREE,
+          used: todayCount,
         }, { status: 429 });
       }
     }
 
-    const [passwordResult, breachData] = await Promise.all([
-      checkPasswordExposure(password || ""),
-      checkEmailBreaches(email),
-    ]);
-
-    const breached = breachData !== null;
-
-    const dataTypes: Set<string> = new Set();
-    if (breachData?.breaches_details && Array.isArray(breachData.breaches_details)) {
-      breachData.breaches_details.forEach((detail: any) => {
-        if (detail?.xposed_data) {
-          detail.xposed_data.split(";").forEach((t: string) => {
-            const clean = t.trim();
-            if (clean) dataTypes.add(clean);
+    // Try MongoDB cache first
+    if (extensionCheck) {
+      const recent = await EmailCheck.findOne({ email }).sort({ createdAt: -1 }).lean() as any;
+      if (recent) {
+        const ts = recent.checkedAt || recent.createdAt;
+        if (ts && (Date.now() - new Date(ts).getTime()) < 24 * 60 * 60 * 1000) {
+          return NextResponse.json({
+            breached: recent.breached || false,
+            breachCount: recent.breachCount || 0,
+            breachSources: recent.breachSources || [],
+            exposedDataTypes: recent.exposedDataTypes || [],
+            fromCache: true,
           });
         }
+      }
+    }
+
+    // Live API check via XposedOrNot
+    let breaches: string[] = [];
+    let exposedData: string[] = [];
+    try {
+      const xposedRes = await fetch("https://api.xposedornot.com/v1/check-email/" + encodeURIComponent(email), {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (xposedRes.ok) {
+        const data = await xposedRes.json();
+        if (data.breaches && Array.isArray(data.breaches)) {
+          breaches = data.breaches.flat().filter(Boolean);
+        }
+      }
+
+      const analyticsRes = await fetch("https://api.xposedornot.com/v1/breach-analytics?email=" + encodeURIComponent(email), {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (analyticsRes.ok) {
+        const analytics = await analyticsRes.json();
+        if (analytics.ExposedBreaches && analytics.ExposedBreaches.breaches_details) {
+          breaches = analytics.ExposedBreaches.breaches_details.map((b: BreachInfo) => b.name).filter(Boolean);
+          const allDataTypes = analytics.ExposedBreaches.breaches_details
+            .map((b: BreachInfo) => (b.xposed_data || "").split(";"))
+            .flat()
+            .map((d: string) => d.trim())
+            .filter(Boolean);
+          exposedData = Array.from(new Set(allDataTypes)) as string[];
+        }
+      }
+    } catch (e) {
+      // API timeout/error — fall through with empty results
+    }
+
+    const result = {
+      breached: breaches.length > 0,
+      breachCount: breaches.length,
+      breachSources: breaches,
+      exposedDataTypes: exposedData,
+      passwordExposed: false,
+      passwordBreachCount: 0,
+    };
+
+    // Save to history if signed in
+    if (userEmail) {
+      await EmailCheck.create({
+        userId: userEmail,
+        email,
+        breached: result.breached,
+        breachCount: result.breachCount,
+        breachSources: result.breachSources,
+        exposedDataTypes: result.exposedDataTypes,
       });
     }
 
-    const exposedDataTypes = Array.from(dataTypes);
-    const breachCount = breachData?.breaches?.[0]?.length || 0;
-    const breachSources: string[] = breachData?.breaches?.[0] || [];
-
-    await EmailCheck.create({
-      userId: session.user.email,
-      email,
-      breached,
-      passwordExposed: passwordResult.exposed,
-      breachCount,
-      breachSources,
-      exposedDataTypes,
-    });
-
-    return NextResponse.json({
-      email,
-      passwordExposed: passwordResult.exposed,
-      passwordBreachCount: passwordResult.count,
-      breached,
-      breachData,
-      exposedDataTypes,
-      breachCount,
-      breachSources,
-      isPro,
-    });
-
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(result);
+  } catch (err: any) {
+    console.error("checkEmail error:", err);
+    return NextResponse.json({ error: "Scan failed", details: err.message }, { status: 500 });
   }
 }

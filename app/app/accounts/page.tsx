@@ -1,188 +1,97 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import PageShell from "@/components/PageShell";
 import Card from "@/components/Card";
-
-const CATEGORIES = ["email","social","finance","shopping","work","other"];
-const CATEGORY_COLOR: Record<string, string> = {
-  email: "#6c9ef7", social: "#b47fe8", finance: "#e05c4b", shopping: "#c48b20", work: "#6ce4c0", other: "#888",
-};
+import UpgradeGate from "@/components/UpgradeGate";
 
 export default function AccountsPage() {
   const { data: session, status } = useSession();
-  const isPro = (session?.user as any)?.isPro || false;
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ service: "", email: "", category: "other", has2FA: false, uniquePassword: false });
-  const [filter, setFilter] = useState<"all" | "breached" | "review" | "clean">("all");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("other");
+  const [has2FA, setHas2FA] = useState(false);
+  const isPro = (session?.user as any)?.isPro || false;
 
   useEffect(() => {
-    if (status === "authenticated" && isPro) {
-      fetch("/api/accounts").then(r => r.json()).then(d => {
-        setAccounts(d.accounts || []);
-        setLoading(false);
-      });
-    } else setLoading(false);
-  }, [status, isPro]);
-
-  async function add() {
-    if (!form.service.trim() || !form.email.trim()) return;
-    const res = await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-    const data = await res.json();
-    if (data.account) {
-      setAccounts([data.account, ...accounts]);
-      setForm({ service: "", email: "", category: "other", has2FA: false, uniquePassword: false });
-      setShowAdd(false);
-    }
-  }
-
-  async function remove(id: string) {
-    await fetch("/api/accounts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    setAccounts(accounts.filter(a => a._id !== id));
-  }
-
-  async function toggleField(id: string, field: string, value: boolean) {
-    const res = await fetch("/api/accounts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, updates: { [field]: value } }) });
-    const data = await res.json();
-    if (data.account) setAccounts(accounts.map(a => a._id === id ? data.account : a));
-  }
+    if (!isPro) { setLoading(false); return; }
+    fetch("/api/accounts").then(r => r.json()).then(d => { setAccounts(d.accounts || []); setLoading(false); });
+  }, [isPro]);
 
   if (status === "loading") return null;
-  if (status === "unauthenticated") {
-    if (typeof window !== "undefined") window.location.href = "/login";
-    return null;
-  }
 
   if (!isPro) {
     return (
-      <PageShell eyebrow="Pro feature" title="Account Inventory" subtitle="Track every account you own in one place">
-        <Card accent="#6ce4c0" style={{ padding: "40px 28px", textAlign: "center" }}>
-          <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "rgba(108,228,192,0.12)", border: "1px solid rgba(108,228,192,0.3)", margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>📒</div>
-          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "#6ce4c0", textTransform: "uppercase", marginBottom: "10px", fontWeight: 700 }}>Pro feature</p>
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#fff", marginBottom: "10px", letterSpacing: "-0.02em" }}>Account Inventory</h2>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", marginBottom: "24px", maxWidth: "380px", margin: "0 auto 24px", lineHeight: 1.6 }}>List every account you own — email, social, banking, shopping. Track 2FA status, password reuse, and breach exposure for each one.</p>
-          <Link href="/pricing" style={{ padding: "12px 32px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px", display: "inline-block", boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}>Upgrade to Pro →</Link>
-        </Card>
+      <PageShell eyebrow="Account inventory" title="Track every account you own" subtitle="See which accounts have 2FA, password reuse, and breach exposure">
+        <UpgradeGate
+          feature="Account inventory"
+          description="Track every online account in one place. See which have 2FA enabled, which use reused passwords, and which are in active breaches. Know your full attack surface."
+          perks={[
+            "Track unlimited accounts (banks, social, email, etc.)",
+            "Flag accounts with weak or reused passwords",
+            "2FA status tracking — see what's protected",
+            "Auto-link to breach data for each account",
+          ]}
+          color="#6c9ef7"
+          plan="pro"
+        />
       </PageShell>
     );
   }
 
-  const filtered = accounts.filter(a => filter === "all" ? true : a.status === filter);
-  const stats = {
-    total: accounts.length,
-    breached: accounts.filter(a => a.status === "breached").length,
-    review: accounts.filter(a => a.status === "review").length,
-    clean: accounts.filter(a => a.status === "clean").length,
-    no2fa: accounts.filter(a => !a.has2FA).length,
-    reused: accounts.filter(a => !a.uniquePassword).length,
-  };
+  async function addAccount() {
+    if (!name.trim()) return;
+    await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, category, has2FA }) });
+    setName(""); setCategory("other"); setHas2FA(false); setShowAdd(false);
+    fetch("/api/accounts").then(r => r.json()).then(d => setAccounts(d.accounts || []));
+  }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit",
-  };
-
-  const filterBtn = (f: typeof filter, label: string, count: number, color: string) => (
-    <button onClick={() => setFilter(f)} style={{
-      padding: "6px 12px", borderRadius: "8px",
-      border: filter === f ? `1px solid ${color}40` : "1px solid transparent",
-      background: filter === f ? `${color}10` : "transparent",
-      color: filter === f ? color : "rgba(255,255,255,0.4)",
-      fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-      display: "flex", alignItems: "center", gap: "6px",
-    }}>{label} <span style={{ fontSize: "10px", opacity: 0.7 }}>{count}</span></button>
-  );
+  async function remove(id: string) {
+    await fetch("/api/accounts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    fetch("/api/accounts").then(r => r.json()).then(d => setAccounts(d.accounts || []));
+  }
 
   return (
-    <PageShell eyebrow="Personal vault" title="Account Inventory" subtitle="Every account you own — security status at a glance">
-
-      <Card accent="#6ce4c0">
-        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Overview</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "10px" }}>
-          {[
-            { l: "Total", v: stats.total, c: "#fff" },
-            { l: "Breached", v: stats.breached, c: "#e05c4b" },
-            { l: "Need review", v: stats.review, c: "#c48b20" },
-          ].map(s => (
-            <div key={s.l} style={{ padding: "12px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "10px" }}>
-              <div style={{ fontSize: "9px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "3px" }}>{s.l}</div>
-              <div style={{ fontSize: "20px", fontWeight: 800, color: s.c, letterSpacing: "-0.02em" }}>{s.v}</div>
-            </div>
-          ))}
+    <PageShell eyebrow="Account inventory" title="Your accounts" subtitle="Track every online account, 2FA status, and breach exposure">
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+          <div>
+            <p style={{ fontSize: "20px", fontWeight: 800, color: "#fff" }}>{accounts.length} accounts</p>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", marginTop: "3px" }}>{accounts.filter(a => a.has2FA).length} with 2FA enabled</p>
+          </div>
+          <button onClick={() => setShowAdd(!showAdd)} style={{ padding: "9px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "9px", cursor: "pointer", fontFamily: "inherit" }}>{showAdd ? "Cancel" : "+ Add account"}</button>
         </div>
-        {stats.no2fa > 0 && <p style={{ fontSize: "11px", color: "#c48b20", marginTop: "8px" }}>⚠ {stats.no2fa} account{stats.no2fa !== 1 ? "s" : ""} without 2FA</p>}
-        {stats.reused > 0 && <p style={{ fontSize: "11px", color: "#e05c4b", marginTop: "4px" }}>⚠ {stats.reused} account{stats.reused !== 1 ? "s" : ""} with reused passwords</p>}
+        {showAdd && (
+          <div style={{ marginTop: "16px", padding: "16px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input type="text" placeholder="Account name (Amazon, Gmail, etc.)" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <select value={category} onChange={e => setCategory(e.target.value)} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 12px", color: "#fff", fontSize: "12px", fontFamily: "inherit" }}>
+                <option value="email">Email</option><option value="banking">Banking</option><option value="social">Social</option><option value="shopping">Shopping</option><option value="streaming">Streaming</option><option value="work">Work</option><option value="other">Other</option>
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", fontSize: "12px", color: "rgba(255,255,255,0.7)", cursor: "pointer" }}><input type="checkbox" checked={has2FA} onChange={e => setHas2FA(e.target.checked)} /> 2FA enabled</label>
+            </div>
+            <button onClick={addAccount} disabled={!name.trim()} style={{ padding: "10px", fontSize: "12px", fontWeight: 700, color: "#000", background: name.trim() ? "#fff" : "rgba(255,255,255,0.4)", border: "none", borderRadius: "8px", cursor: name.trim() ? "pointer" : "not-allowed", fontFamily: "inherit" }}>Add</button>
+          </div>
+        )}
       </Card>
 
-      <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
-        {filterBtn("all", "All", stats.total, "#fff")}
-        {filterBtn("breached", "Breached", stats.breached, "#e05c4b")}
-        {filterBtn("review", "Review", stats.review, "#c48b20")}
-        {filterBtn("clean", "Clean", stats.clean, "#6ce4c0")}
-      </div>
-
-      {!showAdd ? (
-        <button onClick={() => setShowAdd(true)} style={{ width: "100%", padding: "13px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "12px", cursor: "pointer", fontFamily: "inherit", marginBottom: "12px" }}>+ Add account</button>
-      ) : (
-        <Card accent="#6c9ef7">
-          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "12px" }}>New account</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
-            <input style={inputStyle} placeholder="Service (Amazon, Gmail...)" value={form.service} onChange={e => setForm({ ...form, service: e.target.value })} />
-            <input style={inputStyle} placeholder="Email used for this account" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-            <select style={inputStyle} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "rgba(255,255,255,0.6)", cursor: "pointer", flex: 1 }}>
-                <input type="checkbox" checked={form.has2FA} onChange={e => setForm({ ...form, has2FA: e.target.checked })} style={{ accentColor: "#6ce4c0" }} /> 2FA enabled
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "rgba(255,255,255,0.6)", cursor: "pointer", flex: 1 }}>
-                <input type="checkbox" checked={form.uniquePassword} onChange={e => setForm({ ...form, uniquePassword: e.target.checked })} style={{ accentColor: "#6ce4c0" }} /> Unique password
-              </label>
+      {loading ? null : accounts.length === 0 ? <Card><p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textAlign: "center" }}>No accounts tracked yet. Add your first one above.</p></Card> : accounts.map(a => (
+        <Card key={a._id}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>{a.name}</p>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{a.category}</span>
+                {a.has2FA ? <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "rgba(108,228,192,0.1)", color: "#6ce4c0", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>2FA</span> : <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>No 2FA</span>}
+              </div>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={add} style={{ flex: 1, padding: "11px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontFamily: "inherit" }}>Save</button>
-            <button onClick={() => setShowAdd(false)} style={{ padding: "11px 18px", fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={() => remove(a._id)} style={{ padding: "7px 12px", fontSize: "11px", fontWeight: 600, color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.2)", borderRadius: "7px", cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>Remove</button>
           </div>
         </Card>
-      )}
-
-      {loading ? (
-        <Card><div style={{ height: "60px" }} /></Card>
-      ) : filtered.length === 0 ? (
-        <Card style={{ padding: "40px 28px", textAlign: "center" }}>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>{filter === "all" ? "No accounts yet — add your first one above" : "No accounts match this filter"}</p>
-        </Card>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {filtered.map(a => {
-            const statusColor = a.status === "breached" ? "#e05c4b" : a.status === "review" ? "#c48b20" : "#6ce4c0";
-            return (
-              <Card key={a._id} accent={statusColor} style={{ marginBottom: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{a.service}</span>
-                      <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", background: `${CATEGORY_COLOR[a.category]}15`, color: CATEGORY_COLOR[a.category], fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{a.category}</span>
-                    </div>
-                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</p>
-                  </div>
-                  <button onClick={() => remove(a._id)} style={{ padding: "6px 10px", fontSize: "11px", color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.15)", borderRadius: "7px", cursor: "pointer", fontFamily: "inherit" }}>×</button>
-                </div>
-                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  <button onClick={() => toggleField(a._id, "has2FA", !a.has2FA)} style={{ padding: "5px 10px", fontSize: "10px", fontWeight: 600, borderRadius: "6px", border: a.has2FA ? "1px solid rgba(108,228,192,0.3)" : "1px solid rgba(255,255,255,0.08)", background: a.has2FA ? "rgba(108,228,192,0.08)" : "rgba(255,255,255,0.02)", color: a.has2FA ? "#6ce4c0" : "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit" }}>{a.has2FA ? "✓ 2FA" : "× 2FA"}</button>
-                  <button onClick={() => toggleField(a._id, "uniquePassword", !a.uniquePassword)} style={{ padding: "5px 10px", fontSize: "10px", fontWeight: 600, borderRadius: "6px", border: a.uniquePassword ? "1px solid rgba(108,228,192,0.3)" : "1px solid rgba(255,255,255,0.08)", background: a.uniquePassword ? "rgba(108,228,192,0.08)" : "rgba(255,255,255,0.02)", color: a.uniquePassword ? "#6ce4c0" : "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit" }}>{a.uniquePassword ? "✓ Unique pw" : "× Reused"}</button>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      ))}
     </PageShell>
   );
 }
