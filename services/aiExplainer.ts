@@ -1,90 +1,53 @@
-export interface BreachExplanation {
-  severity: "critical" | "high" | "medium" | "low";
-  severityColor: string;
-  whatWasStolen: string;
-  whatAttackersDo: string;
-  steps: { title: string; description: string }[];
-  urgency: string;
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+interface GroqOptions {
+  prompt: string;
+  systemPrompt?: string;
+  maxTokens?: number;
+  model?: string;
 }
 
-export async function explainBreach(
-  breachName: string,
-  dataClasses: string[]
-): Promise<BreachExplanation> {
+export async function callGroq(options: GroqOptions): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY not set");
 
-  if (!apiKey) {
-    console.error("GROQ_API_KEY is not set");
-    throw new Error("AI service not configured");
+  const res = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model || "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: options.systemPrompt || "You are a helpful assistant. Keep responses concise." },
+        { role: "user", content: options.prompt },
+      ],
+      max_tokens: options.maxTokens || 500,
+      temperature: 0.7,
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("Groq API error:", res.status, errText);
+    if (res.status === 429) throw new Error("RATE_LIMITED");
+    throw new Error("Groq API " + res.status);
   }
 
-  const dataList = dataClasses.length > 0 ? dataClasses.join(", ") : "unknown data types";
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || "";
+}
 
-  const prompt = `You are a cybersecurity expert helping a user understand a specific data breach. Be specific to THIS breach, not generic.
+export async function explainBreach(email: string, breaches: string[], exposedTypes: string[] = []): Promise<string> {
+  const prompt = breaches.length === 0
+    ? "The email " + email + " has no known breaches. Write a short reassuring message (2-3 short paragraphs) about what this means and best practices to maintain security. No markdown."
+    : "Analyze this breach data: Email " + email + " is in " + breaches.length + " breaches: " + breaches.slice(0, 12).join(", ") + ". Exposed data types: " + (exposedTypes.join(", ") || "various") + ". Give: 1) severity assessment, 2) what the worst breaches mean, 3) top 3 urgent actions. Under 300 words. Plain English. No markdown.";
 
-Breach name: "${breachName}"
-Data exposed: ${dataList}
-
-Research this specific breach. Consider:
-- When did it happen and how big was it?
-- What specific attack vectors are likely given THIS breach's data?
-- What real-world consequences have users of THIS breach actually faced?
-- Make the fix plan specific to the data types exposed in THIS breach.
-
-Respond ONLY with valid JSON in this exact shape, no markdown, no code fences:
-{
-  "severity": "critical" | "high" | "medium" | "low",
-  "severityColor": "use #e05c4b for critical, #c48b20 for high, #6c9ef7 for medium, #6ce4c0 for low",
-  "whatWasStolen": "1-2 sentences specific to this breach with scale and date if known",
-  "whatAttackersDo": "1-2 sentences about real attacks tied to this specific breach",
-  "steps": [
-    { "title": "4-5 word action title", "description": "1 sentence specific to this breach" },
-    { "title": "4-5 word action title", "description": "1 sentence specific to this breach" },
-    { "title": "4-5 word action title", "description": "1 sentence specific to this breach" }
-  ],
-  "urgency": "specific time window with reason tied to this breach"
-}`;
-
-  try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Groq API error:", response.status, errText);
-      throw new Error(`Groq API ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text: string = data.choices?.[0]?.message?.content || "";
-
-    if (!text) {
-      console.error("Empty Groq response", data);
-      throw new Error("Empty AI response");
-    }
-
-    const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
-    const parsed = JSON.parse(cleaned) as BreachExplanation;
-
-    if (!parsed.steps || !Array.isArray(parsed.steps) || parsed.steps.length < 3) {
-      throw new Error("Invalid AI response shape");
-    }
-
-    return parsed;
-  } catch (err) {
-    console.error("explainBreach error:", err);
-    throw err;
-  }
+  return callGroq({
+    prompt,
+    systemPrompt: "You are a friendly cybersecurity advisor. Concise, practical, empathetic.",
+    maxTokens: 500,
+  });
 }
