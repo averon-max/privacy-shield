@@ -1,5 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
+import CommentSection from "@/components/CommentSection";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
