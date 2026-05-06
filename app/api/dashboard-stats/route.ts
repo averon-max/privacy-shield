@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
+import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -34,15 +35,15 @@ export async function GET() {
   score -= passwordsExposed * 8;
   score = Math.max(0, Math.min(100, score));
 
+  // Get watchlist count from User document if it has a watchlist field
   let watchlistCount = 0;
   try {
-    // @ts-ignore - Watchlist model may not exist
-    const mod = await import("@/models/Watchlist").catch(() => null);
-    if (mod && (mod as any).default) {
-      watchlistCount = await (mod as any).default.countDocuments({ userId: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean() as any;
+    if (user?.watchlist && Array.isArray(user.watchlist)) {
+      watchlistCount = user.watchlist.length;
     }
   } catch {
-    // Watchlist model doesn't exist — that's fine
+    // ignore
   }
 
   return NextResponse.json({
