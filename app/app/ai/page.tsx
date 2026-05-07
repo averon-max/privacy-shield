@@ -1,48 +1,80 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import Card from "@/components/Card";
 import UpgradeGate from "@/components/UpgradeGate";
 
-const COMMON_BREACHES = [
-  { name: "LinkedIn", dataClasses: ["Email addresses", "Passwords", "Names", "Phone numbers"] },
-  { name: "Adobe", dataClasses: ["Email addresses", "Passwords", "Password hints", "Usernames"] },
-  { name: "Dropbox", dataClasses: ["Email addresses", "Passwords"] },
-  { name: "Yahoo", dataClasses: ["Email addresses", "Passwords", "Security questions", "Names", "Phone numbers", "Dates of birth"] },
-  { name: "Equifax", dataClasses: ["Names", "Social security numbers", "Dates of birth", "Addresses", "Driver licenses"] },
-  { name: "Facebook", dataClasses: ["Email addresses", "Names", "Phone numbers", "Locations", "Dates of birth"] },
-  { name: "Twitter", dataClasses: ["Email addresses", "Phone numbers", "Usernames"] },
-  { name: "MyFitnessPal", dataClasses: ["Email addresses", "Passwords", "Usernames", "IP addresses"] },
-  { name: "Canva", dataClasses: ["Email addresses", "Passwords", "Names", "Usernames", "Geographic locations"] },
-  { name: "MOAB", dataClasses: ["Email addresses", "Passwords", "Names", "Phone numbers", "Addresses"] },
-  { name: "AT&T", dataClasses: ["Email addresses", "Phone numbers", "Names", "Addresses", "Social security numbers"] },
-  { name: "Other", dataClasses: ["Email addresses", "Passwords"] },
+interface Message { role: "user" | "ai"; text: string; timestamp: number; }
+
+const QUICK_PROMPTS = [
+  "What should I do first?",
+  "Which breach is most dangerous for me?",
+  "Is my password safe to keep using?",
+  "Should I freeze my credit?",
+  "Explain this in simple terms",
+  "What can attackers actually do with my data?",
 ];
 
 export default function AIPage() {
   const { data: session, status } = useSession();
-  const [breachName, setBreachName] = useState("");
-  const [email, setEmail] = useState("");
-  const [analysis, setAnalysis] = useState("");
-  const [cached, setCached] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [breachContext, setBreachContext] = useState<{ totalBreaches: number; emails: any[] } | null>(null);
+  const [contextLoading, setContextLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isPro = (session?.user as any)?.isPro || false;
+
+  useEffect(() => {
+    if (!isPro) { setContextLoading(false); return; }
+    fetch("/api/dark-web")
+      .then(r => r.json())
+      .then(d => {
+        const entries = d.entries || [];
+        const breached = entries.filter((e: any) => e.breached);
+        const totalBreaches = new Set(breached.flatMap((e: any) => e.breachSources || [])).size;
+        setBreachContext({ totalBreaches, emails: breached });
+        setContextLoading(false);
+
+        // Welcome message
+        if (totalBreaches > 0) {
+          setMessages([{
+            role: "ai",
+            text: "Hey! I've loaded your breach data. You're in " + totalBreaches + " unique breach" + (totalBreaches !== 1 ? "es" : "") + " across " + breached.length + " email" + (breached.length !== 1 ? "s" : "") + ".\n\nAsk me anything — what to do first, which breaches are dangerous, what attackers can do with your data, or anything else. I'll give you real answers based on YOUR specific exposure.",
+            timestamp: Date.now(),
+          }]);
+        } else {
+          setMessages([{
+            role: "ai",
+            text: "Hey! I don't see any breach data in your account yet. Run a scan first on the Scanner page, then come back here and I'll analyze what you found.\n\nIn the meantime, you can still ask me general questions about data breaches, password security, or anything else.",
+            timestamp: Date.now(),
+          }]);
+        }
+      })
+      .catch(() => setContextLoading(false));
+  }, [isPro]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   if (status === "loading") return null;
 
   if (!isPro) {
     return (
-      <PageShell eyebrow="AI analysis" title="Breach AI" subtitle="Get a personalized analysis of what your breach data means and what to do.">
+      <PageShell eyebrow="AI analysis" title="Breach AI" subtitle="Chat with AI about your specific breach exposure.">
         <UpgradeGate
-          feature="AI breach analysis"
-          description="Our AI analyzes any breach in plain English: what was stolen, what attackers can do with it, and exactly what steps to take next - personalized to that specific breach."
+          feature="AI breach analyst"
+          description="Chat with an AI that knows YOUR specific breach exposure. Ask anything: what to do first, which breaches are dangerous, what attackers can do with your data, how to lock things down. Real answers, not generic security advice."
           perks={[
-            "Plain-English explanation of any breach",
-            "Personalized action plan based on what was leaked",
-            "Risk severity rating with reasoning",
+            "Personalized to YOUR specific breaches",
+            "Ask follow-up questions, get clarification",
+            "Plain English - no jargon",
             "Cutting-edge AI model",
           ]}
           color="#b47fe8"
@@ -52,114 +84,118 @@ export default function AIPage() {
     );
   }
 
-  async function analyze() {
-    if (!breachName) {
-      setError("Select a breach to analyze");
-      return;
-    }
+  async function sendMessage(text?: string) {
+    const message = (text || input).trim();
+    if (!message || loading) return;
+
+    const newMessages: Message[] = [...messages, { role: "user", text: message, timestamp: Date.now() }];
+    setMessages(newMessages);
+    setInput("");
     setLoading(true);
-    setError("");
-    setAnalysis("");
-    setCached(false);
 
     try {
-      const selectedBreach = COMMON_BREACHES.find(b => b.name === breachName);
-      const dataClasses = selectedBreach?.dataClasses || [];
-
       const res = await fetch("/api/ai-explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim() || (session?.user?.email || ""),
-          breachName,
-          dataClasses,
+          mode: "chat",
+          question: message,
+          history: newMessages.slice(-6).map(m => ({ role: m.role, text: m.text })),
+          breachContext,
         }),
       });
       const data = await res.json();
-      if (data.error) setError(data.error);
-      else {
-        setAnalysis(data.analysis || "");
-        setCached(data.cached || false);
+      if (data.error) {
+        setMessages(prev => [...prev, { role: "ai", text: "Hmm, " + data.error, timestamp: Date.now() }]);
+      } else {
+        setMessages(prev => [...prev, { role: "ai", text: data.analysis || "(no response)", timestamp: Date.now() }]);
       }
     } catch (e: any) {
-      setError(e.message || "Failed to analyze");
+      setMessages(prev => [...prev, { role: "ai", text: "Connection error. Please try again.", timestamp: Date.now() }]);
     }
     setLoading(false);
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "10px", padding: "12px 14px", color: "#fff", fontSize: "14px", outline: "none", fontFamily: "inherit",
-  };
-
   return (
-    <PageShell eyebrow="AI analysis" title="Breach AI" subtitle="Pick a breach. Get instant AI analysis of what was stolen and what to do.">
-      <Card accent="#b47fe8">
-        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "14px" }}>Choose a breach to analyze</p>
+    <PageShell eyebrow="AI analysis" title="Breach AI" subtitle="Chat with AI about your breach exposure">
+      {/* Context summary */}
+      {!contextLoading && breachContext && breachContext.totalBreaches > 0 && (
+        <Card accent="#b47fe8">
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#b47fe8", boxShadow: "0 0 8px #b47fe8", animation: "pulse 2s infinite" }} />
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)" }}>
+              AI loaded your data: <strong style={{ color: "#fff" }}>{breachContext.totalBreaches} breaches</strong> across <strong style={{ color: "#fff" }}>{breachContext.emails.length} email{breachContext.emails.length !== 1 ? "s" : ""}</strong>
+            </p>
+          </div>
+        </Card>
+      )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: "6px", marginBottom: "16px" }}>
-          {COMMON_BREACHES.map(b => (
-            <button
-              key={b.name}
-              onClick={() => setBreachName(b.name)}
-              style={{
-                padding: "10px 8px",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: breachName === b.name ? "#b47fe8" : "rgba(255,255,255,0.7)",
-                background: breachName === b.name ? "rgba(180,127,232,0.1)" : "rgba(255,255,255,0.03)",
-                border: "1px solid " + (breachName === b.name ? "rgba(180,127,232,0.4)" : "rgba(255,255,255,0.06)"),
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                textAlign: "center",
-              }}
-            >
-              {b.name}
-            </button>
-          ))}
+      {/* Chat */}
+      <Card>
+        <div ref={scrollRef} style={{ minHeight: "300px", maxHeight: "500px", overflowY: "auto", padding: "4px", marginBottom: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          {contextLoading ? (
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", textAlign: "center", padding: "40px 0" }}>Loading your breach data...</p>
+          ) : (
+            <>
+              {messages.map((m, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-start", gap: "8px" }}>
+                  {m.role === "ai" && (
+                    <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "rgba(180,127,232,0.15)", border: "1px solid rgba(180,127,232,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "11px", color: "#b47fe8", fontWeight: 700 }}>AI</div>
+                  )}
+                  <div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: "12px", background: m.role === "user" ? "rgba(108,158,247,0.1)" : "rgba(255,255,255,0.03)", border: "1px solid " + (m.role === "user" ? "rgba(108,158,247,0.2)" : "rgba(255,255,255,0.06)"), fontSize: "13px", color: "rgba(255,255,255,0.9)", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "rgba(180,127,232,0.15)", border: "1px solid rgba(180,127,232,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "11px", color: "#b47fe8", fontWeight: 700 }}>AI</div>
+                  <div style={{ padding: "10px 14px", borderRadius: "12px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#b47fe8", animation: "bounce 1.4s infinite", animationDelay: "0s" }} />
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#b47fe8", animation: "bounce 1.4s infinite", animationDelay: "0.2s" }} />
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#b47fe8", animation: "bounce 1.4s infinite", animationDelay: "0.4s" }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {breachName && (
-          <div style={{ marginBottom: "14px", padding: "12px", borderRadius: "10px", background: "rgba(180,127,232,0.04)", border: "1px solid rgba(180,127,232,0.15)" }}>
-            <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(180,127,232,0.7)", textTransform: "uppercase", marginBottom: "6px", fontWeight: 700 }}>Data exposed in {breachName}</p>
+        {/* Quick prompts */}
+        {messages.length <= 1 && !contextLoading && (
+          <div style={{ marginBottom: "12px" }}>
+            <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "8px", fontWeight: 600 }}>Try asking</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-              {COMMON_BREACHES.find(b => b.name === breachName)?.dataClasses.map(d => (
-                <span key={d} style={{ fontSize: "11px", padding: "3px 9px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.08)" }}>{d}</span>
+              {QUICK_PROMPTS.map(p => (
+                <button key={p} onClick={() => sendMessage(p)} disabled={loading} style={{ padding: "6px 12px", fontSize: "11px", color: "rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "100px", cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{p}</button>
               ))}
             </div>
           </div>
         )}
 
-        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase", marginBottom: "10px" }}>Your email (optional - personalizes the analysis)</p>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder={session?.user?.email || "your@email.com"}
-          style={{ ...inputStyle, marginBottom: "12px" }}
-        />
-
-        <button onClick={analyze} disabled={loading || !breachName} style={{ width: "100%", padding: "12px", fontSize: "13px", fontWeight: 700, color: "#000", background: loading || !breachName ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: loading || !breachName ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-          {loading ? "Analyzing breach..." : "Run AI analysis"}
-        </button>
-
-        {error && <p style={{ marginTop: "10px", padding: "9px 12px", borderRadius: "8px", fontSize: "12px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.25)" }}>{error}</p>}
+        {/* Input */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+            placeholder="Ask anything about your breach exposure..."
+            rows={1}
+            style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", padding: "11px 14px", color: "#fff", fontSize: "13px", outline: "none", fontFamily: "inherit", resize: "none", maxHeight: "120px" }}
+          />
+          <button onClick={() => sendMessage()} disabled={loading || !input.trim()} style={{ padding: "11px 18px", fontSize: "13px", fontWeight: 700, color: "#000", background: loading || !input.trim() ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "10px", cursor: loading || !input.trim() ? "not-allowed" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            Send
+          </button>
+        </div>
+        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)", marginTop: "8px", textAlign: "center" }}>AI may make mistakes. For critical security decisions, also consult professional advice.</p>
       </Card>
 
-      {analysis && (
-        <Card accent="#b47fe8">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#b47fe8", textTransform: "uppercase", fontWeight: 700 }}>Breach analysis - {breachName}</p>
-            {cached && (
-              <span style={{ fontSize: "9px", padding: "2px 8px", borderRadius: "4px", background: "rgba(108,228,192,0.08)", color: "#6ce4c0", border: "1px solid rgba(108,228,192,0.2)", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Cached</span>
-            )}
-          </div>
-          <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.85)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-            {analysis}
-          </div>
-        </Card>
-      )}
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes bounce { 0%,80%,100%{transform:translateY(0); opacity:0.4} 40%{transform:translateY(-4px); opacity:1} }
+      `}</style>
     </PageShell>
   );
 }

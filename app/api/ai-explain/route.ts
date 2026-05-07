@@ -12,18 +12,11 @@ export const dynamic = "force-dynamic";
 const CACHE_TTL_HOURS = 24;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-function makeCacheKey(email: string, breaches: string[]): string {
-  const sorted = [...breaches].sort().join(",");
-  const hash = crypto.createHash("sha256").update(email + "::" + sorted).digest("hex").slice(0, 32);
-  return hash;
+function makeCacheKey(input: string): string {
+  return crypto.createHash("sha256").update(input).digest("hex").slice(0, 32);
 }
 
-function makeBreachesHash(breaches: string[]): string {
-  const sorted = [...breaches].sort().join(",");
-  return crypto.createHash("md5").update(sorted).digest("hex");
-}
-
-async function callGroq(prompt: string): Promise<string> {
+async function callGroq(messages: any[]): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("API key not set");
 
@@ -35,11 +28,8 @@ async function callGroq(prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: "You are a friendly cybersecurity advisor. Keep responses concise (4-6 short paragraphs max). Use plain English. Be empathetic but practical. No markdown formatting." },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 600,
+      messages,
+      max_tokens: 700,
       temperature: 0.7,
     }),
     signal: AbortSignal.timeout(30000),
@@ -64,7 +54,6 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    // Check Pro status
     const user = await User.findOne({ email: session.user.email }).lean() as any;
     const isPro = user?.isPro || false;
     if (!isPro) {
@@ -72,137 +61,119 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const userEmail = (body.email || session.user.email || "").toString().trim().toLowerCase();
-    const breachName = (body.breachName || "").toString().trim();
-    const dataClasses: string[] = Array.isArray(body.dataClasses) ? body.dataClasses : [];
+    const mode = body.mode || "legacy";
 
-    let breaches: string[] = [];
-    let exposedTypes: string[] = [];
-    let mode: "scan-lookup" | "breach-direct" = "scan-lookup";
+    // === CHAT MODE: conversational AI with breach context ===
+    if (mode === "chat") {
+      const question: string = (body.question || "").toString().trim();
+      if (!question) return NextResponse.json({ error: "ask a question first" }, { status: 400 });
+      if (question.length > 500) return NextResponse.json({ error: "keep questions under 500 chars" }, { status: 400 });
 
-    if (breachName) {
-      // === NEW MODE: direct breach analysis ===
-      mode = "breach-direct";
-      breaches = [breachName];
-      exposedTypes = dataClasses;
-    } else {
-      // === LEGACY MODE: look up email scans ===
-      if (!userEmail || !userEmail.includes("@")) {
-        return NextResponse.json({ error: "Provide either a breachName or a valid email" }, { status: 400 });
+      const breachContext = body.breachContext || { totalBreaches: 0, emails: [] };
+      const history: { role: string; text: string }[] = Array.isArray(body.history) ? body.history : [];
+
+      // Build system prompt with their actual breach data
+      const breachEmails = (breachContext.emails || []).slice(0, 5);
+      const breachSummary = breachEmails.map((e: any) => {
+        const sources = (e.breachSources || []).slice(0, 8).join(", ");
+        const types = (e.exposedDataTypes || []).slice(0, 6).join(", ");
+        return "- " + e.email + ": in " + (e.breachSources || []).length + " breaches (" + sources + "). Exposed: " + (types || "unknown");
+      }).join("\n");
+
+      const systemPrompt = "You are a friendly cybersecurity advisor chatting with a user about THEIR specific breach exposure. Use plain English. Be concise (3-5 short paragraphs max). No markdown formatting, no asterisks, no headers. Reference their actual data when relevant.\n\n" +
+        "USER'S BREACH DATA:\n" +
+        "Total unique breaches: " + breachContext.totalBreaches + "\n" +
+        "Breached emails:\n" + (breachSummary || "(none scanned yet)") + "\n\n" +
+        "Be empathetic but practical. Give actionable advice. If they ask something unrelated to security/breaches, gently redirect.";
+
+      const messages: any[] = [{ role: "system", content: systemPrompt }];
+
+      // Include last few exchanges for context
+      for (const h of history.slice(-6)) {
+        messages.push({ role: h.role === "ai" ? "assistant" : "user", content: h.text });
       }
-      const latestScan = await EmailCheck.findOne({
-        userId: session.user.email,
-        email: userEmail,
-      }).sort({ createdAt: -1 }).lean() as any;
 
-      if (!latestScan) {
-        return NextResponse.json({
-          error: "No scan found for this email. Run a scan first or pick a breach to analyze directly.",
-        }, { status: 404 });
+      // Cache only if it's a quick prompt match (deterministic responses)
+      const cacheKey = makeCacheKey(session.user.email + "::" + question + "::" + JSON.stringify(breachEmails));
+      const cached = await AIAnalysis.findOne({ cacheKey }).lean() as any;
+      if (cached && new Date(cached.expiresAt) > new Date()) {
+        return NextResponse.json({ analysis: cached.analysis, cached: true });
       }
 
-      breaches = latestScan.breachSources || [];
-      exposedTypes = latestScan.exposedDataTypes || [];
-    }
-
-    const cacheKey = makeCacheKey(userEmail, breaches);
-    const breachesHash = makeBreachesHash(breaches);
-
-    // === CACHE CHECK ===
-    const cached = await AIAnalysis.findOne({ cacheKey }).lean() as any;
-    if (cached && cached.breachesHash === breachesHash && new Date(cached.expiresAt) > new Date()) {
-      return NextResponse.json({
-        analysis: cached.analysis,
-        cached: true,
-        cachedAt: cached.createdAt,
-      });
-    }
-
-    // === BUILD PROMPT ===
-    let prompt: string;
-    if (mode === "breach-direct") {
-      prompt = "A user wants to understand the " + breachName + " data breach.\n\n" +
-        "Data exposed in this breach: " + (exposedTypes.length > 0 ? exposedTypes.join(", ") : "various personal data") + "\n" +
-        (userEmail ? "User's email: " + userEmail + "\n" : "") + "\n" +
-        "Provide:\n" +
-        "1. A short explanation of what happened in the " + breachName + " breach (2-3 sentences)\n" +
-        "2. Why this matters - what attackers can do with this exposed data\n" +
-        "3. The 3 most critical actions to take RIGHT NOW (in order of urgency)\n" +
-        "4. One reassuring closing line about how to stay safe going forward\n\n" +
-        "Keep it under 350 words. Plain English. No markdown formatting. No bold or asterisks.";
-    } else if (breaches.length === 0) {
-      prompt = "The email " + userEmail + " was scanned and found in 0 known data breaches. Write a short reassuring message (2-3 paragraphs) explaining what this means: their email isn't in any KNOWN public breaches, but they should still use unique passwords plus 2FA plus monitor regularly. Don't be alarmist - celebrate the good news. No markdown.";
-    } else {
-      prompt = "Analyze this breach exposure for the user.\n\n" +
-        "Email: " + userEmail + "\n" +
-        "Number of breaches: " + breaches.length + "\n" +
-        "Breach sources: " + breaches.slice(0, 15).join(", ") + (breaches.length > 15 ? " (+" + (breaches.length - 15) + " more)" : "") + "\n" +
-        "Data types exposed: " + (exposedTypes.length > 0 ? exposedTypes.join(", ") : "Unknown") + "\n\n" +
-        "Provide:\n" +
-        "1. A brief assessment of the severity (1-2 sentences)\n" +
-        "2. What the most important breaches mean (focus on the worst 2-3)\n" +
-        "3. The 3 most critical actions to take RIGHT NOW (in order of urgency)\n" +
-        "4. One reassuring closing line\n\n" +
-        "Keep it under 350 words. Plain English. No markdown formatting. No bold or asterisks.";
-    }
-
-    // === CALL AI WITH FALLBACK ===
-    let analysis: string;
-    try {
-      analysis = await callGroq(prompt);
-    } catch (err: any) {
-      if (err.message === "RATE_LIMITED") {
-        const fallback = await AIAnalysis.findOne({ cacheKey }).sort({ createdAt: -1 }).lean() as any;
-        if (fallback) {
-          return NextResponse.json({
-            analysis: fallback.analysis,
-            cached: true,
-            stale: true,
-            cachedAt: fallback.createdAt,
-            note: "AI is busy - showing recent cached analysis",
-          });
+      try {
+        const reply = await callGroq(messages);
+        if (!reply || reply.length < 5) {
+          return NextResponse.json({ error: "AI returned empty. Try again." }, { status: 500 });
         }
-        return NextResponse.json({
-          error: "AI is rate-limited. Please try again in 1 minute.",
-          retryAfter: 60,
-        }, { status: 429 });
+
+        // Save to cache (3h for chat, shorter than analysis)
+        const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
+        await AIAnalysis.findOneAndUpdate(
+          { cacheKey },
+          { cacheKey, email: session.user.email, breachesHash: "chat", analysis: reply, model: "llama-3.3-70b-versatile", expiresAt },
+          { upsert: true, new: true }
+        );
+
+        return NextResponse.json({ analysis: reply, cached: false });
+      } catch (err: any) {
+        if (err.message === "RATE_LIMITED") {
+          return NextResponse.json({ error: "AI is busy. Please try again in 30 seconds." }, { status: 429 });
+        }
+        console.error("AI chat error:", err);
+        return NextResponse.json({ error: "AI temporarily unavailable. Try again shortly." }, { status: 500 });
       }
+    }
+
+    // === LEGACY MODE: email-based scan analysis (kept for backwards compat) ===
+    const userEmail = (body.email || "").toString().trim().toLowerCase();
+    if (!userEmail || !userEmail.includes("@")) {
+      return NextResponse.json({ error: "Provide a valid email or use chat mode" }, { status: 400 });
+    }
+
+    const latestScan = await EmailCheck.findOne({
+      userId: session.user.email,
+      email: userEmail,
+    }).sort({ createdAt: -1 }).lean() as any;
+
+    if (!latestScan) {
+      return NextResponse.json({ error: "No scan found for this email." }, { status: 404 });
+    }
+
+    const breaches: string[] = latestScan.breachSources || [];
+    const exposedTypes: string[] = latestScan.exposedDataTypes || [];
+    const cacheKey = makeCacheKey(userEmail + "::" + breaches.sort().join(","));
+
+    const cached = await AIAnalysis.findOne({ cacheKey }).lean() as any;
+    if (cached && new Date(cached.expiresAt) > new Date()) {
+      return NextResponse.json({ analysis: cached.analysis, cached: true });
+    }
+
+    const prompt = breaches.length === 0
+      ? "The email " + userEmail + " was scanned and found in 0 known breaches. Write a 2-3 paragraph reassuring message. Plain English, no markdown."
+      : "Analyze this breach exposure. Email: " + userEmail + ". " + breaches.length + " breaches: " + breaches.slice(0, 15).join(", ") + ". Data exposed: " + exposedTypes.join(", ") + ". Give: severity assessment, what worst breaches mean, top 3 urgent actions, reassuring close. Under 350 words. Plain English. No markdown.";
+
+    try {
+      const analysis = await callGroq([
+        { role: "system", content: "Friendly cybersecurity advisor. Concise. Plain English. No markdown." },
+        { role: "user", content: prompt },
+      ]);
+
+      const expiresAt = new Date(Date.now() + CACHE_TTL_HOURS * 60 * 60 * 1000);
+      await AIAnalysis.findOneAndUpdate(
+        { cacheKey },
+        { cacheKey, email: userEmail, breachesHash: breaches.sort().join(","), analysis, model: "llama-3.3-70b-versatile", expiresAt },
+        { upsert: true, new: true }
+      );
+
+      return NextResponse.json({ analysis, cached: false });
+    } catch (err: any) {
+      if (err.message === "RATE_LIMITED") return NextResponse.json({ error: "AI rate-limited. Try again in 1 min." }, { status: 429 });
       console.error("AI explain error:", err);
-      return NextResponse.json({
-        error: "AI analysis temporarily unavailable. Please try again shortly.",
-      }, { status: 500 });
+      return NextResponse.json({ error: "AI temporarily unavailable." }, { status: 500 });
     }
-
-    if (!analysis || analysis.length < 20) {
-      return NextResponse.json({
-        error: "AI returned empty response. Try again.",
-      }, { status: 500 });
-    }
-
-    // === SAVE TO CACHE ===
-    const expiresAt = new Date(Date.now() + CACHE_TTL_HOURS * 60 * 60 * 1000);
-    await AIAnalysis.findOneAndUpdate(
-      { cacheKey },
-      {
-        cacheKey,
-        email: userEmail,
-        breachesHash,
-        analysis,
-        model: "llama-3.3-70b-versatile",
-        expiresAt,
-      },
-      { upsert: true, new: true }
-    );
-
-    return NextResponse.json({
-      analysis,
-      cached: false,
-    });
 
   } catch (err: any) {
     console.error("ai-explain route error:", err);
-    return NextResponse.json({
-      error: err.message || "Server error",
-    }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
 }
