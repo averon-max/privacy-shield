@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -27,7 +27,7 @@ export default function AIPage() {
             "Plain-English explanation of every breach you're in",
             "Personalized action plan based on what was leaked",
             "Risk severity rating with reasoning",
-            "Powered by Llama 3.3 70B (cutting-edge model)",
+            "Cutting-edge AI model)",
           ]}
           color="#b47fe8"
           plan="pro"
