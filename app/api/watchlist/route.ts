@@ -2,116 +2,118 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
-import WatchedEmail from "@/models/WatchedEmail";
 import User from "@/models/User";
+
+export const dynamic = "force-dynamic";
 
 const FREE_LIMIT = 3;
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-async function getIsPro(email: string): Promise<boolean> {
-  const user = await User.findOne({ email }).lean() as any;
-  return user?.isPro || false;
-}
-
 export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    await connectDB();
-    const userId = session.user.email;
-    const isPro = await getIsPro(userId);
-
-    const watched = await WatchedEmail.find({ userId, active: true }).sort({ createdAt: -1 });
-
-    return NextResponse.json({
-      watched,
-      limit: isPro ? null : FREE_LIMIT,
-      count: watched.length,
-      isPro,
-    });
-  } catch (error) {
-    console.error("Watchlist GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch watchlist" }, { status: 500 });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ emails: [] });
   }
+
+  await connectDB();
+  const user = await User.findOne({ email: session.user.email }).lean() as any;
+  const emails = (user?.watchlist || []).map((w: any) => ({
+    email: w.email,
+    lastChecked: w.lastChecked || null,
+    breached: w.breached === undefined ? null : w.breached,
+    breachCount: w.breachCount || 0,
+    breachSources: w.breachSources || [],
+    addedAt: w.addedAt || null,
+  }));
+
+  return NextResponse.json({ emails });
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const { email } = await req.json();
-    if (!email || !isValidEmail(email)) {
-      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
-    }
-
-    await connectDB();
-    const userId = session.user.email;
-    const cleanEmail = email.toLowerCase().trim();
-    const isPro = await getIsPro(userId);
-
-    if (!isPro) {
-      const currentCount = await WatchedEmail.countDocuments({ userId, active: true });
-      if (currentCount >= FREE_LIMIT) {
-        return NextResponse.json(
-          { error: `Free plan allows ${FREE_LIMIT} emails max. Upgrade to Pro for unlimited.` },
-          { status: 403 }
-        );
-      }
-    }
-
-    const existing = await WatchedEmail.findOne({ email: cleanEmail, userId, active: true });
-    if (existing) {
-      return NextResponse.json({ error: "Already watching this email" }, { status: 409 });
-    }
-
-    const watched = await WatchedEmail.create({
-      email: cleanEmail,
-      userId,
-      alertEmail: userId,
-      active: true,
-      lastBreachCount: 0,
-      lastChecked: null,
-    });
-
-    return NextResponse.json({ watched }, { status: 201 });
-  } catch (error) {
-    console.error("Watchlist POST error:", error);
-    return NextResponse.json({ error: "Failed to add email" }, { status: 500 });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+
+  const { email } = await req.json();
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+  }
+
+  await connectDB();
+  const user = await User.findOne({ email: session.user.email }) as any;
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const watchlist = user.watchlist || [];
+  const isPro = user.isPro || false;
+
+  // Check if already watching
+  if (watchlist.some((w: any) => w.email === email)) {
+    return NextResponse.json({ error: "Already watching this email" }, { status: 400 });
+  }
+
+  // Free tier limit
+  if (!isPro && watchlist.length >= FREE_LIMIT) {
+    return NextResponse.json({
+      error: "Free tier limit reached (" + FREE_LIMIT + " emails). Upgrade to Pro for unlimited monitoring.",
+    }, { status: 403 });
+  }
+
+  watchlist.push({
+    email,
+    addedAt: Date.now(),
+    lastChecked: null,
+    breached: null,
+    breachCount: 0,
+    breachSources: [],
+  });
+
+  user.watchlist = watchlist;
+  await user.save();
+
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const { email } = await req.json();
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    await connectDB();
-    const userId = session.user.email;
-
-    await WatchedEmail.findOneAndUpdate(
-      { email: email.toLowerCase().trim(), userId, active: true },
-      { active: false }
-    );
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Watchlist DELETE error:", error);
-    return NextResponse.json({ error: "Failed to remove email" }, { status: 500 });
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+
+  const { email } = await req.json();
+  await connectDB();
+  const user = await User.findOne({ email: session.user.email }) as any;
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  user.watchlist = (user.watchlist || []).filter((w: any) => w.email !== email);
+  await user.save();
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { email, lastChecked, breached, breachCount, breachSources } = await req.json();
+  await connectDB();
+  const user = await User.findOne({ email: session.user.email }) as any;
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  user.watchlist = (user.watchlist || []).map((w: any) => {
+    if (w.email === email) {
+      return {
+        ...w,
+        lastChecked: lastChecked !== undefined ? lastChecked : w.lastChecked,
+        breached: breached !== undefined ? breached : w.breached,
+        breachCount: breachCount !== undefined ? breachCount : w.breachCount,
+        breachSources: breachSources !== undefined ? breachSources : w.breachSources,
+      };
+    }
+    return w;
+  });
+  await user.save();
+
+  return NextResponse.json({ ok: true });
 }
