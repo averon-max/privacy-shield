@@ -8,19 +8,21 @@ import AppNav from "@/components/AppNav";
 
 function AnimatedNumber({ target, color, duration = 1200 }: { target: number; color: string; duration?: number }) {
   const [display, setDisplay] = useState(0);
-  const started = useRef(false);
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
     const t0 = performance.now();
+    const start = display;
+    const delta = target - start;
+    if (delta === 0) return;
+    let rafId: number;
     const tick = (now: number) => {
       const p = Math.min((now - t0) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
-      setDisplay(Math.round(target * ease));
-      if (p < 1) requestAnimationFrame(tick);
+      setDisplay(Math.round(start + delta * ease));
+      if (p < 1) rafId = requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
-  }, [target]);
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [target, duration]);
   return <span style={{ color, textShadow: "0 0 30px " + color + "88", fontVariantNumeric: "tabular-nums" }}>{display}</span>;
 }
 
