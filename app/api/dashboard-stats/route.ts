@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
 import User from "@/models/User";
+import WatchlistEntry from "@/models/WatchlistEntry";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +13,10 @@ export async function GET() {
   if (!session?.user?.email) return NextResponse.json({});
 
   await connectDB();
-
   const userEmail = session.user.email;
 
-  // Try matching userId as either email string OR ObjectId reference
   let allChecks: any[] = await EmailCheck.find({ userId: userEmail }).sort({ createdAt: -1 }).lean();
 
-  // Fallback: try by user's _id if email match didn't find anything
   if (allChecks.length === 0) {
     const user = await User.findOne({ email: userEmail }).lean() as any;
     if (user?._id) {
@@ -32,18 +30,12 @@ export async function GET() {
     }
   }
 
-  console.log("[dashboard-stats] userEmail:", userEmail, "scans found:", allChecks.length);
-
-  // Group by email - keep only most recent result per email
   const byEmail = new Map<string, any>();
   for (const c of allChecks) {
-    if (!byEmail.has(c.email)) {
-      byEmail.set(c.email, c);
-    }
+    if (!byEmail.has(c.email)) byEmail.set(c.email, c);
   }
 
   const uniqueResults = Array.from(byEmail.values());
-
   const totalScans = allChecks.length;
   const breachesFound = uniqueResults.filter((c: any) => c.breached === true).length;
   const passwordsExposed = uniqueResults.filter((c: any) => {
@@ -63,13 +55,7 @@ export async function GET() {
     score = Math.max(0, Math.min(100, score));
   }
 
-  let watchlistCount = 0;
-  try {
-    const user = await User.findOne({ email: userEmail }).lean() as any;
-    if (user?.watchlist && Array.isArray(user.watchlist)) {
-      watchlistCount = user.watchlist.length;
-    }
-  } catch {}
+  const watchlistCount = await WatchlistEntry.countDocuments({ userId: userEmail });
 
   return NextResponse.json({
     score,
