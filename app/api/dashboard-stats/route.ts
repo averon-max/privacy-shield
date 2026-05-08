@@ -12,45 +12,64 @@ export async function GET() {
   if (!session?.user?.email) return NextResponse.json({});
 
   await connectDB();
-  const checks = await EmailCheck.find({ userId: session.user.email }).lean() as any[];
 
+  const userEmail = session.user.email;
+
+  // Try matching userId as either email string OR ObjectId reference
+  let allChecks: any[] = await EmailCheck.find({ userId: userEmail }).sort({ createdAt: -1 }).lean();
+
+  // Fallback: try by user's _id if email match didn't find anything
+  if (allChecks.length === 0) {
+    const user = await User.findOne({ email: userEmail }).lean() as any;
+    if (user?._id) {
+      allChecks = await EmailCheck.find({
+        $or: [
+          { userId: user._id.toString() },
+          { userId: user._id },
+          { user: user._id },
+        ]
+      }).sort({ createdAt: -1 }).lean();
+    }
+  }
+
+  console.log("[dashboard-stats] userEmail:", userEmail, "scans found:", allChecks.length);
+
+  // Group by email - keep only most recent result per email
   const byEmail = new Map<string, any>();
-  const sorted = [...checks].sort((a, b) => {
-    const ta = new Date(b.checkedAt || b.createdAt || 0).getTime();
-    const tb = new Date(a.checkedAt || a.createdAt || 0).getTime();
-    return ta - tb;
-  });
-  for (const c of sorted) {
-    if (!byEmail.has(c.email)) byEmail.set(c.email, c);
+  for (const c of allChecks) {
+    if (!byEmail.has(c.email)) {
+      byEmail.set(c.email, c);
+    }
   }
 
   const uniqueResults = Array.from(byEmail.values());
-  const totalScans = checks.length;
-  const breachesFound = uniqueResults.filter(c => c.breached).length;
-  const passwordsExposed = uniqueResults.filter(c => (c.exposedDataTypes || []).includes("Passwords") || c.passwordExposed).length;
-  const cleanScans = uniqueResults.filter(c => !c.breached).length;
 
-  // Score only makes sense if you've actually scanned something
-let score: number;
-if (totalScans === 0) {
-  score = 100; // No scans yet — assume safe until proven otherwise
-} else {
-  score = 100;
-  score -= breachesFound * 5;
-  score -= passwordsExposed * 8;
-  score = Math.max(0, Math.min(100, score));
-}
+  const totalScans = allChecks.length;
+  const breachesFound = uniqueResults.filter((c: any) => c.breached === true).length;
+  const passwordsExposed = uniqueResults.filter((c: any) => {
+    const types = c.exposedDataTypes || [];
+    return types.includes("Passwords") || c.passwordExposed === true;
+  }).length;
+  const cleanScans = uniqueResults.filter((c: any) => c.breached === false).length;
+  const uniqueEmails = uniqueResults.length;
 
-  // Get watchlist count from User document if it has a watchlist field
+  let score: number;
+  if (totalScans === 0) {
+    score = 100;
+  } else {
+    score = 100;
+    score -= breachesFound * 5;
+    score -= passwordsExposed * 8;
+    score = Math.max(0, Math.min(100, score));
+  }
+
   let watchlistCount = 0;
   try {
-    const user = await User.findOne({ email: session.user.email }).lean() as any;
+    const user = await User.findOne({ email: userEmail }).lean() as any;
     if (user?.watchlist && Array.isArray(user.watchlist)) {
       watchlistCount = user.watchlist.length;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
 
   return NextResponse.json({
     score,
@@ -58,7 +77,7 @@ if (totalScans === 0) {
     breachesFound,
     passwordsExposed,
     cleanScans,
-    uniqueEmails: uniqueResults.length,
+    uniqueEmails,
     watchlistCount,
   });
 }
