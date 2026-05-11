@@ -4,7 +4,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/db";
 import EmailCheck from "@/models/EmailCheck";
 import User from "@/models/User";
-import WatchlistEntry from "@/models/WatchlistEntry";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +14,9 @@ export async function GET() {
   await connectDB();
   const userEmail = session.user.email;
 
-  let allChecks: any[] = await EmailCheck.find({ userId: userEmail }).sort({ createdAt: -1 }).lean();
+  let allChecks: any[] = await EmailCheck.find({ userId: userEmail })
+    .sort({ createdAt: -1 })
+    .lean();
 
   if (allChecks.length === 0) {
     const user = await User.findOne({ email: userEmail }).lean() as any;
@@ -30,20 +31,24 @@ export async function GET() {
     }
   }
 
+  // Group by email - keep only most recent result per email
   const byEmail = new Map<string, any>();
   for (const c of allChecks) {
-    if (!byEmail.has(c.email)) byEmail.set(c.email, c);
+    if (!byEmail.has(c.email)) {
+      byEmail.set(c.email, c);
+    }
   }
 
   const uniqueResults = Array.from(byEmail.values());
   const totalScans = allChecks.length;
-  const breachesFound = uniqueResults.filter((c: any) => c.breached === true).length;
-  const passwordsExposed = uniqueResults.filter((c: any) => {
-    const types = c.exposedDataTypes || [];
-    return types.includes("Passwords") || c.passwordExposed === true;
+  const breachedEmails = uniqueResults.filter((c: any) => c.breached === true);
+  const cleanEmails = uniqueResults.filter((c: any) => c.breached === false);
+  const breachesFound = breachedEmails.length;
+  const cleanScans = cleanEmails.length;
+  const passwordsExposed = breachedEmails.filter((c: any) => {
+    const types = (c.exposedDataTypes || []).map((t: string) => t.toLowerCase());
+    return types.some((t: string) => t.includes("password")) || c.passwordExposed === true;
   }).length;
-  const cleanScans = uniqueResults.filter((c: any) => c.breached === false).length;
-  const uniqueEmails = uniqueResults.length;
 
   let score: number;
   if (totalScans === 0) {
@@ -55,7 +60,17 @@ export async function GET() {
     score = Math.max(0, Math.min(100, score));
   }
 
-  const watchlistCount = await WatchlistEntry.countDocuments({ userId: userEmail });
+  // Watchlist count — try both collection and User field
+  let watchlistCount = 0;
+  try {
+    const WatchlistEntry = (await import("@/models/WatchlistEntry")).default;
+    watchlistCount = await WatchlistEntry.countDocuments({ userId: userEmail });
+  } catch {
+    try {
+      const user = await User.findOne({ email: userEmail }).lean() as any;
+      watchlistCount = user?.watchlist?.length || 0;
+    } catch {}
+  }
 
   return NextResponse.json({
     score,
@@ -63,7 +78,7 @@ export async function GET() {
     breachesFound,
     passwordsExposed,
     cleanScans,
-    uniqueEmails,
+    uniqueEmails: uniqueResults.length,
     watchlistCount,
   });
 }
