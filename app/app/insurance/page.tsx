@@ -1,111 +1,127 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import Card from "@/components/Card";
 
-const DEFAULT_ITEMS = [
-  { id: "2fa-email", label: "Enable 2FA on your email account", category: "essential" },
-  { id: "2fa-banking", label: "Enable 2FA on banking and financial accounts", category: "essential" },
-  { id: "password-manager", label: "Install a password manager (1Password, Bitwarden)", category: "essential" },
-  { id: "unique-passwords", label: "Use unique passwords on every account", category: "essential" },
-  { id: "freeze-credit", label: "Freeze your credit at all 3 bureaus", category: "identity" },
-  { id: "monitor-credit", label: "Set up free credit monitoring", category: "identity" },
-  { id: "phishing-aware", label: "Learn to spot phishing emails", category: "knowledge" },
-  { id: "review-app-permissions", label: "Review app permissions on Google/Facebook/Apple", category: "privacy" },
-  { id: "data-broker-removal", label: "Submit data broker removal requests", category: "privacy" },
-  { id: "secure-recovery", label: "Update account recovery email and phone", category: "essential" },
+const PLANS = [
+  {
+    name: "LifeLock Standard",
+    price: "$11.99/mo",
+    covers: ["Credit monitoring", "SSN alerts", "Dark web monitoring", "$25K stolen funds reimbursement"],
+    doesnt: ["Identity restoration", "Lost wallet protection"],
+    rating: "C",
+    color: "#c48b20",
+    note: "Overpriced for what you get. Heavy TV advertising budget.",
+  },
+  {
+    name: "Aura",
+    price: "$12/mo",
+    covers: ["Credit monitoring (all 3)", "Dark web monitoring", "Antivirus", "$1M identity theft insurance", "VPN included"],
+    doesnt: ["Physical wallet protection"],
+    rating: "B",
+    color: "#6c9ef7",
+    note: "Best all-in-one option if you want bundled protection.",
+  },
+  {
+    name: "Experian IdentityWorks",
+    price: "$9.99/mo",
+    covers: ["3-bureau credit monitoring", "Dark web surveillance", "Identity theft insurance", "Credit lock"],
+    doesnt: ["VPN", "Antivirus", "Device protection"],
+    rating: "B",
+    color: "#6c9ef7",
+    note: "Good value. Direct from a credit bureau.",
+  },
+  {
+    name: "ScanMyCreds Pro",
+    price: "$4.99/mo",
+    covers: ["Real-time breach alerts", "AI-powered analysis", "Dark web monitoring", "Email alias system", "Multi-scan"],
+    doesnt: ["Identity theft insurance (yet)", "Credit monitoring"],
+    rating: "A",
+    color: "#6ce4c0",
+    note: "Best for breach detection and prevention. Pairs well with a credit freeze.",
+  },
 ];
 
-const CATEGORY_COLOR: Record<string, string> = {
-  essential: "#e05c4b",
-  identity: "#c48b20",
-  knowledge: "#6c9ef7",
-  privacy: "#b47fe8",
-};
+const FREE_STEPS = [
+  { title: "Freeze your credit (FREE)", desc: "Go to Equifax.com, Experian.com, TransUnion.com. Freeze is free by law. Prevents new accounts being opened in your name.", color: "#6ce4c0", link: "https://www.equifax.com/personal/credit-report-services/credit-freeze/" },
+  { title: "Enable fraud alerts (FREE)", desc: "Call one bureau and they notify the other two. Requires creditors to verify your identity before opening new credit.", color: "#6c9ef7", link: "https://www.experian.com/fraud/center.html" },
+  { title: "IRS Identity Protection PIN (FREE)", desc: "Free from the IRS. Prevents someone from filing a tax return using your SSN.", color: "#b47fe8", link: "https://www.irs.gov/identity-theft-fraud-scams/get-an-identity-protection-pin" },
+  { title: "Check your Social Security statement (FREE)", desc: "At ssa.gov — see if anyone has been working under your SSN or collecting benefits fraudulently.", color: "#c48b20", link: "https://www.ssa.gov/myaccount/" },
+];
 
-export default function ChecklistPage() {
-  const { status } = useSession();
-  const [completed, setCompleted] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetch("/api/checklist").then(r => r.json()).then(d => {
-        setCompleted(d.completed || []);
-        setLoading(false);
-      }).catch(() => setLoading(false));
-    }
-  }, [status]);
-
-  async function toggle(id: string) {
-    const next = completed.includes(id) ? completed.filter(x => x !== id) : [...completed, id];
-    setCompleted(next);
-    await fetch("/api/checklist", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, completed: !completed.includes(id) }),
-    });
-  }
-
-  if (status === "loading") return null;
-  if (status === "unauthenticated") {
-    if (typeof window !== "undefined") window.location.href = "/login";
-    return null;
-  }
-
-  const progress = Math.round((completed.length / DEFAULT_ITEMS.length) * 100);
-  const progressColor = progress < 30 ? "#e05c4b" : progress < 70 ? "#c48b20" : "#6ce4c0";
+export default function InsurancePage() {
+  const { data: session } = useSession();
+  const [openPlan, setOpenPlan] = useState<string | null>(null);
 
   return (
-    <PageShell eyebrow="Action plan" title="Security Checklist" subtitle="Steps to lock down your accounts and reduce identity theft risk">
+    <PageShell eyebrow="Identity protection" title="Insurance & protection" subtitle="Compare identity theft insurance plans and free protection steps you should take right now">
 
-      <Card accent={progressColor}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>Progress</p>
-          <span style={{ fontSize: "16px", fontWeight: 800, color: progressColor, letterSpacing: "-0.02em", textShadow: `0 0 12px ${progressColor}` }}>
-            {completed.length} <span style={{ fontSize: "11px", fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>/ {DEFAULT_ITEMS.length}</span>
-          </span>
-        </div>
-        <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: progressColor, borderRadius: "4px", boxShadow: `0 0 8px ${progressColor}`, transition: "width 0.6s ease" }} />
-        </div>
-        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "8px" }}>
-          {progress === 100 ? "🎉 Complete! You're well-protected." : progress >= 70 ? "Almost there." : progress >= 30 ? "Good start. Keep going." : "Get started below."}
+      <Card>
+        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>
+          Identity theft costs an average of <strong style={{ color: "#fff" }}>$1,300 and 200 hours</strong> to recover from (FTC data). These plans help cover costs if it happens — but prevention (breach monitoring, credit freezes) is more important than insurance.
         </p>
       </Card>
 
-      {loading ? (
-        <Card><div style={{ height: "200px" }} /></Card>
-      ) : (
+      <div style={{ marginBottom: "8px" }}>
+        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>Free protection steps (do these first)</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {DEFAULT_ITEMS.map(item => {
-            const done = completed.includes(item.id);
-            const color = CATEGORY_COLOR[item.category];
-            return (
-              <button key={item.id} onClick={() => toggle(item.id)} style={{
-                padding: "13px 16px", borderRadius: "12px",
-                border: `1px solid ${done ? "rgba(108,228,192,0.25)" : "rgba(255,255,255,0.06)"}`,
-                background: done ? "rgba(108,228,192,0.04)" : "rgba(255,255,255,0.02)",
-                cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                display: "flex", alignItems: "center", gap: "12px",
-                position: "relative", overflow: "hidden",
-                transition: "all 0.2s",
-              }}>
-                <div style={{
-                  width: "20px", height: "20px", borderRadius: "5px", flexShrink: 0,
-                  border: done ? "none" : `1.5px solid rgba(255,255,255,0.15)`,
-                  background: done ? "#6ce4c0" : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#000", fontSize: "12px", fontWeight: 700,
-                }}>{done ? "✓" : ""}</div>
-                <span style={{ flex: 1, fontSize: "13px", color: done ? "rgba(255,255,255,0.4)" : "#fff", fontWeight: done ? 400 : 500, textDecoration: done ? "line-through" : "none" }}>{item.label}</span>
-                <span style={{ padding: "2px 8px", borderRadius: "5px", fontSize: "9px", fontWeight: 700, background: `${color}12`, color, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>{item.category}</span>
-              </button>
-            );
-          })}
+          {FREE_STEPS.map((s, i) => (
+            <a key={i} href={s.link} target="_blank" rel="noopener noreferrer" style={{ padding: "14px 16px", borderRadius: "12px", border: "1px solid " + s.color + "25", background: s.color + "06", textDecoration: "none", display: "block" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: s.color, boxShadow: "0 0 6px " + s.color, marginTop: "6px", flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff", marginBottom: "4px" }}>{s.title}</p>
+                  <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{s.desc}</p>
+                </div>
+                <span style={{ fontSize: "12px", color: s.color, flexShrink: 0, marginLeft: "auto" }}>→</span>
+              </div>
+            </a>
+          ))}
         </div>
-      )}
+      </div>
+
+      <div>
+        <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>Paid plans compared</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {PLANS.map((p, i) => (
+            <div key={i} style={{ borderRadius: "12px", border: "1px solid " + p.color + "30", background: p.color + "04", overflow: "hidden" }}>
+              <button onClick={() => setOpenPlan(openPlan === p.name ? null : p.name)} style={{ width: "100%", padding: "14px 16px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: p.color + "15", border: "1px solid " + p.color + "40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: p.color, flexShrink: 0 }}>{p.rating}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", marginBottom: "2px" }}>{p.name}</p>
+                  <p style={{ fontSize: "12px", color: p.color, fontWeight: 600 }}>{p.price}</p>
+                </div>
+                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", flexShrink: 0 }}>{openPlan === p.name ? "▲" : "▼"}</span>
+              </button>
+              {openPlan === p.name && (
+                <div style={{ padding: "0 16px 16px" }}>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", marginBottom: "12px", fontStyle: "italic" }}>{p.note}</p>
+                  <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "#6ce4c0", textTransform: "uppercase", marginBottom: "6px", fontWeight: 700 }}>Covers</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "12px" }}>
+                    {p.covers.map((c, j) => <div key={j} style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "12px", color: "rgba(255,255,255,0.7)" }}><span style={{ color: "#6ce4c0" }}>✓</span>{c}</div>)}
+                  </div>
+                  {p.doesnt.length > 0 && <>
+                    <p style={{ fontSize: "10px", letterSpacing: "0.15em", color: "#e05c4b", textTransform: "uppercase", marginBottom: "6px", fontWeight: 700 }}>Doesn't cover</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {p.doesnt.map((c, j) => <div key={j} style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "12px", color: "rgba(255,255,255,0.5)" }}><span style={{ color: "#e05c4b" }}>✗</span>{c}</div>)}
+                    </div>
+                  </>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Card>
+        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", lineHeight: 1.7, marginBottom: "12px" }}>
+          <strong style={{ color: "#fff" }}>Our recommendation:</strong> Do the 4 free steps above first. Add ScanMyCreds Pro for breach monitoring. Only pay for identity theft insurance if you have a high credit score or significant assets to protect.
+        </p>
+        <Link href="/pricing" style={{ display: "inline-block", padding: "9px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "8px" }}>Get ScanMyCreds Pro →</Link>
+      </Card>
     </PageShell>
   );
 }
