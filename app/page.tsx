@@ -204,7 +204,14 @@ function NavInner() {
     </nav>
   );
 }
-
+function getReportToken(email: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return btoa(email + ":" + Date.now()).replace(/=/g, "");
+  } catch {
+    return "";
+  }
+}
 function LandingInner() {
   const [email, setEmail] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -301,7 +308,7 @@ function LandingInner() {
                     ))}
                   </div>
                 )}
-                <Link href="/launch" style={{ display: "block", textAlign: "center", padding: "11px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>
+                <Link href={`/report/${getReportToken(email)}?e=${typeof window !== 'undefined' ? btoa(email) : ''}`} style={{ display: "block", textAlign: "center", padding: "11px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "10px" }}>
                   See full report →
                 </Link>
               </div>
