@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import PublicNav from "@/components/PublicNav";
@@ -62,7 +62,7 @@ const FAQS = [
   },
 ];
 
-export default function Pricing() {
+function PricingContent() {
   const { data: session } = useSession();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -275,5 +275,13 @@ export default function Pricing() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Pricing() {
+  return (
+    <Suspense fallback={null}>
+      <PricingContent />
+    </Suspense>
   );
 }
