@@ -69,7 +69,11 @@ function FreeTierMeter() {
             {used}<span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 400, fontSize: "16px" }}> / {limit}</span>
           </p>
         </div>
-        <Link href="/pricing" style={{ padding: "10px 20px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 24px rgba(255,255,255,0.25)" }}>Get unlimited →</Link>
+        <Link href="/pricing" style={{ padding: "10px 20px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 24px rgba(255,255,255,0.25)", transition: "all 0.2s ease" }}
+          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(255,255,255,0.35)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 24px rgba(255,255,255,0.25)"; }}>
+          Get unlimited →
+        </Link>
       </div>
       <div style={{ height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
         <div style={{ height: "100%", width: pct + "%", background: accent, boxShadow: "0 0 8px " + accent, transition: "width 0.5s ease" }} />
@@ -100,6 +104,7 @@ function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
   const [scans, setScans] = useState<any[]>([]);
   const [streak, setStreak] = useState<any>(null);
+  const [digest, setDigest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const isPro = (session?.user as any)?.isPro || false;
@@ -113,10 +118,12 @@ function DashboardContent() {
       fetch("/api/dashboard-stats").then(r => r.json()).catch(() => ({})),
       fetch("/api/dark-web").then(r => r.json()).catch(() => ({ entries: [] })),
       fetch("/api/streak").then(r => r.json()).catch(() => null),
-    ]).then(([statsData, darkData, streakData]) => {
+      fetch("/api/daily-digest").then(r => r.json()).catch(() => null),
+    ]).then(([statsData, darkData, streakData, digestData]) => {
       setStats(statsData);
       setScans((darkData.entries || []).slice(0, 5));
       setStreak(streakData);
+      setDigest(digestData);
       setLoading(false);
     });
   }, []);
@@ -128,46 +135,63 @@ function DashboardContent() {
   const cleanScans = stats?.cleanScans ?? 0;
   const watchlistCount = stats?.watchlistCount ?? 0;
 
-  // Status determination
-  const isSafe = totalScans > 0 && breachesFound === 0;
-  const isUnknown = totalScans === 0;
-  const isDanger = breachesFound > 0;
-
-  const status = isUnknown
-    ? { headline: "RUN YOUR FIRST SCAN", color: "rgba(255,255,255,0.4)", ringColor: "rgba(255,255,255,0.35)", label: "Unknown", desc: "Check an email to see your security score.", dot: "rgba(255,255,255,0.4)", gradient: "linear-gradient(135deg, #0d0d14 0%, #13131f 50%, #0a0a18 100%)" }
-    : isSafe
-    ? { headline: "YOU'RE SAFE TODAY", color: "#6ce4c0", ringColor: "#6ce4c0", label: "Excellent", desc: "No breaches detected across your accounts.", dot: "#6ce4c0", gradient: "linear-gradient(135deg, #0d2218, #0d1a2e)" }
-    : score >= 60
-    ? { headline: "MINOR EXPOSURE", color: "#c48b20", ringColor: "#c48b20", label: "Good", desc: "Some exposure detected, but manageable.", dot: "#c48b20", gradient: "linear-gradient(135deg, #1a1408, #13131f)" }
-    : { headline: "ACTION NEEDED", color: "#e05c4b", ringColor: "#e05c4b", label: score >= 40 ? "At Risk" : "Critical", desc: "Your accounts need attention. Review breaches below.", dot: "#e05c4b", gradient: "linear-gradient(135deg, #1a0d0d, #1a1008)" };
-
-  const lastChecked = scans[0]?.lastChecked || null;
-
-  // What Changed Today
-  const newLeaks = breachesFound;
-  const riskTrend = isUnknown ? "—" : isSafe ? "Down" : score < 60 ? "Up" : "Same";
-  const actionsNeeded = (breachesFound > 0 ? 1 : 0) + (watchlistCount === 0 ? 1 : 0) + (isPro ? 0 : 0);
-
-  // Smart Daily Action
-  let dailyAction: any = null;
-  if (isUnknown) {
-    dailyAction = { title: "Run your first scan", desc: "Find out which emails are exposed.", href: "/app", color: "#00d4ff", icon: "◉" };
-  } else if (isDanger && watchlistCount === 0) {
-    dailyAction = { title: "Add your email to Watchlist", desc: "Get alerted within 24h of new breaches.", href: "/app/watchlist", color: "#b47fe8", icon: "◎" };
-  } else if (isDanger && isPro) {
-    dailyAction = { title: "Run AI analysis on your breaches", desc: "Get personalized action items for each leak.", href: "/app/ai", color: "#b47fe8", icon: "✦" };
-  } else if (isDanger && !isPro) {
-    dailyAction = { title: "Get AI analysis of your breaches", desc: "Understand what was leaked and what to do.", href: "/pricing", color: "#b47fe8", icon: "✦" };
-  } else if (score < 70) {
-    dailyAction = { title: "Enable 2FA on your main accounts", desc: "Strongest defense against credential stuffing.", href: "/app/checklist", color: "#ff7d3b", icon: "✓" };
-  } else if (watchlistCount === 0) {
-    dailyAction = { title: "Add emails to your Watchlist", desc: "Continuous monitoring while you sleep.", href: "/app/watchlist", color: "#a8e63d", icon: "◎" };
-  } else {
-    dailyAction = { title: "Review your Account Inventory", desc: "Audit which accounts still need 2FA.", href: "/app/accounts", color: "#6c9ef7", icon: "▤" };
-  }
-
   const currentStreak = streak?.currentStreak ?? 0;
   const longestStreak = streak?.longestStreak ?? 0;
+
+  // Digest data
+  const newBreaches = digest?.newBreaches ?? 0;
+  const riskDelta = digest?.riskDelta ?? "same";
+  const watchedCount = digest?.watchedCount ?? 0;
+  const dailyAction = digest?.dailyAction ?? { text: "Check your security", href: "/app/scanner", icon: "🔍", priority: "medium" };
+  const lastCheckAt = digest?.lastCheckAt ?? "Never";
+
+  // BLOCK 1 — Today's Status Hero determination
+  let statusColor = "#6c9ef7";
+  let statusGradient = "linear-gradient(135deg, #0d0d14 0%, #13131f 50%, #0a0a18 100%)";
+  let statusDot = "#6c9ef7";
+  let statusHeadline = "Stay Vigilant";
+  let statusLabel = "Unknown";
+
+  if (totalScans === 0) {
+    statusColor = "rgba(255,255,255,0.4)";
+    statusDot = "rgba(255,255,255,0.4)";
+    statusHeadline = "Ready to Scan";
+    statusLabel = "Unknown";
+    statusGradient = "linear-gradient(135deg, #0d0d14 0%, #13131f 50%, #0a0a18 100%)";
+  } else if (breachesFound === 0 && score >= 80) {
+    statusColor = "#6ce4c0";
+    statusDot = "#6ce4c0";
+    statusHeadline = "You're Protected Today";
+    statusLabel = "Excellent";
+    statusGradient = "linear-gradient(135deg, #0d2218, #0d1a2e)";
+  } else if (breachesFound > 0) {
+    statusColor = "#e05c4b";
+    statusDot = "#e05c4b";
+    statusHeadline = "Action Required";
+    statusLabel = score >= 40 ? "At Risk" : "Critical";
+    statusGradient = "linear-gradient(135deg, #1a0d0d, #1a1008)";
+  } else if (score >= 60) {
+    statusColor = "#c48b20";
+    statusDot = "#c48b20";
+    statusHeadline = "Stay Vigilant";
+    statusLabel = "Good";
+    statusGradient = "linear-gradient(135deg, #1a1408, #13131f)";
+  }
+
+  // Streak milestone
+  let streakMilestone = "Start your streak today";
+  if (currentStreak >= 30) streakMilestone = "You're a security pro! 🏆";
+  else if (currentStreak >= 14) streakMilestone = "Two weeks strong! 💪";
+  else if (currentStreak >= 7) streakMilestone = "One week! Keep going! ⚡";
+  else if (currentStreak >= 3) streakMilestone = "You're building a habit! 🌱";
+
+  // Streak progress bar (to next milestone)
+  let nextMilestone = 3;
+  if (currentStreak >= 30) nextMilestone = 60;
+  else if (currentStreak >= 14) nextMilestone = 30;
+  else if (currentStreak >= 7) nextMilestone = 14;
+  else if (currentStreak >= 3) nextMilestone = 7;
+  const streakProgress = Math.min(100, (currentStreak / nextMilestone) * 100);
 
   return (
     <div style={{ minHeight: "100vh", background: "#050508", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -203,7 +227,11 @@ function DashboardContent() {
                 <Link href="/app/account" style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", textDecoration: "underline", textUnderlineOffset: "2px" }}>Manage</Link>
               </>
             ) : (
-              <Link href="/pricing" style={{ padding: "9px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 24px rgba(255,255,255,0.2)" }}>Upgrade →</Link>
+              <Link href="/pricing" style={{ padding: "9px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 24px rgba(255,255,255,0.2)", transition: "all 0.2s ease" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(255,255,255,0.35)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 24px rgba(255,255,255,0.2)"; }}>
+                Upgrade →
+              </Link>
             )}
           </div>
         </div>
@@ -211,106 +239,159 @@ function DashboardContent() {
         <FreeTierMeter />
 
         {/* === BLOCK 1: Today's Status Hero === */}
-        <div style={{ padding: "32px 28px", borderRadius: "20px", border: "1px solid " + status.color + "25", background: status.gradient, marginBottom: "14px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, " + status.color + "80, transparent)" }} />
-          <div style={{ position: "absolute", top: "-50%", right: "-20%", width: "500px", height: "500px", background: "radial-gradient(circle, " + status.color + "15, transparent 60%)", pointerEvents: "none" }} />
+        <div style={{ padding: "32px 28px", borderRadius: "20px", border: "1px solid " + statusColor + "25", background: statusGradient, marginBottom: "14px", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, " + statusColor + "80, transparent)" }} />
+          <div style={{ position: "absolute", top: "-50%", right: "-20%", width: "500px", height: "500px", background: "radial-gradient(circle, " + statusColor + "15, transparent 60%)", pointerEvents: "none" }} />
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px", flexWrap: "wrap", position: "relative" }}>
             <div style={{ flex: 1, minWidth: "240px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-                <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: status.dot, boxShadow: "0 0 12px " + status.dot, animation: "blink-dot 2s infinite" }} />
-                <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: status.color, textTransform: "uppercase", fontWeight: 700 }}>Today's status</p>
+                <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: statusDot, boxShadow: "0 0 12px " + statusDot, animation: "blink-dot 2s infinite" }} />
+                <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: statusColor, textTransform: "uppercase", fontWeight: 700 }}>LIVE · {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
               </div>
               <h2 style={{ fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, color: "#fff", marginBottom: "12px" }}>
-                {status.headline}
+                {statusHeadline}
               </h2>
-              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.55, marginBottom: "14px" }}>{status.desc}</p>
-              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.05em" }}>
-                Last checked: <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{timeAgo(lastChecked)}</span>
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.55, marginBottom: "14px" }}>
+                {breachesFound > 0 ? "Security threats detected. Review and take action immediately." : totalScans === 0 ? "Run your first scan to establish your baseline security status." : "All monitored accounts are secure. Keep up the good work."}
               </p>
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.05em" }}>
+                Last check: <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{timeAgo(lastCheckAt)}</span>
+              </p>
+              {breachesFound > 0 && (
+                <Link href="/app/dark-web" style={{ display: "inline-block", marginTop: "16px", padding: "10px 20px", fontSize: "12px", fontWeight: 700, color: "#fff", background: statusColor, textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px " + statusColor + "55", transition: "all 0.2s ease" }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 28px " + statusColor + "66"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 20px " + statusColor + "55"; }}>
+                  See {breachesFound} threat{breachesFound !== 1 ? "s" : ""} →
+                </Link>
+              )}
             </div>
 
             <div style={{ position: "relative", width: "160px", height: "160px", flexShrink: 0, animation: "float 4s ease-in-out infinite" }}>
-              <div style={{ position: "absolute", inset: "-10px", borderRadius: "50%", background: "radial-gradient(circle, " + status.color + "20, transparent 70%)", animation: "pulse-glow 2.5s ease-in-out infinite" }} />
-              <ScoreRing score={score} color={status.ringColor} size={160} />
+              <div style={{ position: "absolute", inset: "-10px", borderRadius: "50%", background: "radial-gradient(circle, " + statusColor + "20, transparent 70%)", animation: "pulse-glow 2.5s ease-in-out infinite" }} />
+              <ScoreRing score={score} color={statusColor} size={160} />
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: "44px", fontWeight: 900, color: status.color, lineHeight: 1, letterSpacing: "-0.03em", textShadow: "0 0 28px " + status.color + "88", fontVariantNumeric: "tabular-nums" }}>{score}</span>
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", letterSpacing: "0.2em", marginTop: "4px", fontWeight: 600 }}>{status.label.toUpperCase()}</span>
+                <span style={{ fontSize: "44px", fontWeight: 900, color: statusColor, lineHeight: 1, letterSpacing: "-0.03em", textShadow: "0 0 28px " + statusColor + "88", fontVariantNumeric: "tabular-nums" }}>{score}</span>
+                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", letterSpacing: "0.2em", marginTop: "4px", fontWeight: 600 }}>{statusLabel.toUpperCase()}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* === BLOCK 2: What Changed Today === */}
+        {/* === BLOCK 2: What Changed === */}
         <div style={{ marginBottom: "14px" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>What changed today</p>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>What changed</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
-            {[
-              { label: "New leaks", value: newLeaks, icon: "○", color: newLeaks > 0 ? "#e05c4b" : "#6ce4c0", desc: newLeaks > 0 ? "Detected in your accounts" : "All clear", delay: "0.1s" },
-              { label: "Risk level", value: riskTrend, icon: riskTrend === "Up" ? "↑" : riskTrend === "Down" ? "↓" : "→", color: riskTrend === "Up" ? "#ff7d3b" : riskTrend === "Down" ? "#6ce4c0" : "rgba(255,255,255,0.5)", desc: riskTrend === "Down" ? "Trending safer" : riskTrend === "Up" ? "Needs attention" : "Stable", delay: "0.2s" },
-              { label: "Actions needed", value: actionsNeeded, icon: "•", color: actionsNeeded > 0 ? "#ff7d3b" : "#6ce4c0", desc: actionsNeeded > 0 ? "Tap to resolve" : "All caught up", delay: "0.3s" },
-            ].map((c, i) => (
-              <div key={i} style={{ padding: "18px 18px", borderRadius: "14px", border: "1px solid " + c.color + "25", background: "linear-gradient(135deg, " + c.color + "08, transparent)", position: "relative", overflow: "hidden", animation: "slide-in-right 0.5s ease backwards", animationDelay: c.delay }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + c.color + "60, transparent)" }} />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                  <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>{c.label}</p>
-                  <span style={{ fontSize: "16px", color: c.color, lineHeight: 1 }}>{c.icon}</span>
-                </div>
-                <p style={{ fontSize: "28px", fontWeight: 900, color: c.color, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: "6px", textShadow: "0 0 20px " + c.color + "44", fontVariantNumeric: "tabular-nums" }}>{c.value}</p>
-                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>{c.desc}</p>
+            {/* Card 1: New Leaks */}
+            <div style={{ padding: "18px 18px", borderRadius: "14px", border: "1px solid " + (newBreaches > 0 ? "#e05c4b" : "#6ce4c0") + "25", background: "linear-gradient(135deg, " + (newBreaches > 0 ? "#e05c4b" : "#6ce4c0") + "08, transparent)", position: "relative", overflow: "hidden", animation: "slide-in-right 0.5s ease backwards", animationDelay: "0.1s" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + (newBreaches > 0 ? "#e05c4b" : "#6ce4c0") + "60, transparent)" }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>New Leaks</p>
+                <span style={{ fontSize: "16px", color: newBreaches > 0 ? "#e05c4b" : "#6ce4c0", lineHeight: 1 }}>💧</span>
               </div>
-            ))}
+              <p style={{ fontSize: "28px", fontWeight: 900, color: newBreaches > 0 ? "#e05c4b" : "#6ce4c0", letterSpacing: "-0.02em", lineHeight: 1, marginBottom: "6px", textShadow: "0 0 20px " + (newBreaches > 0 ? "#e05c4b" : "#6ce4c0") + "44", fontVariantNumeric: "tabular-nums" }}>{newBreaches}</p>
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>{newBreaches > 0 ? newBreaches + " new since yesterday" : "No new leaks"}</p>
+            </div>
+
+            {/* Card 2: Risk Level */}
+            <div style={{ padding: "18px 18px", borderRadius: "14px", border: "1px solid " + (riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7") + "25", background: "linear-gradient(135deg, " + (riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7") + "08, transparent)", position: "relative", overflow: "hidden", animation: "slide-in-right 0.5s ease backwards", animationDelay: "0.2s" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + (riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7") + "60, transparent)" }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>Risk Level</p>
+                <span style={{ fontSize: "16px", color: riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7", lineHeight: 1 }}>📊</span>
+              </div>
+              <p style={{ fontSize: "28px", fontWeight: 900, color: riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7", letterSpacing: "-0.02em", lineHeight: 1, marginBottom: "6px", textShadow: "0 0 20px " + (riskDelta === "up" ? "#e05c4b" : riskDelta === "down" ? "#6ce4c0" : "#6c9ef7") + "44", fontVariantNumeric: "tabular-nums" }}>
+                {riskDelta === "up" ? "↑" : riskDelta === "down" ? "↓" : "→"}
+              </p>
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
+                {riskDelta === "up" ? "Risk increased" : riskDelta === "down" ? "Risk decreased" : "Risk unchanged"}
+              </p>
+            </div>
+
+            {/* Card 3: Monitoring */}
+            <div style={{ padding: "18px 18px", borderRadius: "14px", border: "1px solid " + (watchedCount > 0 ? "#6ce4c0" : "#c48b20") + "25", background: "linear-gradient(135deg, " + (watchedCount > 0 ? "#6ce4c0" : "#c48b20") + "08, transparent)", position: "relative", overflow: "hidden", animation: "slide-in-right 0.5s ease backwards", animationDelay: "0.3s" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, " + (watchedCount > 0 ? "#6ce4c0" : "#c48b20") + "60, transparent)" }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>Monitoring</p>
+                <span style={{ fontSize: "16px", color: watchedCount > 0 ? "#6ce4c0" : "#c48b20", lineHeight: 1 }}>👁</span>
+              </div>
+              <p style={{ fontSize: "28px", fontWeight: 900, color: watchedCount > 0 ? "#6ce4c0" : "#c48b20", letterSpacing: "-0.02em", lineHeight: 1, marginBottom: "6px", textShadow: "0 0 20px " + (watchedCount > 0 ? "#6ce4c0" : "#c48b20") + "44", fontVariantNumeric: "tabular-nums" }}>{watchedCount}</p>
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
+                {watchedCount > 0 ? watchedCount + " email" + (watchedCount !== 1 ? "s" : "") + " protected" : "No emails monitored"}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* === BLOCK 3: Daily Action === */}
-        <Link href={dailyAction.href} style={{ display: "block", padding: "20px 22px", borderRadius: "16px", border: "1px solid " + dailyAction.color + "35", background: "linear-gradient(135deg, " + dailyAction.color + "12, " + dailyAction.color + "03)", textDecoration: "none", marginBottom: "14px", position: "relative", overflow: "hidden", transition: "all 0.25s ease" }}
-          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 32px " + dailyAction.color + "25"; e.currentTarget.style.borderColor = dailyAction.color + "60"; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = dailyAction.color + "35"; }}
+        {/* === BLOCK 3: Daily Action Card === */}
+        <Link href={dailyAction.href} style={{ display: "block", padding: "20px 22px", borderRadius: "16px", border: "1px solid " + (dailyAction.priority === "high" ? "#e05c4b" : dailyAction.priority === "medium" ? "#c48b20" : "#6c9ef7") + "35", background: "linear-gradient(135deg, #b47fe812, #b47fe803)", textDecoration: "none", marginBottom: "14px", position: "relative", overflow: "hidden", transition: "all 0.25s ease" }}
+          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(180,127,232,0.25)"; e.currentTarget.style.borderColor = "rgba(180,127,232,0.6)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = (dailyAction.priority === "high" ? "#e05c4b" : dailyAction.priority === "medium" ? "#c48b20" : "#6c9ef7") + "35"; }}
         >
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, " + dailyAction.color + ", transparent)" }} />
-          <div style={{ position: "absolute", top: "-30%", right: "-10%", width: "300px", height: "300px", background: "radial-gradient(circle, " + dailyAction.color + "15, transparent 60%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, #b47fe8, transparent)" }} />
+          <div style={{ position: "absolute", top: "-30%", right: "-10%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(180,127,232,0.15), transparent 60%)", pointerEvents: "none" }} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", position: "relative" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: "240px" }}>
-              <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: dailyAction.color + "1a", border: "1px solid " + dailyAction.color + "40", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", color: dailyAction.color, flexShrink: 0, boxShadow: "0 0 24px " + dailyAction.color + "20" }}>
+              <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "#b47fe81a", border: "1px solid #b47fe840", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", color: "#b47fe8", flexShrink: 0, boxShadow: "0 0 24px rgba(180,127,232,0.2)" }}>
                 {dailyAction.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "10px", letterSpacing: "0.22em", color: dailyAction.color, textTransform: "uppercase", fontWeight: 700, marginBottom: "5px" }}>Your 1 action for today</p>
-                <p style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "4px", letterSpacing: "-0.02em" }}>{dailyAction.title}</p>
-                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>{dailyAction.desc}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "5px" }}>
+                  <p style={{ fontSize: "10px", letterSpacing: "0.22em", color: "#b47fe8", textTransform: "uppercase", fontWeight: 700 }}>🎯 TODAY'S ACTION</p>
+                  <span style={{ fontSize: "9px", padding: "3px 8px", borderRadius: "4px", background: dailyAction.priority === "high" ? "rgba(224,92,75,0.15)" : dailyAction.priority === "medium" ? "rgba(196,139,32,0.15)" : "rgba(108,158,247,0.15)", color: dailyAction.priority === "high" ? "#e05c4b" : dailyAction.priority === "medium" ? "#c48b20" : "#6c9ef7", border: "1px solid " + (dailyAction.priority === "high" ? "rgba(224,92,75,0.3)" : dailyAction.priority === "medium" ? "rgba(196,139,32,0.3)" : "rgba(108,158,247,0.3)"), fontWeight: 800, letterSpacing: "0.08em" }}>
+                    {dailyAction.priority === "high" ? "URGENT" : dailyAction.priority === "medium" ? "RECOMMENDED" : "SUGGESTION"}
+                  </span>
+                </div>
+                <p style={{ fontSize: "16px", fontWeight: 700, color: "#fff", marginBottom: "4px", letterSpacing: "-0.02em" }}>{dailyAction.text}</p>
               </div>
             </div>
-            <span style={{ padding: "10px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: dailyAction.color, borderRadius: "10px", boxShadow: "0 0 24px " + dailyAction.color + "55", letterSpacing: "0.02em" }}>Do it →</span>
+            <span style={{ padding: "10px 18px", fontSize: "12px", fontWeight: 700, color: "#000", background: "#b47fe8", borderRadius: "10px", boxShadow: "0 0 24px rgba(180,127,232,0.55)", letterSpacing: "0.02em", flexShrink: 0 }}>Do it now →</span>
           </div>
         </Link>
 
-        {/* === BLOCK 4: Streak + Stats === */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.5fr)", gap: "10px", marginBottom: "14px" }} className="streak-grid">
-          {/* Streak */}
-          <div style={{ padding: "20px", borderRadius: "14px", border: "1px solid " + (currentStreak >= 3 ? "rgba(168,230,61,0.3)" : "rgba(255,255,255,0.07)"), background: currentStreak >= 3 ? "linear-gradient(135deg, rgba(168,230,61,0.1), rgba(168,230,61,0.02))" : "rgba(255,255,255,0.015)", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", minHeight: "180px" }}>
-            {currentStreak >= 3 && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, #a8e63d, transparent)" }} />}
-            <div style={{ fontSize: "48px", lineHeight: 1, marginBottom: "8px", filter: currentStreak >= 3 ? "drop-shadow(0 0 16px #a8e63d)" : "grayscale(0.4) opacity(0.6)", animation: currentStreak >= 3 ? "float 3s ease-in-out infinite" : "none" }}>🔥</div>
-            <p style={{ fontSize: "32px", fontWeight: 900, color: currentStreak >= 3 ? "#a8e63d" : "rgba(255,255,255,0.6)", letterSpacing: "-0.03em", lineHeight: 1, textShadow: currentStreak >= 3 ? "0 0 24px #a8e63d66" : "none", fontVariantNumeric: "tabular-nums" }}>{currentStreak}</p>
-            <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700, marginTop: "6px", marginBottom: "8px" }}>Day streak</p>
-            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", lineHeight: 1.4 }}>
-              {currentStreak === 0 ? "Start your streak today" : currentStreak < 3 ? "Keep going — 3 days unlocks fire" : currentStreak >= 7 ? "You're on fire — best: " + longestStreak + "d" : "Keep it up — best: " + longestStreak + "d"}
-            </p>
+        {/* === BLOCK 4: Streak Widget === */}
+        <div style={{ padding: "24px 22px", borderRadius: "14px", border: "1px solid " + (currentStreak >= 3 ? "rgba(168,230,61,0.3)" : "rgba(255,255,255,0.07)"), background: currentStreak >= 3 ? "linear-gradient(135deg, rgba(168,230,61,0.1), rgba(168,230,61,0.02))" : "rgba(255,255,255,0.015)", position: "relative", overflow: "hidden", marginBottom: "14px", display: "flex", alignItems: "center", gap: "24px", flexWrap: "wrap" }}>
+          {currentStreak >= 3 && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, #a8e63d, transparent)" }} />}
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: "200px" }}>
+            <div style={{ fontSize: "56px", lineHeight: 1, filter: currentStreak >= 3 ? "drop-shadow(0 0 16px #a8e63d)" : "grayscale(0.4) opacity(0.6)", animation: currentStreak >= 3 ? "float 3s ease-in-out infinite" : "none" }}>🔥</div>
+            <div>
+              <p style={{ fontSize: "48px", fontWeight: 900, color: currentStreak >= 3 ? "#a8e63d" : "rgba(255,255,255,0.6)", letterSpacing: "-0.03em", lineHeight: 1, textShadow: currentStreak >= 3 ? "0 0 24px #a8e63d66" : "none", fontVariantNumeric: "tabular-nums", marginBottom: "6px" }}>{currentStreak}</p>
+              <p style={{ fontSize: "11px", letterSpacing: "0.2em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>Day Streak</p>
+            </div>
           </div>
 
-          {/* Stats 2x2 */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <div style={{ flex: 1, minWidth: "220px" }}>
+            <p style={{ fontSize: "14px", color: "#fff", fontWeight: 600, marginBottom: "10px" }}>{streakMilestone}</p>
+            <div style={{ marginBottom: "8px" }}>
+              <div style={{ height: "6px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: streakProgress + "%", background: "#a8e63d", boxShadow: "0 0 8px #a8e63d", transition: "width 1s ease" }} />
+              </div>
+            </div>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>
+              Next milestone: {nextMilestone} days · Best: {longestStreak} days
+            </p>
+          </div>
+        </div>
+
+        {/* === BLOCK 5: Stats Grid === */}
+        <div style={{ marginBottom: "14px" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", marginBottom: "10px", fontWeight: 600 }}>Your stats</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
             {[
-              { label: "Total scans", value: totalScans, color: "#00d4ff" },
-              { label: "Breaches", value: breachesFound, color: "#e05c4b" },
-              { label: "Passwords leaked", value: passwordsExposed, color: "#ff7d3b" },
-              { label: "Clean scans", value: cleanScans, color: "#6ce4c0" },
+              { label: "Total Scans", value: totalScans, color: "#00d4ff", icon: "🔍" },
+              { label: "Breaches Found", value: breachesFound, color: "#e05c4b", icon: "⚠" },
+              { label: "Passwords Exposed", value: passwordsExposed, color: "#ff7d3b", icon: "🔑" },
+              { label: "Clean Scans", value: cleanScans, color: "#6ce4c0", icon: "✓" },
             ].map((s, i) => (
-              <div key={s.label} style={{ padding: "14px 16px", borderRadius: "12px", border: "1px solid " + s.color + "20", background: "linear-gradient(135deg, " + s.color + "08, transparent)", transition: "all 0.2s ease", position: "relative", overflow: "hidden" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = s.color + "45"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = s.color + "20"; }}>
-                <p style={{ fontSize: "9px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginBottom: "8px", fontWeight: 700 }}>{s.label}</p>
-                <p style={{ fontSize: "26px", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1 }}>
+              <div key={s.label} style={{ padding: "16px 18px", borderRadius: "12px", border: "1px solid " + s.color + "20", background: "linear-gradient(135deg, " + s.color + "08, transparent)", transition: "all 0.2s ease", position: "relative", overflow: "hidden" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px " + s.color + "20"; e.currentTarget.style.borderColor = s.color + "45"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = s.color + "20"; }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <p style={{ fontSize: "9px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", fontWeight: 700 }}>{s.label}</p>
+                  <span style={{ fontSize: "14px", opacity: 0.6 }}>{s.icon}</span>
+                </div>
+                <p style={{ fontSize: "28px", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1 }}>
                   <AnimatedNumber target={s.value} color={s.color} />
                 </p>
               </div>
@@ -318,11 +399,11 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* === BLOCK 5: Recent Activity === */}
+        {/* === BLOCK 6: Recent Scans === */}
         {scans.length > 0 && (
           <div style={{ marginBottom: "14px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontWeight: 600 }}>Recent activity</p>
+              <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontWeight: 600 }}>Recent Scans</p>
               <Link href="/app/history" style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>View all →</Link>
             </div>
             <div style={{ padding: "8px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.07)", background: "#0d0d14", display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -338,7 +419,7 @@ function DashboardContent() {
                     </div>
                   </div>
                   {s.breached ? (
-                    <span style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "6px", background: "rgba(224,92,75,0.12)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.3)", fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0 }}>BREACHED · {s.breachCount || 0}</span>
+                    <span style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "6px", background: "rgba(224,92,75,0.12)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.3)", fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0 }}>BREACHED</span>
                   ) : (
                     <span style={{ fontSize: "10px", padding: "4px 10px", borderRadius: "6px", background: "rgba(108,228,192,0.1)", color: "#6ce4c0", border: "1px solid rgba(108,228,192,0.25)", fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0 }}>CLEAN</span>
                   )}
@@ -356,7 +437,11 @@ function DashboardContent() {
             <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#b47fe8", textTransform: "uppercase", marginBottom: "14px", fontWeight: 700, position: "relative" }}>Unlock everything</p>
             <h3 style={{ fontSize: "26px", fontWeight: 900, color: "#fff", marginBottom: "10px", letterSpacing: "-0.03em", position: "relative" }}>Pro is $4.99/month</h3>
             <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", marginBottom: "22px", maxWidth: "440px", margin: "0 auto 22px", lineHeight: 1.6, position: "relative" }}>Unlimited scans, AI analysis, daily briefings, email aliases, account inventory, multi-scan, Chrome extension, and priority support.</p>
-            <Link href="/pricing" style={{ display: "inline-block", padding: "14px 36px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "11px", boxShadow: "0 0 40px rgba(255,255,255,0.3)", position: "relative" }}>See pricing →</Link>
+            <Link href="/pricing" style={{ display: "inline-block", padding: "14px 36px", fontSize: "14px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "11px", boxShadow: "0 0 40px rgba(255,255,255,0.3)", position: "relative", transition: "all 0.2s ease" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 48px rgba(255,255,255,0.4)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.3)"; }}>
+              See pricing →
+            </Link>
           </div>
         )}
       </div>
@@ -368,9 +453,6 @@ function DashboardContent() {
         @keyframes slide-in-right { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        @media (max-width: 720px) {
-          .streak-grid { grid-template-columns: 1fr !important; }
-        }
       `}</style>
     </div>
   );
