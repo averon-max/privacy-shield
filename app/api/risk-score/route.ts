@@ -23,10 +23,9 @@ export async function POST(req: NextRequest) {
   if (!company?.trim()) return NextResponse.json({ error: "Company name required" }, { status: 400 });
 
   const lower = company.toLowerCase().trim();
-  let score = 50; // start neutral
+  let score = 50;
   const factors: { label: string; impact: number; reason: string }[] = [];
 
-  // Check known breach history
   const previouslyBreached = KNOWN_BREACHED.some(k => lower.includes(k));
   if (previouslyBreached) {
     score -= 25;
@@ -36,23 +35,20 @@ export async function POST(req: NextRequest) {
     factors.push({ label: "No major breach on record", impact: 10, reason: "No record of major public breaches in our database." });
   }
 
-  // Check sensitive data handling
   const handlesSensitive = HIGH_RISK_KEYWORDS.some(k => lower.includes(k));
   if (handlesSensitive) {
     score -= 15;
     factors.push({ label: "Handles sensitive data", impact: -15, reason: "Companies in finance, health, or government handle data attackers value most." });
   }
 
-  // Try to check breaches against this company name
   try {
     const result = await checkEmailBreaches(`test@${lower.replace(/\s+/g, "")}.com`);
-    if (result?.breaches?.[0]?.length > 0) {
+    if ((result?.breachCount ?? 0) > 0) {
       score -= 10;
       factors.push({ label: "Domain found in breach data", impact: -10, reason: "This domain appears in past breach databases." });
     }
   } catch {}
 
-  // Size bias — bigger names = bigger targets
   if (lower.length < 6) {
     score -= 5;
     factors.push({ label: "Major brand exposure", impact: -5, reason: "Short, well-known brand names attract more targeted attacks." });
@@ -71,12 +67,5 @@ export async function POST(req: NextRequest) {
   recommendations.push("Generate a unique email alias for this service");
   if (score < 50) recommendations.push("Consider whether you actually need an account here");
 
-  return NextResponse.json({
-    company,
-    score,
-    level,
-    color,
-    factors,
-    recommendations,
-  });
+  return NextResponse.json({ company, score, level, color, factors, recommendations });
 }
