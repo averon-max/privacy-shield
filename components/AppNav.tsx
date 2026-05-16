@@ -33,7 +33,9 @@ export default function AppNav() {
     { label: "Monitor", href: "/app/watchlist", icon: "👁", color: "#6ce4c0" },
     { label: "Protect", href: "/app/checklist", icon: "🛡", color: "#a8e63d" },
     { label: "AI Assistant", href: "/app/ai", icon: "🧠", color: "#b47fe8", pro: true },
+    { label: "Agent", href: "/app/agent", icon: "🤖", color: "#b47fe8" },
   ];
+  
 
   // More tools (smaller, dimmed)
   const moreTools = [
