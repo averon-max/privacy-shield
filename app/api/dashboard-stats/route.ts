@@ -31,36 +31,40 @@ export async function GET() {
     }
   }
 
-  // Group by email - keep only most recent result per email
+  // Total scans = all checks ever
+  const totalScans = allChecks.length;
+
+  // Unique emails — keep only latest result per email
   const byEmail = new Map<string, any>();
   for (const c of allChecks) {
     if (!byEmail.has(c.email)) {
       byEmail.set(c.email, c);
     }
   }
-
   const uniqueResults = Array.from(byEmail.values());
-  const totalScans = allChecks.length;
+  const uniqueEmails = uniqueResults.length;
+
+  // Breached/clean based on unique emails current status
   const breachedEmails = uniqueResults.filter((c: any) => c.breached === true);
   const cleanEmails = uniqueResults.filter((c: any) => c.breached === false);
   const breachesFound = breachedEmails.length;
   const cleanScans = cleanEmails.length;
+
+  // Passwords exposed across all unique breached emails
   const passwordsExposed = breachedEmails.filter((c: any) => {
     const types = (c.exposedDataTypes || []).map((t: string) => t.toLowerCase());
     return types.some((t: string) => t.includes("password")) || c.passwordExposed === true;
   }).length;
 
-  let score: number;
-  if (totalScans === 0) {
-    score = 100;
-  } else {
-    score = 100;
+  // Score
+  let score = 100;
+  if (totalScans > 0) {
     score -= breachesFound * 5;
     score -= passwordsExposed * 8;
     score = Math.max(0, Math.min(100, score));
   }
 
-  // Watchlist count — try both collection and User field
+  // Watchlist
   let watchlistCount = 0;
   try {
     const WatchlistEntry = (await import("@/models/WatchlistEntry")).default;
@@ -74,11 +78,11 @@ export async function GET() {
 
   return NextResponse.json({
     score,
-    totalScans,
-    breachesFound,
+    totalScans,       // все проверки когда-либо
+    uniqueEmails,     // уникальных email адресов
+    breachesFound,    // уникальных email с брешами
+    cleanScans,       // уникальных чистых email
     passwordsExposed,
-    cleanScans,
-    uniqueEmails: uniqueResults.length,
     watchlistCount,
   });
 }
