@@ -5,7 +5,9 @@ export interface IWatchedEmail {
   userId: string;
   active: boolean;
   lastBreachCount: number;
-  lastChecked: Date;
+  lastChecked: Date | null;
+  lastBreachSources: string[];
+  lastBreached: Date | null;
   alertEmail: string;
   createdAt: Date;
   updatedAt: Date;
@@ -40,7 +42,15 @@ const WatchedEmailSchema = new Schema<IWatchedEmailDoc>(
     },
     lastChecked: {
       type: Date,
-      default: Date.now,
+      default: null,
+    },
+    lastBreachSources: {
+      type: [String],
+      default: [],
+    },
+    lastBreached: {
+      type: Date,
+      default: null,
     },
     alertEmail: {
       type: String,
@@ -56,37 +66,59 @@ const WatchedEmailSchema = new Schema<IWatchedEmailDoc>(
   }
 );
 
-// Indexes for performance
 WatchedEmailSchema.index({ email: 1, active: 1 });
 WatchedEmailSchema.index({ userId: 1, active: 1 });
+WatchedEmailSchema.index({ active: 1, lastChecked: 1 }); // для cron скана
 
-// Static method - find all active watched emails
 WatchedEmailSchema.statics.findActive = async function () {
   return this.find({ active: true }).exec();
 };
 
-// Instance method - deactivate watched email
+// Найти все записи которые не проверялись больше 23 часов (для cron)
+WatchedEmailSchema.statics.findStale = async function () {
+  const cutoff = new Date(Date.now() - 23 * 60 * 60 * 1000);
+  return this.find({
+    active: true,
+    $or: [
+      { lastChecked: null },
+      { lastChecked: { $lt: cutoff } },
+    ],
+  }).exec();
+};
+
 WatchedEmailSchema.methods.deactivate = async function () {
   this.active = false;
   return this.save();
 };
 
-// Instance method - update breach count
-WatchedEmailSchema.methods.updateBreachCount = async function (count: number) {
+WatchedEmailSchema.methods.updateBreachCount = async function (
+  count: number,
+  sources: string[] = []
+) {
+  const wasClean = this.lastBreachCount === 0;
   this.lastBreachCount = count;
   this.lastChecked = new Date();
+  this.lastBreachSources = sources;
+  if (count > 0 && wasClean) {
+    this.lastBreached = new Date();
+  }
   return this.save();
 };
 
-// Virtual for days since last check
 WatchedEmailSchema.virtual('daysSinceLastCheck').get(function () {
-  const now = new Date();
-  const lastCheck = this.lastChecked || now;
-  const diffTime = Math.abs(now.getTime() - lastCheck.getTime());
+  if (!this.lastChecked) return null;
+  const diffTime = Math.abs(Date.now() - new Date(this.lastChecked).getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 });
 
-// Create and export model
-const WatchedEmail = mongoose.models.WatchedEmail || mongoose.model<IWatchedEmailDoc>('WatchedEmail', WatchedEmailSchema);
+WatchedEmailSchema.virtual('needsScan').get(function () {
+  if (!this.lastChecked) return true;
+  const diff = Date.now() - new Date(this.lastChecked).getTime();
+  return diff > 23 * 60 * 60 * 1000;
+});
+
+const WatchedEmail =
+  mongoose.models.WatchedEmail ||
+  mongoose.model<IWatchedEmailDoc>('WatchedEmail', WatchedEmailSchema);
 
 export default WatchedEmail;

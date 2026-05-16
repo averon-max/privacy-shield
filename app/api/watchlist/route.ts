@@ -40,19 +40,22 @@ export async function POST(req: NextRequest) {
     }
 
     const { email } = await req.json();
-
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
     }
 
     await connectDB();
     const userId = session.user.email;
+    const isPro = (session.user as any)?.isPro === true;
+    const limit = isPro ? 9999 : FREE_LIMIT;
     const cleanEmail = email.toLowerCase().trim();
 
     const currentCount = await WatchedEmail.countDocuments({ userId, active: true });
-    if (currentCount >= FREE_LIMIT) {
+    if (currentCount >= limit) {
       return NextResponse.json({
-        error: "Free plan allows " + FREE_LIMIT + " emails max. Upgrade to Pro for unlimited."
+        error: isPro
+          ? "Something went wrong"
+          : `Free plan allows ${FREE_LIMIT} emails max. Upgrade to Pro for unlimited.`
       }, { status: 403 });
     }
 
@@ -68,12 +71,58 @@ export async function POST(req: NextRequest) {
       active: true,
       lastBreachCount: 0,
       lastChecked: null,
+      lastBreachSources: [],
+      lastBreached: null,
     });
 
     return NextResponse.json({ watched }, { status: 201 });
   } catch (error) {
     console.error("Watchlist POST error:", error);
     return NextResponse.json({ error: "Failed to add email" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { email, lastChecked, breachCount, breachSources } = body;
+
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    await connectDB();
+    const userId = session.user.email;
+    const cleanEmail = email.toLowerCase().trim();
+
+    const entry = await WatchedEmail.findOne({ email: cleanEmail, userId, active: true });
+    if (!entry) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    const count = breachCount ?? 0;
+    const wasClean = entry.lastBreachCount === 0;
+
+    entry.lastChecked = lastChecked ? new Date(lastChecked) : new Date();
+    entry.lastBreachCount = count;
+    entry.lastBreachSources = breachSources || [];
+
+    // Запомнить когда впервые обнаружен бреч
+    if (count > 0 && wasClean) {
+      entry.lastBreached = new Date();
+    }
+
+    await entry.save();
+
+    return NextResponse.json({ watched: entry });
+  } catch (error) {
+    console.error("Watchlist PATCH error:", error);
+    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 }
 
