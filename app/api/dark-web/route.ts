@@ -11,9 +11,11 @@ export async function GET() {
   if (!session?.user?.email) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   await connectDB();
-  const checks = await EmailCheck.find({ userId: session.user.email }).sort({ checkedAt: -1 }).lean() as any[];
+  const checks = await EmailCheck.find({ userId: session.user.email })
+    .sort({ createdAt: -1 })
+    .lean() as any[];
 
-  // Group by email - take latest result per email
+  // Group by email — keep latest per email
   const byEmail = new Map<string, any>();
   for (const c of checks) {
     if (!byEmail.has(c.email)) byEmail.set(c.email, c);
@@ -25,7 +27,8 @@ export async function GET() {
     breachCount: c.breachCount || 0,
     breachSources: c.breachSources || [],
     exposedDataTypes: c.exposedDataTypes || [],
-    lastChecked: c.checkedAt || c.createdAt,
+    breachDetails: c.breachDetails || [],
+    lastChecked: c.createdAt,
   }));
 
   return NextResponse.json({ entries });
