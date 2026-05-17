@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const previouslyBreached = KNOWN_BREACHED.some(k => lower.includes(k));
   if (previouslyBreached) {
     score -= 25;
-    factors.push({ label: "Previous major breach", impact: -25, reason: "This company has been breached in a major incident before — past breaches predict future breaches." });
+    factors.push({ label: "Previous major breach", impact: -25, reason: "This company has been breached before — past breaches predict future ones." });
   } else {
     score += 10;
     factors.push({ label: "No major breach on record", impact: 10, reason: "No record of major public breaches in our database." });

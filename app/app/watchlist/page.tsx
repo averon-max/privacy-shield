@@ -17,7 +17,7 @@ interface WatchEntry {
 
 function timeAgo(ts?: number | null | Date | string) {
   if (!ts) return "Not scanned yet";
-  const d = typeof ts === "number" ? ts : new Date(ts).getTime();
+  const d = typeof ts === "number" ? ts : new Date(ts as string).getTime();
   if (isNaN(d)) return "Not scanned yet";
   const diff = Date.now() - d;
   const m = Math.floor(diff / 60000);
@@ -75,7 +75,7 @@ export default function Watchlist() {
         lastChecked: e.lastChecked ? new Date(e.lastChecked).getTime() : null,
         breachCount: e.lastBreachCount || 0,
         breached: (e.lastBreachCount || 0) > 0,
-        breachSources: e.lastBreachSources || [],
+        breachSources: (e.lastBreachSources || []).filter((s: string) => s && s !== "Unknown"),
       }));
       setEntries(list);
       setLastPoll(Date.now());
@@ -128,9 +128,10 @@ export default function Watchlist() {
       const res = await fetch("/api/checkEmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: "", extensionCheck: false }),
+        body: JSON.stringify({ email, password: "", extensionCheck: true }),
       });
       const data = await res.json();
+      const cleanSources = (data.breachSources || []).filter((s: string) => s && s !== "Unknown" && s !== "unknown" && s.length > 1);
       await fetch("/api/watchlist", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -138,7 +139,7 @@ export default function Watchlist() {
           email,
           lastChecked: new Date().toISOString(),
           breachCount: data.breachCount || 0,
-          breachSources: data.breachSources || [],
+          breachSources: cleanSources,
         }),
       });
       await load();
@@ -199,7 +200,7 @@ export default function Watchlist() {
               style={{ flex: 1, minWidth: "200px", background: "rgba(255,255,255,0.04)", border: "1.5px solid " + (inputFocus ? "rgba(108,228,192,0.45)" : "rgba(255,255,255,0.08)"), borderRadius: "10px", padding: "13px 16px", color: "#fff", fontSize: "14px", outline: "none", fontFamily: "inherit", transition: "all 0.2s", boxSizing: "border-box", boxShadow: inputFocus ? "0 0 0 3px rgba(108,228,192,0.1)" : "none" }} />
             <button onClick={add} disabled={adding || !newEmail.includes("@")}
               style={{ padding: "13px 24px", fontSize: "13px", fontWeight: 700, color: "#050508", background: adding || !newEmail.includes("@") ? "rgba(108,228,192,0.3)" : "linear-gradient(135deg, #6ce4c0, #00d4ff)", border: "none", borderRadius: "10px", cursor: adding || !newEmail.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.2s", whiteSpace: "nowrap", boxShadow: adding || !newEmail.includes("@") ? "none" : "0 6px 20px rgba(108,228,192,0.3)" }}
-              onMouseEnter={e => { if (!adding && newEmail.includes("@")) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
+              onMouseEnter={e => { if (!adding && newEmail.includes("@")) e.currentTarget.style.transform = "translateY(-1px)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}>
               {adding ? <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span style={{ width: "12px", height: "12px", border: "2px solid rgba(5,5,8,0.3)", borderTopColor: "#050508", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Adding</span> : "Start Monitoring →"}
             </button>
@@ -276,19 +277,39 @@ export default function Watchlist() {
                     <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>{timeAgo(e.lastChecked)}</span>
                   </div>
                   <NextScan lastChecked={e.lastChecked} />
+
+                  {/* Breach sources */}
                   {isBreached && e.breachSources && e.breachSources.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "8px" }}>
-                      {e.breachSources.slice(0, 4).map(s => (
+                      {e.breachSources.slice(0, 6).map(s => (
                         <span key={s} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)", fontWeight: 600 }}>{s}</span>
                       ))}
-                      {e.breachSources.length > 4 && <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>+{e.breachSources.length - 4} more</span>}
+                      {e.breachSources.length > 6 && (
+                        <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>+{e.breachSources.length - 6} more</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions for breached */}
+                  {isBreached && (
+                    <div style={{ display: "flex", gap: "6px", marginTop: "10px", flexWrap: "wrap" }}>
+                      <Link href="/app/dark-web" style={{ fontSize: "11px", padding: "5px 10px", borderRadius: "7px", background: "rgba(224,92,75,0.1)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.25)", textDecoration: "none", fontWeight: 700 }}>
+                        View details →
+                      </Link>
+                      <Link href="/app/ai" style={{ fontSize: "11px", padding: "5px 10px", borderRadius: "7px", background: "rgba(180,127,232,0.1)", color: "#b47fe8", border: "1px solid rgba(180,127,232,0.25)", textDecoration: "none", fontWeight: 700 }}>
+                        Ask AI →
+                      </Link>
+                      <Link href="/app/agent" style={{ fontSize: "11px", padding: "5px 10px", borderRadius: "7px", background: "rgba(108,228,192,0.08)", color: "#6ce4c0", border: "1px solid rgba(108,228,192,0.2)", textDecoration: "none", fontWeight: 700 }}>
+                        Remove my data →
+                      </Link>
                     </div>
                   )}
                 </div>
+
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                   <button onClick={() => scan(e.email)} disabled={isScanning}
                     style={{ padding: "9px 14px", fontSize: "12px", fontWeight: 700, color: isScanning ? "rgba(0,212,255,0.4)" : "#00d4ff", background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.25)", borderRadius: "9px", cursor: isScanning ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.18s", minWidth: "76px", textAlign: "center" }}
-                    onMouseEnter={ev => { if (!isScanning) { ev.currentTarget.style.background = "rgba(0,212,255,0.14)"; } }}
+                    onMouseEnter={ev => { if (!isScanning) ev.currentTarget.style.background = "rgba(0,212,255,0.14)"; }}
                     onMouseLeave={ev => { ev.currentTarget.style.background = "rgba(0,212,255,0.07)"; }}>
                     {isScanning ? <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><span style={{ width: "10px", height: "10px", border: "1.5px solid rgba(0,212,255,0.2)", borderTopColor: "#00d4ff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Scanning</span> : "Scan now"}
                   </button>
