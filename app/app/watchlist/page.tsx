@@ -6,19 +6,20 @@ import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import Card from "@/components/Card";
 
-// WatchlistEntry schema fields: userId, email, lastChecked (Number timestamp), breached, breachCount, breachSources
 interface WatchEntry {
   _id: string;
   email: string;
-  lastChecked?: number | null;  // timestamp ms
+  lastChecked?: number | null;
   breachCount?: number;
   breached?: boolean;
   breachSources?: string[];
 }
 
-function timeAgo(ts?: number | null) {
+function timeAgo(ts?: number | null | Date | string) {
   if (!ts) return "Not scanned yet";
-  const diff = Date.now() - ts;
+  const d = typeof ts === "number" ? ts : new Date(ts).getTime();
+  if (isNaN(d)) return "Not scanned yet";
+  const diff = Date.now() - d;
   const m = Math.floor(diff / 60000);
   if (m < 1) return "Just now";
   if (m < 60) return m + "m ago";
@@ -27,12 +28,14 @@ function timeAgo(ts?: number | null) {
   return Math.floor(h / 24) + "d ago";
 }
 
-function NextScan({ lastChecked }: { lastChecked?: number | null }) {
+function NextScan({ lastChecked }: { lastChecked?: number | null | Date | string }) {
   const [label, setLabel] = useState("");
   useEffect(() => {
     if (!lastChecked) { setLabel("Pending first scan"); return; }
+    const ts = typeof lastChecked === "number" ? lastChecked : new Date(lastChecked as string).getTime();
+    if (isNaN(ts)) { setLabel("Pending first scan"); return; }
     const tick = () => {
-      const next = lastChecked + 24 * 60 * 60 * 1000;
+      const next = ts + 24 * 60 * 60 * 1000;
       const diff = Math.max(0, Math.floor((next - Date.now()) / 1000));
       if (diff === 0) { setLabel("Scanning soon"); return; }
       const h = Math.floor(diff / 3600);
@@ -66,8 +69,15 @@ export default function Watchlist() {
     try {
       const res = await fetch("/api/watchlist", { cache: "no-store" });
       const data = await res.json();
-      const list = data.watched || data.emails || [];
-      setEntries(Array.isArray(list) ? list : []);
+      const list = (data.watched || []).map((e: any) => ({
+        _id: e._id,
+        email: e.email,
+        lastChecked: e.lastChecked ? new Date(e.lastChecked).getTime() : null,
+        breachCount: e.lastBreachCount || 0,
+        breached: (e.lastBreachCount || 0) > 0,
+        breachSources: e.lastBreachSources || [],
+      }));
+      setEntries(list);
       setLastPoll(Date.now());
     } catch { setEntries([]); }
     if (!silent) setLoading(false);
@@ -78,7 +88,6 @@ export default function Watchlist() {
     else if (status === "unauthenticated") setLoading(false);
   }, [status, load]);
 
-  // Poll every 30s
   useEffect(() => {
     if (status !== "authenticated") return;
     pollRef.current = setInterval(() => load(true), 30000);
@@ -122,14 +131,12 @@ export default function Watchlist() {
         body: JSON.stringify({ email, password: "", extensionCheck: false }),
       });
       const data = await res.json();
-      // PATCH использует WatchlistEntry поля
       await fetch("/api/watchlist", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          lastChecked: Date.now(), // Number timestamp
-          breached: data.breached || false,
+          lastChecked: new Date().toISOString(),
           breachCount: data.breachCount || 0,
           breachSources: data.breachSources || [],
         }),
@@ -149,29 +156,21 @@ export default function Watchlist() {
   const pendingCount = entries.filter(e => !e.lastChecked).length;
 
   return (
-    <PageShell
-      eyebrow="MONITORING"
-      title="Monitor"
-      subtitle="We watch your emails 24/7 and alert you instantly on new breaches"
-      accent="#6ce4c0"
-    >
+    <PageShell eyebrow="MONITORING" title="Monitor" subtitle="We watch your emails 24/7 and alert you instantly on new breaches" accent="#6ce4c0">
 
-      {/* ── LIVE STATUS BAR ── */}
+      {/* Live status bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", background: "#0d0d14", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 10px #6ce4c0", animation: "blink-dot 2s infinite" }} />
           <span style={{ fontSize: "12px", fontWeight: 700, color: "#6ce4c0" }}>Monitoring Active</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", display: "flex", alignItems: "center", gap: "5px" }}>
-            <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#00d4ff", animation: "blink-dot 3s infinite" }} />
-            Auto-refresh 30s
-          </span>
+          <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>Auto-refresh 30s</span>
           {lastPoll && <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)" }}>Updated {timeAgo(lastPoll)}</span>}
         </div>
       </div>
 
-      {/* ── STATS ── */}
+      {/* Stats */}
       {entries.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px", marginBottom: "16px" }}>
           {[
@@ -189,63 +188,43 @@ export default function Watchlist() {
         </div>
       )}
 
-      {/* ── ADD FORM ── */}
+      {/* Add form */}
       {!atLimit && (
         <div style={{ background: "#0d0d14", border: "1px solid " + (inputFocus ? "rgba(108,228,192,0.4)" : "rgba(0,212,255,0.18)"), borderRadius: "14px", padding: "20px", marginBottom: "14px", transition: "all 0.2s", boxShadow: inputFocus ? "0 0 0 3px rgba(108,228,192,0.07)" : "none" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.28)", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>
-            Add email to monitor
-          </p>
+          <p style={{ fontSize: "10px", letterSpacing: "0.18em", color: "rgba(255,255,255,0.28)", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>Add email to monitor</p>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={e => { setNewEmail(e.target.value); setError(""); }}
-              onKeyDown={e => e.key === "Enter" && add()}
-              onFocus={() => setInputFocus(true)}
-              onBlur={() => setInputFocus(false)}
+            <input type="email" value={newEmail} onChange={e => { setNewEmail(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && add()} onFocus={() => setInputFocus(true)} onBlur={() => setInputFocus(false)}
               placeholder="email@example.com"
-              style={{ flex: 1, minWidth: "200px", background: "rgba(255,255,255,0.04)", border: "1.5px solid " + (inputFocus ? "rgba(108,228,192,0.45)" : "rgba(255,255,255,0.08)"), borderRadius: "10px", padding: "13px 16px", color: "#fff", fontSize: "14px", outline: "none", fontFamily: "inherit", transition: "all 0.2s", boxSizing: "border-box", boxShadow: inputFocus ? "0 0 0 3px rgba(108,228,192,0.1)" : "none" }}
-            />
-            <button
-              onClick={add}
-              disabled={adding || !newEmail.includes("@")}
+              style={{ flex: 1, minWidth: "200px", background: "rgba(255,255,255,0.04)", border: "1.5px solid " + (inputFocus ? "rgba(108,228,192,0.45)" : "rgba(255,255,255,0.08)"), borderRadius: "10px", padding: "13px 16px", color: "#fff", fontSize: "14px", outline: "none", fontFamily: "inherit", transition: "all 0.2s", boxSizing: "border-box", boxShadow: inputFocus ? "0 0 0 3px rgba(108,228,192,0.1)" : "none" }} />
+            <button onClick={add} disabled={adding || !newEmail.includes("@")}
               style={{ padding: "13px 24px", fontSize: "13px", fontWeight: 700, color: "#050508", background: adding || !newEmail.includes("@") ? "rgba(108,228,192,0.3)" : "linear-gradient(135deg, #6ce4c0, #00d4ff)", border: "none", borderRadius: "10px", cursor: adding || !newEmail.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.2s", whiteSpace: "nowrap", boxShadow: adding || !newEmail.includes("@") ? "none" : "0 6px 20px rgba(108,228,192,0.3)" }}
-              onMouseEnter={e => { if (!adding && newEmail.includes("@")) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(108,228,192,0.4)"; } }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = adding || !newEmail.includes("@") ? "none" : "0 6px 20px rgba(108,228,192,0.3)"; }}>
-              {adding
-                ? <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span style={{ width: "12px", height: "12px", border: "2px solid rgba(5,5,8,0.3)", borderTopColor: "#050508", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Adding</span>
-                : "Start Monitoring →"}
+              onMouseEnter={e => { if (!adding && newEmail.includes("@")) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}>
+              {adding ? <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span style={{ width: "12px", height: "12px", border: "2px solid rgba(5,5,8,0.3)", borderTopColor: "#050508", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Adding</span> : "Start Monitoring →"}
             </button>
           </div>
-          {error && (
-            <p style={{ marginTop: "10px", fontSize: "12px", color: "#e05c4b", display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#e05c4b" }} />{error}
-            </p>
-          )}
+          {error && <p style={{ marginTop: "10px", fontSize: "12px", color: "#e05c4b" }}>{error}</p>}
         </div>
       )}
 
-      {/* ── LIMIT BANNER ── */}
+      {/* Limit banner */}
       {atLimit && (
         <div style={{ background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.2)", borderRadius: "12px", padding: "16px 20px", marginBottom: "14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
           <div>
             <p style={{ fontSize: "14px", fontWeight: 700, color: "#e05c4b", marginBottom: "3px" }}>Free limit — 3/3 emails</p>
             <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>Upgrade Pro for unlimited monitoring</p>
           </div>
-          <Link href="/pricing" style={{ padding: "10px 20px", borderRadius: "9px", background: "linear-gradient(135deg, #b47fe8, #6c9ef7)", color: "#fff", fontSize: "13px", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>
-            Upgrade →
-          </Link>
+          <Link href="/pricing" style={{ padding: "10px 20px", borderRadius: "9px", background: "linear-gradient(135deg, #b47fe8, #6c9ef7)", color: "#fff", fontSize: "13px", fontWeight: 700, textDecoration: "none" }}>Upgrade →</Link>
         </div>
       )}
 
-      {/* ── FREE METER ── */}
+      {/* Free meter */}
       {!isPro && entries.length > 0 && (
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
             <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>{entries.length}/3 emails monitored</span>
-            <span style={{ fontSize: "11px", color: atLimit ? "#e05c4b" : "rgba(255,255,255,0.2)" }}>
-              {atLimit ? "Limit reached" : (3 - entries.length) + " slots left"}
-            </span>
+            <span style={{ fontSize: "11px", color: atLimit ? "#e05c4b" : "rgba(255,255,255,0.2)" }}>{atLimit ? "Limit reached" : (3 - entries.length) + " slots left"}</span>
           </div>
           <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", overflow: "hidden" }}>
             <div style={{ height: "100%", width: limitPct + "%", background: atLimit ? "#e05c4b" : "linear-gradient(to right, #6ce4c0, #00d4ff)", borderRadius: "4px", transition: "width 0.5s ease" }} />
@@ -253,7 +232,7 @@ export default function Watchlist() {
         </div>
       )}
 
-      {/* ── LOADING ── */}
+      {/* Loading */}
       {loading && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", padding: "40px" }}>
           <span style={{ width: "16px", height: "16px", border: "2px solid rgba(108,228,192,0.2)", borderTopColor: "#6ce4c0", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -261,20 +240,18 @@ export default function Watchlist() {
         </div>
       )}
 
-      {/* ── EMPTY ── */}
+      {/* Empty */}
       {!loading && entries.length === 0 && (
         <Card hover={false} accent="rgba(108,228,192,0.2)">
           <div style={{ textAlign: "center", padding: "32px 16px" }}>
             <div style={{ fontSize: "48px", marginBottom: "16px", animation: "float 3s ease-in-out infinite" }}>👁</div>
-            <p style={{ fontSize: "18px", fontWeight: 800, color: "#fff", marginBottom: "8px", letterSpacing: "-0.02em" }}>Nothing monitored yet</p>
-            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.4)", lineHeight: 1.65, maxWidth: "300px", margin: "0 auto" }}>
-              Add your emails above to start 24/7 protection.
-            </p>
+            <p style={{ fontSize: "18px", fontWeight: 800, color: "#fff", marginBottom: "8px" }}>Nothing monitored yet</p>
+            <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.4)", lineHeight: 1.65, maxWidth: "300px", margin: "0 auto" }}>Add your emails above to start 24/7 protection.</p>
           </div>
         </Card>
       )}
 
-      {/* ── ENTRIES ── */}
+      {/* Entries */}
       {!loading && entries.map((e, idx) => {
         const isBreached = (e.breachCount ?? 0) > 0;
         const isPending = !e.lastChecked;
@@ -286,71 +263,39 @@ export default function Watchlist() {
         return (
           <div key={e._id || e.email} style={{ marginBottom: "8px", animation: "fade-up 0.4s ease backwards", animationDelay: (idx * 0.06) + "s" }}>
             <Card accent={isBreached ? "rgba(224,92,75,0.4)" : isPending ? "rgba(255,255,255,0.1)" : "rgba(108,228,192,0.3)"}>
-
-              {/* Left color bar */}
               <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "3px", background: statusColor, boxShadow: "0 0 8px " + statusColor, opacity: isPending ? 0.4 : 0.8 }} />
-
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", paddingLeft: "10px" }}>
-
-                {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: statusColor, boxShadow: "0 0 8px " + statusColor, flexShrink: 0, animation: isBreached ? "blink-dot 1.5s infinite" : isPending ? "none" : "soft-glow 3s infinite" }} />
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: statusColor, boxShadow: "0 0 8px " + statusColor, flexShrink: 0, animation: isBreached ? "blink-dot 1.5s infinite" : "none" }} />
                     <p style={{ fontSize: "14px", fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.email}</p>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: isBreached ? "rgba(224,92,75,0.12)" : isPending ? "rgba(255,255,255,0.04)" : "rgba(108,228,192,0.1)", color: statusColor, border: "1px solid " + (isBreached ? "rgba(224,92,75,0.3)" : isPending ? "rgba(255,255,255,0.1)" : "rgba(108,228,192,0.3)"), fontWeight: 800, letterSpacing: "0.08em" }}>
-                      {statusLabel}
-                    </span>
-
-                    {isBreached && (
-                      <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)", fontWeight: 700 }}>
-                        ⚠ {e.breachCount} breach{(e.breachCount ?? 0) > 1 ? "es" : ""}
-                      </span>
-                    )}
-
-                    <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>
-                      {timeAgo(e.lastChecked)}
-                    </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: isBreached ? "rgba(224,92,75,0.12)" : isPending ? "rgba(255,255,255,0.04)" : "rgba(108,228,192,0.1)", color: statusColor, border: "1px solid " + (isBreached ? "rgba(224,92,75,0.3)" : isPending ? "rgba(255,255,255,0.1)" : "rgba(108,228,192,0.3)"), fontWeight: 800, letterSpacing: "0.08em" }}>{statusLabel}</span>
+                    {isBreached && <span style={{ fontSize: "10px", padding: "3px 9px", borderRadius: "5px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)", fontWeight: 700 }}>⚠ {e.breachCount} breach{(e.breachCount ?? 0) > 1 ? "es" : ""}</span>}
+                    <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)" }}>{timeAgo(e.lastChecked)}</span>
                   </div>
-
-                  {/* Next scan countdown */}
-                  <div style={{ marginTop: "6px" }}>
-                    <NextScan lastChecked={e.lastChecked} />
-                  </div>
-
-                  {/* Breach sources */}
+                  <NextScan lastChecked={e.lastChecked} />
                   {isBreached && e.breachSources && e.breachSources.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "8px" }}>
                       {e.breachSources.slice(0, 4).map(s => (
                         <span key={s} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(224,92,75,0.08)", color: "#e05c4b", border: "1px solid rgba(224,92,75,0.2)", fontWeight: 600 }}>{s}</span>
                       ))}
-                      {e.breachSources.length > 4 && (
-                        <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>+{e.breachSources.length - 4} more</span>
-                      )}
+                      {e.breachSources.length > 4 && <span style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "5px", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>+{e.breachSources.length - 4} more</span>}
                     </div>
                   )}
                 </div>
-
-                {/* Actions */}
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                  <button
-                    onClick={() => scan(e.email)}
-                    disabled={isScanning}
+                  <button onClick={() => scan(e.email)} disabled={isScanning}
                     style={{ padding: "9px 14px", fontSize: "12px", fontWeight: 700, color: isScanning ? "rgba(0,212,255,0.4)" : "#00d4ff", background: "rgba(0,212,255,0.07)", border: "1px solid rgba(0,212,255,0.25)", borderRadius: "9px", cursor: isScanning ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.18s", minWidth: "76px", textAlign: "center" }}
-                    onMouseEnter={ev => { if (!isScanning) { ev.currentTarget.style.background = "rgba(0,212,255,0.14)"; ev.currentTarget.style.borderColor = "rgba(0,212,255,0.45)"; } }}
-                    onMouseLeave={ev => { ev.currentTarget.style.background = "rgba(0,212,255,0.07)"; ev.currentTarget.style.borderColor = "rgba(0,212,255,0.25)"; }}>
-                    {isScanning
-                      ? <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><span style={{ width: "10px", height: "10px", border: "1.5px solid rgba(0,212,255,0.2)", borderTopColor: "#00d4ff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Scanning</span>
-                      : "Scan now"}
+                    onMouseEnter={ev => { if (!isScanning) { ev.currentTarget.style.background = "rgba(0,212,255,0.14)"; } }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = "rgba(0,212,255,0.07)"; }}>
+                    {isScanning ? <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><span style={{ width: "10px", height: "10px", border: "1.5px solid rgba(0,212,255,0.2)", borderTopColor: "#00d4ff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />Scanning</span> : "Scan now"}
                   </button>
-                  <button
-                    onClick={() => remove(e.email)}
-                    disabled={isRemoving}
-                    style={{ padding: "9px 12px", fontSize: "12px", fontWeight: 700, color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.2)", borderRadius: "9px", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.18s", opacity: isRemoving ? 0.5 : 1 }}
-                    onMouseEnter={ev => { if (!isRemoving) { ev.currentTarget.style.background = "rgba(224,92,75,0.14)"; ev.currentTarget.style.borderColor = "rgba(224,92,75,0.4)"; } }}
-                    onMouseLeave={ev => { ev.currentTarget.style.background = "rgba(224,92,75,0.06)"; ev.currentTarget.style.borderColor = "rgba(224,92,75,0.2)"; }}>
+                  <button onClick={() => remove(e.email)} disabled={isRemoving}
+                    style={{ padding: "9px 12px", fontSize: "13px", fontWeight: 700, color: "#e05c4b", background: "rgba(224,92,75,0.06)", border: "1px solid rgba(224,92,75,0.2)", borderRadius: "9px", cursor: isRemoving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.18s", opacity: isRemoving ? 0.5 : 1 }}
+                    onMouseEnter={ev => { if (!isRemoving) ev.currentTarget.style.background = "rgba(224,92,75,0.14)"; }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = "rgba(224,92,75,0.06)"; }}>
                     {isRemoving ? "..." : "×"}
                   </button>
                 </div>
@@ -360,8 +305,8 @@ export default function Watchlist() {
         );
       })}
 
-      {/* ── HOW IT WORKS ── */}
-      <Card accent="rgba(180,127,232,0.3)" hover={false} style={{ marginTop: "8px" }}>
+      {/* How it works */}
+      <Card accent="rgba(180,127,232,0.3)" hover={false}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
           <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#b47fe8", boxShadow: "0 0 8px #b47fe8" }} />
           <p style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#b47fe8", textTransform: "uppercase", fontWeight: 700 }}>How monitoring works</p>
@@ -385,7 +330,6 @@ export default function Watchlist() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes soft-glow { 0%,100%{opacity:0.8;transform:scale(1)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes fade-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
       `}</style>
