@@ -57,7 +57,7 @@ function DataStrip({ direction = "left", top, items, speed = 40 }: { direction?:
     <div style={{ position: "absolute", top, left: 0, right: 0, overflow: "hidden", pointerEvents: "none", height: "28px", zIndex: 1 }}>
       <div style={{ display: "flex", gap: "12px", whiteSpace: "nowrap", animation: (direction === "left" ? "scrollLeft " : "scrollRight ") + speed + "s linear infinite", width: "fit-content" }}>
         {[...items, ...items, ...items].map((item, i) => (
-          <span key={i} style={{ fontSize: "10px", color: item.color + "88", fontFamily: "ui-monospace, monospace", padding: "4px 12px", border: "1px solid " + item.color + "20", borderRadius: "6px", background: "linear-gradient(135deg, " + item.color + "08, transparent)", flexShrink: 0, fontWeight: 600, letterSpacing: "0.03em", boxShadow: "0 0 12px " + item.color + "08" }}>{item.text}</span>
+          <span key={i} style={{ fontSize: "10px", color: item.color + "88", fontFamily: "ui-monospace, monospace", padding: "4px 12px", border: "1px solid " + item.color + "20", borderRadius: "6px", background: "linear-gradient(135deg, " + item.color + "08, transparent)", flexShrink: 0, fontWeight: 600, letterSpacing: "0.03em" }}>{item.text}</span>
         ))}
       </div>
     </div>
@@ -73,45 +73,6 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
     return () => obs.disconnect();
   }, []);
   return <div ref={ref} style={{ opacity: inView ? 1 : 0, transform: inView ? "translateY(0)" : "translateY(24px)", transition: "opacity 0.7s ease " + delay + "s, transform 0.7s ease " + delay + "s" }}>{children}</div>;
-}
-
-function NavInner() {
-  const { data: session, status } = useSession();
-  const [scrollY, setScrollY] = useState(0);
-  const isAuth = status === "authenticated" && session?.user?.email;
-  useEffect(() => { const fn = () => setScrollY(window.scrollY); window.addEventListener("scroll", fn); return () => window.removeEventListener("scroll", fn); }, []);
-  return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", background: scrollY > 40 ? "rgba(5,5,8,0.94)" : "transparent", backdropFilter: scrollY > 40 ? "blur(20px)" : "none", borderBottom: scrollY > 40 ? "1px solid rgba(255,255,255,0.07)" : "1px solid transparent", transition: "all 0.3s" }}>
-      <Link href="/" style={{ fontSize: "13px", letterSpacing: "0.22em", fontWeight: 800, textTransform: "uppercase", color: "#fff", textDecoration: "none" }}>ScanMyCreds</Link>
-      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-        <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-          {[{ label: "How It Works", href: "/how-it-works" }, { label: "Features", href: "/features" }, { label: "Pricing", href: "/pricing" }, { label: "Blog", href: "/blog" }].map(n => (
-            <Link key={n.label} href={n.href} style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px", transition: "all 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "transparent"; }}>
-              {n.label}
-            </Link>
-          ))}
-          <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
-          {isAuth
-            ? <Link href="/app/account" style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(255,255,255,0.5)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px", transition: "all 0.2s" }}
-                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "transparent"; }}>
-                <span style={{ width: "20px", height: "20px", borderRadius: "50%", background: "linear-gradient(135deg, #b47fe8, #00d4ff)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#fff", fontWeight: 700 }}>{session?.user?.email?.[0]?.toUpperCase()}</span>
-                Account
-              </Link>
-            : <Link href="/login" style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", textDecoration: "none", padding: "7px 13px", borderRadius: "7px" }}>Sign In</Link>
-          }
-        </div>
-        <Link href={isAuth ? "/app/dashboard" : "/launch"} style={{ padding: "9px 20px", fontSize: "13px", fontWeight: 700, color: "#000", background: "#fff", textDecoration: "none", borderRadius: "9px", boxShadow: "0 0 20px rgba(255,255,255,0.22)", transition: "all 0.25s" }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.5)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.22)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-          {isAuth ? "Dashboard" : "Launch App"}
-        </Link>
-      </div>
-      <style>{`@media (max-width: 640px) { .desktop-nav { display: none !important; } }`}</style>
-    </nav>
-  );
 }
 
 function LandingInner() {
@@ -137,7 +98,6 @@ function LandingInner() {
     return () => clearInterval(t);
   }, [counter !== null]);
 
-  // Animate removal demo
   useEffect(() => {
     if (!mounted) return;
     const t = setInterval(() => setRemovingIdx(i => (i + 1) % 8), 1200);
@@ -156,27 +116,34 @@ function LandingInner() {
   };
 
   const stripTop = [
-    { text: "user@gmail.com", color: "#00d4ff" }, { text: "PWD-LEAKED", color: "#e05c4b" },
-    { text: "555-XXX-XXXX", color: "#ff7d3b" }, { text: "4532-XXXX-XXXX", color: "#e05c4b" },
-    { text: "SSN ###-##-####", color: "#e84393" }, { text: "192.168.1.42", color: "#b47fe8" },
-    { text: "DOB 01/01/1990", color: "#ff7d3b" }, { text: "passport X12345", color: "#e05c4b" },
-    { text: "auth_token=...", color: "#b47fe8" }, { text: "API-KEY=sk_...", color: "#e84393" },
+    { text: "user@gmail.com", color: "#00d4ff" },
+    { text: "PWD-LEAKED", color: "#e05c4b" },
+    { text: "555-XXX-XXXX", color: "#ff7d3b" },
+    { text: "4532-XXXX-XXXX", color: "#e05c4b" },
+    { text: "SSN ###-##-####", color: "#e84393" },
+    { text: "192.168.1.42", color: "#b47fe8" },
+    { text: "DOB 01/01/1990", color: "#ff7d3b" },
+    { text: "passport X12345", color: "#e05c4b" },
+    { text: "auth_token=...", color: "#b47fe8" },
+    { text: "API-KEY=sk_...", color: "#e84393" },
   ];
   const stripBottom = [
-    { text: "Adobe 153M", color: "#e05c4b" }, { text: "LinkedIn 700M", color: "#00d4ff" },
-    { text: "Yahoo 3B", color: "#b47fe8" }, { text: "Equifax 147M", color: "#e05c4b" },
-    { text: "Facebook 533M", color: "#00d4ff" }, { text: "T-Mobile 76M", color: "#e84393" },
-    { text: "AT&T 73M", color: "#e05c4b" }, { text: "Twitter 200M", color: "#6ce4c0" },
-    { text: "MOAB 26B", color: "#ff7d3b" }, { text: "Dropbox 68M", color: "#b47fe8" },
+    { text: "153M records", color: "#e05c4b" },
+    { text: "700M records", color: "#00d4ff" },
+    { text: "3B records", color: "#b47fe8" },
+    { text: "147M records", color: "#e05c4b" },
+    { text: "533M records", color: "#00d4ff" },
+    { text: "76M records", color: "#e84393" },
+    { text: "73M records", color: "#e05c4b" },
+    { text: "26B records", color: "#ff7d3b" },
   ];
 
-  const brokerDemo = ["Spokeo", "Whitepages", "BeenVerified", "Intelius", "FastPeopleSearch", "TruePeopleSearch", "MyLife", "Acxiom"];
+  const agentDemo = ["Data broker #1", "Data broker #2", "Data broker #3", "Data broker #4", "Data broker #5", "Data broker #6", "Data broker #7", "Data broker #8"];
 
   return (
     <div style={{ minHeight: "100vh", background: "#050508", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
       <CursorSpotlight />
-    <PublicNav />
-    
+      <PublicNav />
 
       {/* ── HERO ── */}
       <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 20px 80px", position: "relative" }}>
@@ -207,7 +174,7 @@ function LandingInner() {
         </div>
 
         <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "17px", lineHeight: 1.65, maxWidth: "500px", marginBottom: "36px", textAlign: "center", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(16px)", transition: "all 0.8s ease 0.25s" }}>
-          We automatically remove your personal data from 15+ data broker sites — and monitor your email for new breaches every hour.
+          We automatically remove your personal data from 15+ sites and monitor your email for new breaches every hour.
         </p>
 
         {/* CTAs */}
@@ -224,15 +191,15 @@ function LandingInner() {
           </Link>
         </div>
 
-        {/* Live removal demo */}
-        <div style={{ width: "100%", maxWidth: "480px", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.5s" }}>
+        {/* Live agent demo */}
+        <div style={{ width: "100%", maxWidth: "460px", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.5s" }}>
           <div style={{ background: "rgba(13,13,20,0.9)", border: "1px solid rgba(108,228,192,0.2)", borderRadius: "16px", padding: "16px 20px", backdropFilter: "blur(20px)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
               <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 8px #6ce4c0", animation: "pulse 1.5s infinite" }} />
               <span style={{ fontSize: "11px", fontWeight: 700, color: "#6ce4c0", letterSpacing: "0.1em" }}>AGENT RUNNING LIVE</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {brokerDemo.map((site, i) => {
+              {agentDemo.map((site, i) => {
                 const isDone = i < removingIdx;
                 const isRunning = i === removingIdx;
                 return (
@@ -252,7 +219,11 @@ function LandingInner() {
 
         {/* Stats */}
         <div style={{ display: "flex", alignItems: "center", gap: "36px", marginTop: "40px", flexWrap: "wrap", justifyContent: "center", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.6s" }}>
-          {[{ val: "15+", label: "sites cleaned", color: "#6ce4c0" }, { val: "30d", label: "auto recheck", color: "#b47fe8" }, { val: "Free", label: "to start", color: "#a8e63d" }].map(s => (
+          {[
+            { val: "15+", label: "sites cleaned", color: "#6ce4c0" },
+            { val: "30d", label: "auto recheck", color: "#b47fe8" },
+            { val: "Free", label: "to start", color: "#a8e63d" },
+          ].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
               <p style={{ fontSize: "22px", fontWeight: 900, color: s.color, letterSpacing: "-0.02em", textShadow: "0 0 20px " + s.color + "44" }}>{s.val}</p>
               <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "2px" }}>{s.label}</p>
@@ -263,7 +234,7 @@ function LandingInner() {
         <div style={{ position: "absolute", bottom: "30px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.25em", textTransform: "uppercase", animation: "bounce-down 2s ease-in-out infinite", zIndex: 2 }}>scroll</div>
       </section>
 
-      {/* ── HOW REMOVAL WORKS ── */}
+      {/* ── HOW IT WORKS ── */}
       <section style={{ padding: "80px 20px 60px", maxWidth: "1000px", margin: "0 auto" }}>
         <FadeIn>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
@@ -273,9 +244,9 @@ function LandingInner() {
         </FadeIn>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
           {[
-            { num: "1", icon: "🔍", title: "Scan", desc: "We check your email against 15B+ leaked records and find where your data is exposed.", color: "#00d4ff" },
-            { num: "2", icon: "🤖", title: "Remove", desc: "Our AI agent opens a real browser and submits opt-out requests to 15+ data broker sites automatically.", color: "#6ce4c0" },
-            { num: "3", icon: "↻", title: "Monitor", desc: "We re-check every 30 days and alert you instantly if new breaches appear.", color: "#b47fe8" },
+            { num: "1", icon: "🔍", title: "Scan", desc: "We check your email against 15B+ leaked records and find exactly where your data is exposed.", color: "#00d4ff" },
+            { num: "2", icon: "🤖", title: "Remove", desc: "Our AI agent opens a real browser and submits opt-out requests to 15+ data collection sites automatically.", color: "#6ce4c0" },
+            { num: "3", icon: "↻", title: "Monitor", desc: "We re-check every 30 days and alert you the moment new breaches appear.", color: "#b47fe8" },
           ].map((s, i) => (
             <FadeIn key={s.num} delay={i * 0.15}>
               <div style={{ padding: "28px 24px", borderRadius: "16px", border: "1px solid " + s.color + "30", background: "linear-gradient(135deg, " + s.color + "0d, rgba(13,13,20,0.6))", height: "100%", transition: "all 0.35s ease", cursor: "default", position: "relative", overflow: "hidden" }}
@@ -291,89 +262,28 @@ function LandingInner() {
         </div>
       </section>
 
-      {/* ── BROKER SITES ── */}
-      <section style={{ padding: "60px 20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ maxWidth: "960px", margin: "0 auto" }}>
-          <FadeIn>
-            <div style={{ textAlign: "center", marginBottom: "40px" }}>
-              <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#e05c4b", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>Sites we target</p>
-              <h2 style={{ fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "8px" }}>Your data is on these sites.</h2>
-              <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)" }}>We remove it automatically.</p>
-            </div>
-          </FadeIn>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
-            {[
-              { name: "Spokeo", desc: "Sells phone, address, relatives", color: "#e05c4b", risk: "HIGH" },
-              { name: "Whitepages", desc: "Public records, phone lookup", color: "#6c9ef7", risk: "HIGH" },
-              { name: "BeenVerified", desc: "Background checks, history", color: "#b47fe8", risk: "HIGH" },
-              { name: "Intelius", desc: "People search, criminal records", color: "#ff7d3b", risk: "HIGH" },
-              { name: "FastPeopleSearch", desc: "Address, family members", color: "#00d4ff", risk: "MED" },
-              { name: "TruePeopleSearch", desc: "Free public data search", color: "#a8e63d", risk: "MED" },
-              { name: "Radaris", desc: "Social profiles, location", color: "#c48b20", risk: "MED" },
-              { name: "MyLife", desc: "Reputation scores, history", color: "#e84393", risk: "HIGH" },
-              { name: "Acxiom", desc: "Marketing data, profiling", color: "#6ce4c0", risk: "MED" },
-              { name: "Epsilon", desc: "Ad targeting data", color: "#ff7d3b", risk: "MED" },
-              { name: "ClustrMaps", desc: "Location tracking data", color: "#00d4ff", risk: "LOW" },
-              { name: "PeopleFinder", desc: "Public records search", color: "#b47fe8", risk: "MED" },
-            ].map((b, i) => (
-              <FadeIn key={b.name} delay={i * 0.04}>
-                <div style={{ padding: "16px", borderRadius: "12px", border: "1px solid " + b.color + "20", background: b.color + "06", transition: "all 0.2s", cursor: "default" }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = b.color + "45"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px " + b.color + "15"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = b.color + "20"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <p style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{b.name}</p>
-                    <span style={{ fontSize: "9px", padding: "2px 6px", borderRadius: "4px", background: b.risk === "HIGH" ? "rgba(224,92,75,0.15)" : b.risk === "MED" ? "rgba(196,139,32,0.15)" : "rgba(108,228,192,0.1)", color: b.risk === "HIGH" ? "#e05c4b" : b.risk === "MED" ? "#c48b20" : "#6ce4c0", fontWeight: 800 }}>{b.risk}</span>
-                  </div>
-                  <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>{b.desc}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-          <FadeIn delay={0.2}>
-            <div style={{ textAlign: "center", marginTop: "24px" }}>
-              <Link href={session ? "/app/agent" : "/launch"} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "14px 32px", fontSize: "14px", fontWeight: 700, color: "#050508", background: "#fff", textDecoration: "none", borderRadius: "12px", boxShadow: "0 0 36px rgba(255,255,255,0.3)", transition: "all 0.25s" }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.5)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 36px rgba(255,255,255,0.3)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-                Remove me from all of these →
-              </Link>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* ── VS DELETEME ── */}
-      <section style={{ padding: "60px 20px", maxWidth: "960px", margin: "0 auto" }}>
+      {/* ── WHY US ── */}
+      <section style={{ padding: "60px 20px", maxWidth: "920px", margin: "0 auto" }}>
         <FadeIn>
-          <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#a8e63d", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700, textAlign: "center" }}>Why us</p>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 900, letterSpacing: "-0.04em", textAlign: "center", marginBottom: "40px" }}>DeleteMe charges $129/year.<br />We start free.</h2>
+          <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#b47fe8", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>Why ScanMyCreds</p>
+          <h2 style={{ fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 900, letterSpacing: "-0.04em", marginBottom: "8px" }}>Built right.</h2>
+          <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "15px", marginBottom: "32px" }}>Real protection. No fear-based marketing. No data sold.</p>
         </FadeIn>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
           {[
-            { title: "DeleteMe", price: "$129/year", features: ["Manual removal by humans", "Quarterly reports only", "No breach monitoring", "No AI analysis", "Email support only"], color: "rgba(255,255,255,0.15)", bad: true },
-            { title: "ScanMyCreds", price: "Free → $4.99/mo", features: ["Real AI browser agent", "Hourly breach monitoring", "AI explains every breach", "30-day auto recheck", "Instant email alerts"], color: "#6ce4c0", bad: false },
-          ].map((p, i) => (
-            <FadeIn key={p.title} delay={i * 0.1}>
-              <div style={{ padding: "28px", borderRadius: "16px", border: "1px solid " + (p.bad ? "rgba(255,255,255,0.08)" : "rgba(108,228,192,0.3)"), background: p.bad ? "#0d0d14" : "rgba(108,228,192,0.06)", position: "relative", overflow: "hidden" }}>
-                {!p.bad && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, rgba(108,228,192,0.6), transparent)" }} />}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-                  <p style={{ fontSize: "16px", fontWeight: 800, color: p.bad ? "rgba(255,255,255,0.5)" : "#fff" }}>{p.title}</p>
-                  <p style={{ fontSize: "13px", fontWeight: 700, color: p.bad ? "rgba(255,255,255,0.3)" : p.color }}>{p.price}</p>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {p.features.map(f => (
-                    <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "14px", color: p.bad ? "#e05c4b" : "#6ce4c0", flexShrink: 0 }}>{p.bad ? "✗" : "✓"}</span>
-                      <span style={{ fontSize: "13px", color: p.bad ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.8)" }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                {!p.bad && (
-                  <Link href={session ? "/app/agent" : "/launch"} style={{ display: "block", textAlign: "center", marginTop: "20px", padding: "13px", fontSize: "14px", fontWeight: 700, color: "#050508", background: "#6ce4c0", textDecoration: "none", borderRadius: "10px", boxShadow: "0 6px 20px rgba(108,228,192,0.35)", transition: "all 0.2s" }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 10px 28px rgba(108,228,192,0.5)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(108,228,192,0.35)"; }}>
-                    Start free →
-                  </Link>
-                )}
+            { title: "Real AI browser", desc: "Puppeteer opens actual browser and submits real opt-out forms — not just HTTP requests.", color: "#6ce4c0" },
+            { title: "Hourly monitoring", desc: "We check your email every hour and alert you the moment something new appears.", color: "#00d4ff" },
+            { title: "30-day recheck", desc: "Automatically re-verifies your removals every month to make sure data stays gone.", color: "#b47fe8" },
+            { title: "k-Anonymity", desc: "Your password never leaves your device. We use industry-standard privacy tech.", color: "#a8e63d" },
+            { title: "No data sold", desc: "Subscription-funded. We make money from you, not from selling your data.", color: "#c48b20" },
+            { title: "Cancel anytime", desc: "30-day money back guarantee. No phone calls. No BS.", color: "#e05c4b" },
+          ].map((t, i) => (
+            <FadeIn key={t.title} delay={i * 0.05}>
+              <div style={{ padding: "18px", border: "1px solid " + t.color + "22", borderRadius: "12px", background: t.color + "06", transition: "all 0.3s", cursor: "default" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = t.color + "55"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px " + t.color + "18"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = t.color + "22"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: t.color, marginBottom: "6px" }}>{t.title}</p>
+                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)", lineHeight: 1.55 }}>{t.desc}</p>
               </div>
             </FadeIn>
           ))}
@@ -433,7 +343,6 @@ function LandingInner() {
             <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.35)", textAlign: "center", marginBottom: "40px" }}>No credit card required</p>
           </FadeIn>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px", alignItems: "start" }}>
-            {/* FREE */}
             <FadeIn delay={0.05}>
               <div style={{ background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "28px" }}>
                 <p style={{ fontSize: "11px", letterSpacing: "0.15em", color: "rgba(255,255,255,0.3)", fontWeight: 700, marginBottom: "16px" }}>FREE</p>
@@ -454,10 +363,8 @@ function LandingInner() {
                 </Link>
               </div>
             </FadeIn>
-
-            {/* PRO */}
             <FadeIn delay={0.12}>
-              <div style={{ background: "rgba(108,228,192,0.06)", border: "1px solid rgba(108,228,192,0.3)", borderRadius: "16px", padding: "28px", position: "relative", overflow: "hidden", boxShadow: "0 0 60px rgba(108,228,192,0.06)" }}>
+              <div style={{ background: "rgba(108,228,192,0.06)", border: "1px solid rgba(108,228,192,0.3)", borderRadius: "16px", padding: "28px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, rgba(108,228,192,0.7), transparent)" }} />
                 <div style={{ position: "absolute", top: "14px", right: "16px", padding: "4px 10px", borderRadius: "100px", background: "rgba(168,230,61,0.15)", border: "1px solid rgba(168,230,61,0.3)", fontSize: "9px", color: "#a8e63d", fontWeight: 800, letterSpacing: "0.1em" }}>MOST POPULAR</div>
                 <p style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#6ce4c0", fontWeight: 700, marginBottom: "16px" }}>PRO</p>
@@ -484,8 +391,6 @@ function LandingInner() {
                 </Link>
               </div>
             </FadeIn>
-
-            {/* FAMILY */}
             <FadeIn delay={0.2}>
               <div style={{ background: "rgba(108,158,247,0.06)", border: "1px solid rgba(108,158,247,0.25)", borderRadius: "16px", padding: "28px", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(to right, transparent, rgba(108,158,247,0.5), transparent)" }} />
@@ -604,7 +509,6 @@ function LandingInner() {
         @keyframes particle-rise { 0%{transform:translateY(0) translateX(0);opacity:0} 10%{opacity:0.6} 90%{opacity:0.3} 100%{transform:translateY(-110vh) translateX(30px);opacity:0} }
         @keyframes orbit-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes bounce-down { 0%,100%{transform:translateX(-50%) translateY(0);opacity:0.3} 50%{transform:translateX(-50%) translateY(6px);opacity:0.7} }
-        @media (max-width: 640px) { .desktop-nav{display:none!important} }
       `}</style>
     </div>
   );
