@@ -176,7 +176,6 @@ function LandingInner() {
     <div style={{ minHeight: "100vh", background: "#050508", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
       <CursorSpotlight />
     <PublicNav />
-      <NavInner />
     
 
       {/* ── HERO ── */}
@@ -613,4 +612,4 @@ function LandingInner() {
 
 export default function Landing() {
   return <SessionProvider><LandingInner /></SessionProvider>;
-}ы
+}
