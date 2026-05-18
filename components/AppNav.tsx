@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function AppNav() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [streak, setStreak] = useState<any>(null);
   
@@ -26,16 +27,16 @@ export default function AppNav() {
 
   const currentStreak = streak?.currentStreak ?? 0;
 
-  // Main 5 navigation items
+  // Main navigation items
   const mainNav = [
     { label: "Home", href: "/app/dashboard", icon: "🏠", color: "#6c9ef7" },
     { label: "Check", href: "/app", icon: "🔍", color: "#00d4ff" },
     { label: "Monitor", href: "/app/watchlist", icon: "👁", color: "#6ce4c0" },
     { label: "Protect", href: "/app/checklist", icon: "🛡", color: "#a8e63d" },
     { label: "AI Assistant", href: "/app/ai", icon: "🧠", color: "#b47fe8", pro: true },
-    { label: "Agent", href: "/app/agent", icon: "🤖", color: "#b47fe8" },
+    { label: "Agent", href: "/app/agent", icon: "🤖", color: "#b47fe8", pro: true },
   ];
-  
+
 
   // More tools (smaller, dimmed)
   const moreTools = [
@@ -64,12 +65,23 @@ export default function AppNav() {
       return <span style={{ fontSize: "9px", letterSpacing: "0.08em", color: "#000", background: "#a8e63d", padding: "2px 5px", borderRadius: "4px", fontWeight: 700 }}>NEW</span>;
     }
     if (tab.pro && !isPro) {
-      return <span style={{ fontSize: "9px", letterSpacing: "0.08em", color: "#6c9ef7", background: "rgba(108,158,247,0.12)", border: "1px solid rgba(108,158,247,0.25)", padding: "2px 5px", borderRadius: "4px", fontWeight: 700 }}>PRO</span>;
+      return <span style={{ fontSize: "9px", letterSpacing: "0.08em", color: "#b47fe8", background: "rgba(180,127,232,0.2)", padding: "2px 5px", borderRadius: "4px", fontWeight: 700 }}>PRO</span>;
     }
     if (tab.family && !isFamily) {
       return <span style={{ fontSize: "9px", letterSpacing: "0.08em", color: "#b47fe8", background: "rgba(180,127,232,0.12)", border: "1px solid rgba(180,127,232,0.25)", padding: "2px 5px", borderRadius: "4px", fontWeight: 700 }}>FAMILY</span>;
     }
     return null;
+  };
+
+  // Special handling for Agent — locked behind Pro
+  const handleAgentClick = (e: React.MouseEvent) => {
+    if (!isPro) {
+      e.preventDefault();
+      setMenuOpen(false);
+      router.push("/pricing");
+    } else {
+      setMenuOpen(false);
+    }
   };
 
   return (
@@ -97,12 +109,21 @@ export default function AppNav() {
             </div>
 
             <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
-              {/* Main 5 navigation */}
+              {/* Main navigation */}
               <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "20px" }}>
                 {mainNav.map((tab, i) => {
                   const active = isActive(tab.href);
+                  const isAgent = tab.href === "/app/agent";
+                  const isLocked = tab.pro && !isPro;
+
+                  const iconColor = isLocked ? "rgba(255,255,255,0.3)" : tab.color;
+                  const textColor = active ? "#fff" : (isLocked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.9)");
+
                   return (
-                    <Link key={tab.href} href={tab.href} onClick={() => setMenuOpen(false)}
+                    <Link
+                      key={tab.href}
+                      href={isAgent && isLocked ? "/pricing" : tab.href}
+                      onClick={isAgent ? handleAgentClick : () => setMenuOpen(false)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -121,8 +142,8 @@ export default function AppNav() {
                       onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; } }}
                     >
                       <span style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ fontSize: "20px", lineHeight: 1, filter: active ? "drop-shadow(0 0 8px " + tab.color + ")" : "none" }}>{tab.icon}</span>
-                        <span style={{ fontSize: "15px", fontWeight: 600, color: active ? "#fff" : "rgba(255,255,255,0.9)" }}>{tab.label}</span>
+                        <span style={{ fontSize: "20px", lineHeight: 1, filter: active && !isLocked ? "drop-shadow(0 0 8px " + tab.color + ")" : "none", opacity: isLocked ? 0.5 : 1, color: iconColor }}>{tab.icon}</span>
+                        <span style={{ fontSize: "15px", fontWeight: 600, color: textColor }}>{tab.label}</span>
                       </span>
                       {renderBadge(tab)}
                     </Link>

@@ -15,9 +15,12 @@ export default function PageShell({
   title,
   subtitle,
   children,
-  maxWidth = 640,
+  maxWidth = 760,
   accent = "#b47fe8",
 }: PageShellProps) {
+  // strip leading "●" since we render our own dot
+  const cleanEyebrow = eyebrow.replace(/^●\s*/, "").trim();
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -35,7 +38,7 @@ export default function PageShell({
         left: 0,
         right: 0,
         height: "500px",
-        background: "radial-gradient(ellipse at top, " + accent + "18, transparent 70%)",
+        background: "radial-gradient(ellipse at top, " + accent + "14, transparent 70%)",
         pointerEvents: "none",
         zIndex: 0,
       }} />
@@ -50,47 +53,48 @@ export default function PageShell({
       <div style={{
         maxWidth: maxWidth + "px",
         margin: "0 auto",
-        padding: "24px 20px 80px",
+        padding: "32px 20px 60px",
         position: "relative",
         zIndex: 1,
       }}>
         {/* Page header */}
         <div style={{ marginBottom: "28px", animation: "shell-fade-in 0.5s ease" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+          <div style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            marginBottom: "10px",
+            color: accent,
+          }}>
             <span style={{
-              width: "5px",
-              height: "5px",
+              width: "7px",
+              height: "7px",
               borderRadius: "50%",
               background: accent,
-              boxShadow: "0 0 8px " + accent,
-              animation: "blink-dot 2s ease infinite",
+              animation: "blink-dot 1.5s ease infinite",
             }} />
-            <p style={{
-              fontSize: "10px",
-              letterSpacing: "0.28em",
-              color: accent,
-              textTransform: "uppercase",
-              fontWeight: 700,
-            }}>
-              {eyebrow}
-            </p>
+            {cleanEyebrow}
           </div>
           <h1 style={{
-            fontSize: "clamp(26px, 6vw, 48px)",
+            fontSize: "clamp(26px, 5vw, 40px)",
             fontWeight: 900,
-            letterSpacing: "-0.04em",
+            letterSpacing: "-0.02em",
             color: "#fff",
             lineHeight: 1.05,
+            marginBottom: "8px",
           }}>
             {title}
           </h1>
           {subtitle && (
             <p style={{
               fontSize: "15px",
-              color: "rgba(255,255,255,0.5)",
-              marginTop: "10px",
-              lineHeight: 1.6,
-              maxWidth: "560px",
+              color: "rgba(255,255,255,0.45)",
+              lineHeight: 1.55,
+              maxWidth: "480px",
             }}>
               {subtitle}
             </p>
@@ -98,27 +102,27 @@ export default function PageShell({
         </div>
 
         {children}
-      </div>
 
-      {/* Footer */}
-      <div style={{
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        padding: "20px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        fontSize: "12px",
-        color: "rgba(255,255,255,0.25)",
-        background: "#050508",
-        position: "relative",
-        zIndex: 1,
-      }}>
-        <span style={{ fontWeight: 600, letterSpacing: "0.05em" }}>ScanMyCreds</span>
-        <span>🔒 Encrypted &amp; private</span>
+        {/* In-content footer (Rule 5) */}
+        <div style={{
+          marginTop: "60px",
+          padding: "20px 0",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "8px",
+          fontSize: "12px",
+          color: "rgba(255,255,255,0.2)",
+        }}>
+          <span>ScanMyCreds</span>
+          <span>🔒 Encrypted &amp; private</span>
+        </div>
       </div>
 
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; }
         @keyframes shell-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
         @keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

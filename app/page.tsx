@@ -52,18 +52,6 @@ function OrbitalRings() {
   );
 }
 
-function DataStrip({ direction = "left", top, items, speed = 40 }: { direction?: "left" | "right"; top: string; items: { text: string; color: string }[]; speed?: number }) {
-  return (
-    <div style={{ position: "absolute", top, left: 0, right: 0, overflow: "hidden", pointerEvents: "none", height: "28px", zIndex: 1 }}>
-      <div style={{ display: "flex", gap: "12px", whiteSpace: "nowrap", animation: (direction === "left" ? "scrollLeft " : "scrollRight ") + speed + "s linear infinite", width: "fit-content" }}>
-        {[...items, ...items, ...items].map((item, i) => (
-          <span key={i} style={{ fontSize: "10px", color: item.color + "88", fontFamily: "ui-monospace, monospace", padding: "4px 12px", border: "1px solid " + item.color + "20", borderRadius: "6px", background: "linear-gradient(135deg, " + item.color + "08, transparent)", flexShrink: 0, fontWeight: 600, letterSpacing: "0.03em" }}>{item.text}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -83,7 +71,6 @@ function LandingInner() {
   const [counter, setCounter] = useState<number | null>(null);
   const [articles, setArticles] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
-  const [removingIdx, setRemovingIdx] = useState(-1);
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -98,12 +85,6 @@ function LandingInner() {
     return () => clearInterval(t);
   }, [counter !== null]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    const t = setInterval(() => setRemovingIdx(i => (i + 1) % 8), 1200);
-    return () => clearInterval(t);
-  }, [mounted]);
-
   const runScan = async () => {
     if (!email.includes("@")) return;
     setScanning(true); setResult(null);
@@ -114,31 +95,6 @@ function LandingInner() {
     } catch { setResult({ breached: false, breachCount: 0, breachSources: [] }); }
     setScanning(false);
   };
-
-  const stripTop = [
-    { text: "user@gmail.com", color: "#00d4ff" },
-    { text: "PWD-LEAKED", color: "#e05c4b" },
-    { text: "555-XXX-XXXX", color: "#ff7d3b" },
-    { text: "4532-XXXX-XXXX", color: "#e05c4b" },
-    { text: "SSN ###-##-####", color: "#e84393" },
-    { text: "192.168.1.42", color: "#b47fe8" },
-    { text: "DOB 01/01/1990", color: "#ff7d3b" },
-    { text: "passport X12345", color: "#e05c4b" },
-    { text: "auth_token=...", color: "#b47fe8" },
-    { text: "API-KEY=sk_...", color: "#e84393" },
-  ];
-  const stripBottom = [
-    { text: "153M records", color: "#e05c4b" },
-    { text: "700M records", color: "#00d4ff" },
-    { text: "3B records", color: "#b47fe8" },
-    { text: "147M records", color: "#e05c4b" },
-    { text: "533M records", color: "#00d4ff" },
-    { text: "76M records", color: "#e84393" },
-    { text: "73M records", color: "#e05c4b" },
-    { text: "26B records", color: "#ff7d3b" },
-  ];
-
-  const agentDemo = ["Data broker #1", "Data broker #2", "Data broker #3", "Data broker #4", "Data broker #5", "Data broker #6", "Data broker #7", "Data broker #8"];
 
   return (
     <div style={{ minHeight: "100vh", background: "#050508", color: "#fff", fontFamily: "'DM Sans', system-ui, sans-serif", overflowX: "hidden" }}>
@@ -156,8 +112,6 @@ function LandingInner() {
         {[{ t:"8%",l:"5%",c:"#fff",s:2.5 },{ t:"15%",l:"85%",c:"#b47fe8",s:3 },{ t:"25%",l:"15%",c:"#00d4ff",s:1.5 },{ t:"35%",l:"75%",c:"#fff",s:1 },{ t:"50%",l:"10%",c:"#a8e63d",s:2.5 },{ t:"65%",l:"90%",c:"#fff",s:1 },{ t:"12%",l:"52%",c:"#6ce4c0",s:2 },{ t:"75%",l:"40%",c:"#e84393",s:3 },{ t:"22%",l:"35%",c:"#fff",s:1.5 },{ t:"48%",l:"62%",c:"#b47fe8",s:1.5 },{ t:"80%",l:"18%",c:"#00d4ff",s:2 },{ t:"5%",l:"68%",c:"#ff7d3b",s:2 }].map((s, i) => (
           <span key={i} style={{ position: "absolute", top: s.t, left: s.l, width: s.s + "px", height: s.s + "px", borderRadius: "50%", background: s.c, boxShadow: "0 0 " + (s.s * 4) + "px " + s.c, animation: "twinkle " + (3 + (i % 4)) + "s ease-in-out infinite", animationDelay: (i * 0.3) + "s" }} />
         ))}
-        <DataStrip direction="left" top="12%" items={stripTop} speed={55} />
-        <DataStrip direction="right" top="84%" items={stripBottom} speed={42} />
 
         {/* Badge */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "6px 16px 6px 10px", border: "1px solid rgba(108,228,192,0.3)", borderRadius: "100px", marginBottom: "28px", background: "rgba(108,228,192,0.06)", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(-8px)", transition: "all 0.6s ease", backdropFilter: "blur(10px)" }}>
@@ -173,8 +127,8 @@ function LandingInner() {
           </h1>
         </div>
 
-        <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "17px", lineHeight: 1.65, maxWidth: "500px", marginBottom: "36px", textAlign: "center", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(16px)", transition: "all 0.8s ease 0.25s" }}>
-          We automatically remove your personal data from 15+ sites and monitor your email for new breaches every hour.
+        <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "17px", lineHeight: 1.65, maxWidth: "540px", marginBottom: "36px", textAlign: "center", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(16px)", transition: "all 0.8s ease 0.25s" }}>
+          We remove your personal data from people search sites, data broker databases, and background check services — and monitor your email for new breaches.
         </p>
 
         {/* CTAs */}
@@ -182,53 +136,13 @@ function LandingInner() {
           <Link href={session ? "/app/agent" : "/launch"} style={{ padding: "18px 36px", fontSize: "16px", fontWeight: 800, color: "#050508", background: "#fff", textDecoration: "none", borderRadius: "14px", boxShadow: "0 0 40px rgba(255,255,255,0.35)", transition: "all 0.25s" }}
             onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 70px rgba(255,255,255,0.6)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 40px rgba(255,255,255,0.35)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            🤖 Remove me now — free
+            Remove me from the internet →
           </Link>
           <Link href="/launch" style={{ padding: "18px 28px", fontSize: "15px", fontWeight: 700, color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", borderRadius: "14px", transition: "all 0.25s" }}
             onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
             onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}>
             Check for breaches →
           </Link>
-        </div>
-
-        {/* Live agent demo */}
-        <div style={{ width: "100%", maxWidth: "460px", position: "relative", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.5s" }}>
-          <div style={{ background: "rgba(13,13,20,0.9)", border: "1px solid rgba(108,228,192,0.2)", borderRadius: "16px", padding: "16px 20px", backdropFilter: "blur(20px)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#6ce4c0", boxShadow: "0 0 8px #6ce4c0", animation: "pulse 1.5s infinite" }} />
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#6ce4c0", letterSpacing: "0.1em" }}>AGENT RUNNING LIVE</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {agentDemo.map((site, i) => {
-                const isDone = i < removingIdx;
-                const isRunning = i === removingIdx;
-                return (
-                  <div key={site} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "7px 10px", borderRadius: "8px", background: isRunning ? "rgba(108,228,192,0.06)" : "transparent", transition: "all 0.3s" }}>
-                    <div style={{ width: "16px", height: "16px", borderRadius: "5px", background: isDone ? "rgba(108,228,192,0.15)" : isRunning ? "rgba(180,127,232,0.15)" : "rgba(255,255,255,0.04)", border: "1px solid " + (isDone ? "rgba(108,228,192,0.3)" : isRunning ? "rgba(180,127,232,0.3)" : "rgba(255,255,255,0.08)"), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "9px", transition: "all 0.3s" }}>
-                      {isDone ? <span style={{ color: "#6ce4c0" }}>✓</span> : isRunning ? <span style={{ width: "7px", height: "7px", border: "1.5px solid rgba(180,127,232,0.3)", borderTopColor: "#b47fe8", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "block" }} /> : null}
-                    </div>
-                    <span style={{ fontSize: "12px", color: isDone ? "#6ce4c0" : isRunning ? "#fff" : "rgba(255,255,255,0.3)", fontWeight: isDone || isRunning ? 600 : 400, transition: "all 0.3s" }}>{site}</span>
-                    {isDone && <span style={{ marginLeft: "auto", fontSize: "10px", color: "#6ce4c0", fontWeight: 700 }}>Removed</span>}
-                    {isRunning && <span style={{ marginLeft: "auto", fontSize: "10px", color: "#b47fe8", fontWeight: 700, animation: "pulse 1s infinite" }}>Running...</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: "flex", alignItems: "center", gap: "36px", marginTop: "40px", flexWrap: "wrap", justifyContent: "center", zIndex: 2, opacity: mounted ? 1 : 0, transition: "opacity 0.8s ease 0.6s" }}>
-          {[
-            { val: "15+", label: "sites cleaned", color: "#6ce4c0" },
-            { val: "30d", label: "auto recheck", color: "#b47fe8" },
-            { val: "Free", label: "to start", color: "#a8e63d" },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "22px", fontWeight: 900, color: s.color, letterSpacing: "-0.02em", textShadow: "0 0 20px " + s.color + "44" }}>{s.val}</p>
-              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "2px" }}>{s.label}</p>
-            </div>
-          ))}
         </div>
 
         <div style={{ position: "absolute", bottom: "30px", left: "50%", transform: "translateX(-50%)", fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.25em", textTransform: "uppercase", animation: "bounce-down 2s ease-in-out infinite", zIndex: 2 }}>scroll</div>
@@ -245,7 +159,7 @@ function LandingInner() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
           {[
             { num: "1", icon: "🔍", title: "Scan", desc: "We check your email against 15B+ leaked records and find exactly where your data is exposed.", color: "#00d4ff" },
-            { num: "2", icon: "🤖", title: "Remove", desc: "Our AI agent opens a real browser and submits opt-out requests to 15+ data collection sites automatically.", color: "#6ce4c0" },
+            { num: "2", icon: "🤖", title: "Remove", desc: "Our automated agent opens a real browser and submits opt-out requests across people search sites, data broker databases, and background check sites.", color: "#6ce4c0" },
             { num: "3", icon: "↻", title: "Monitor", desc: "We re-check every 30 days and alert you the moment new breaches appear.", color: "#b47fe8" },
           ].map((s, i) => (
             <FadeIn key={s.num} delay={i * 0.15}>
@@ -271,7 +185,7 @@ function LandingInner() {
         </FadeIn>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
           {[
-            { title: "Real AI browser", desc: "Puppeteer opens actual browser and submits real opt-out forms — not just HTTP requests.", color: "#6ce4c0" },
+            { title: "Real browser automation", desc: "Puppeteer opens an actual browser and submits real opt-out forms — not just HTTP requests.", color: "#6ce4c0" },
             { title: "Hourly monitoring", desc: "We check your email every hour and alert you the moment something new appears.", color: "#00d4ff" },
             { title: "30-day recheck", desc: "Automatically re-verifies your removals every month to make sure data stays gone.", color: "#b47fe8" },
             { title: "k-Anonymity", desc: "Your password never leaves your device. We use industry-standard privacy tech.", color: "#a8e63d" },
@@ -295,7 +209,7 @@ function LandingInner() {
         <div style={{ maxWidth: "560px", margin: "0 auto" }}>
           <FadeIn>
             <div style={{ textAlign: "center", marginBottom: "28px" }}>
-              <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#00d4ff", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>Free breach check</p>
+              <p style={{ fontSize: "10px", letterSpacing: "0.28em", color: "#00d4ff", textTransform: "uppercase", marginBottom: "12px", fontWeight: 700 }}>Breach check</p>
               <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: "-0.04em" }}>Are you already exposed?</h2>
             </div>
           </FadeIn>
@@ -307,7 +221,7 @@ function LandingInner() {
                   style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid " + (inputFocus ? "rgba(180,127,232,0.4)" : "rgba(255,255,255,0.08)"), color: "#fff", fontSize: "16px", padding: "15px 18px", outline: "none", borderRadius: "12px", marginBottom: "8px", boxSizing: "border-box", fontFamily: "inherit", transition: "all 0.25s" }} />
                 <button onClick={runScan} disabled={scanning || !email.includes("@")}
                   style={{ width: "100%", padding: "15px", fontSize: "15px", fontWeight: 700, color: "#000", background: scanning || !email.includes("@") ? "rgba(255,255,255,0.4)" : "#fff", border: "none", borderRadius: "12px", cursor: scanning || !email.includes("@") ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.25s", boxShadow: scanning || !email.includes("@") ? "none" : "0 0 40px rgba(255,255,255,0.3)" }}>
-                  {scanning ? <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span style={{ width: "14px", height: "14px", border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Scanning...</span> : "Check for breaches — free"}
+                  {scanning ? <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><span style={{ width: "14px", height: "14px", border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Scanning...</span> : "Check for breaches"}
                 </button>
                 <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: "10px" }}>15B+ records · k-Anonymity · No account needed</p>
                 {result && (
@@ -349,7 +263,7 @@ function LandingInner() {
                 <p style={{ fontSize: "44px", fontWeight: 900, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: "6px" }}>$0</p>
                 <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", marginBottom: "22px" }}>forever, no card needed</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginBottom: "24px" }}>
-                  {["1 data removal run", "5 breach scans/day", "3 monitored emails", "Basic breach report"].map(f => (
+                  {["5 breach scans/day", "3 monitored emails", "Basic breach report", "Action plan checklist"].map(f => (
                     <div key={f} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                       <span style={{ color: "rgba(255,255,255,0.25)", flexShrink: 0 }}>✓</span>
                       <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{f}</span>
@@ -359,7 +273,7 @@ function LandingInner() {
                 <Link href="/launch" style={{ display: "block", textAlign: "center", padding: "13px", fontSize: "14px", fontWeight: 700, color: "rgba(255,255,255,0.7)", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "10px", textDecoration: "none", transition: "all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#fff"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}>
-                  Get Started Free
+                  Get Started
                 </Link>
               </div>
             </FadeIn>
@@ -377,7 +291,7 @@ function LandingInner() {
                   <span style={{ fontSize: "10px", color: "#050508", background: "#a8e63d", padding: "2px 7px", borderRadius: "4px", fontWeight: 800 }}>FOUNDER PRICE</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginBottom: "24px" }}>
-                  {["Unlimited removal runs", "Unlimited scans", "Unlimited monitored emails", "AI breach analyst", "Hourly breach monitoring", "30-day auto recheck", "Priority support"].map(f => (
+                  {["Automated removal from 15 sites", "Unlimited scans", "Unlimited monitored emails", "Smart breach analyst", "Hourly breach monitoring", "30-day auto recheck", "Priority support"].map(f => (
                     <div key={f} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                       <span style={{ color: "#6ce4c0", flexShrink: 0 }}>✓</span>
                       <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)" }}>{f}</span>
@@ -469,11 +383,11 @@ function LandingInner() {
             <span style={{ display: "block", color: "#fff" }}>Erase yourself</span>
             <span style={{ display: "block", background: "linear-gradient(110deg, #6ce4c0, #00d4ff, #b47fe8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundSize: "200% 200%", animation: "gradShift 5s ease infinite" }}>right now.</span>
           </h2>
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "15px", marginBottom: "32px", position: "relative", zIndex: 2 }}>Free · 2 minutes · No signup needed</p>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "15px", marginBottom: "32px", position: "relative", zIndex: 2 }}>2 minutes · Stop your data being sold</p>
           <Link href={session ? "/app/agent" : "/launch"} style={{ display: "inline-block", padding: "18px 48px", fontSize: "16px", fontWeight: 800, color: "#050508", background: "#fff", textDecoration: "none", borderRadius: "14px", boxShadow: "0 0 60px rgba(255,255,255,0.5)", transition: "all 0.25s", position: "relative", zIndex: 2 }}
             onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 100px rgba(255,255,255,0.7)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 60px rgba(255,255,255,0.5)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            🤖 Remove me from the internet →
+            Remove me from the internet →
           </Link>
         </FadeIn>
       </section>
@@ -503,8 +417,6 @@ function LandingInner() {
         @keyframes auroraShift { 0%,100%{transform:translate(-50%,-50%) scale(1) rotate(0deg);opacity:1} 33%{transform:translate(-50%,-50%) scale(1.15) rotate(8deg);opacity:0.85} 66%{transform:translate(-50%,-50%) scale(1.05) rotate(-6deg);opacity:0.95} }
         @keyframes auroraDrift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,-40px)} }
         @keyframes gridPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        @keyframes scrollLeft { from{transform:translateX(0)} to{transform:translateX(-33.33%)} }
-        @keyframes scrollRight { from{transform:translateX(-33.33%)} to{transform:translateX(0)} }
         @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
         @keyframes particle-rise { 0%{transform:translateY(0) translateX(0);opacity:0} 10%{opacity:0.6} 90%{opacity:0.3} 100%{transform:translateY(-110vh) translateX(30px);opacity:0} }
         @keyframes orbit-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
